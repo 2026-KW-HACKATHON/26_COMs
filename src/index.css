@@ -1,0 +1,12 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* 추가적으로 바디 스크롤 및 탭 하이라이트 방지 스타일 (원래 있던 코드) */
+body {
+  overscroll-behavior-y: none;
+  -webkit-tap-highlight-color: transparent;
+}
+::-webkit-scrollbar {
+  display: none;
+}
