@@ -10,3 +10,11 @@ body {
 ::-webkit-scrollbar {
   display: none;
 }
+
+/* 지도: 축소 상태에서는 가게 이름 라벨을 숨기고 선택된 가게만 표시 */
+.map-hide-labels .place-label:not(.place-label-always) {
+  display: none;
+}
+.leaflet-container {
+  font-family: inherit;
+}
