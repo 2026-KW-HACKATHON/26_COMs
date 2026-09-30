@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import CapsuleThumb from '../components/CapsuleThumb';
 import { useCapsules } from '../hooks/useCapsules';
+import { STORAGE_MODE } from '../lib/capsuleStore';
 import { formatDate } from '../lib/format';
 
 export default function MyLog() {
@@ -15,6 +16,9 @@ export default function MyLog() {
         <h2 className="font-headline-md text-headline-md text-on-surface">내 영상</h2>
         <span className="font-label-md text-label-md text-on-surface-variant">{capsules.length}개</span>
       </div>
+      {STORAGE_MODE === 'device' && (
+        <p className="-mt-1 mb-3 font-label-sm text-label-sm text-on-surface-variant">영상은 이 기기 브라우저에만 저장돼요.</p>
+      )}
 
       {capsules.length === 0 ? (
         <div className="flex flex-col items-center text-center py-14 px-6 rounded-2xl bg-surface-container-low text-on-surface-variant">

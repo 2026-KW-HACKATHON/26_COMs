@@ -1,6 +1,9 @@
 // 장소에 남기는 기억은 "5초 영상" 하나다.
 export const CLIP_SECONDS = 5;
 
+/** 기기 저장(IndexedDB)은 파일(Blob) 그대로, 서버 저장은 재생용 URL */
+export type Media = Blob | string;
+
 export interface Capsule {
   id: string;
   placeId: string;
@@ -9,10 +12,16 @@ export interface Capsule {
   lat: number;
   lng: number;
   /** 원본 영상. 앨범 영상이 5초보다 길면 clipStart부터 clipDuration만큼만 재생한다. */
-  video: Blob;
+  video: Media;
   clipStart: number;
   clipDuration: number;
   /** 목록·지도용 썸네일 (JPEG) */
-  thumbnail: Blob | null;
+  thumbnail: Media | null;
   createdAt: number;
 }
+
+/** 새로 남길 기록. 저장 전이라 영상·썸네일은 항상 파일이다. */
+export type NewCapsule = Omit<Capsule, 'id' | 'createdAt' | 'video' | 'thumbnail'> & {
+  video: Blob;
+  thumbnail: Blob | null;
+};
