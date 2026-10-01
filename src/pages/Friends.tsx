@@ -1,0 +1,210 @@
+import { useEffect, useState, type ReactNode } from 'react';
+import { useNavigate } from 'react-router-dom';
+import Avatar from '../components/Avatar';
+import { useAuth } from '../hooks/useAuth';
+import { useFriendships } from '../hooks/useFriendships';
+import { removeFriend, requestFriend, searchProfiles } from '../lib/social';
+import type { FriendStatus, ProfileWithStatus } from '../types/social';
+
+function PersonRow({ person, children }: { person: ProfileWithStatus; children: ReactNode }) {
+  return (
+    <li className="flex items-center gap-3 py-2.5">
+      <Avatar profile={person} size={44} />
+      <div className="flex-1 min-w-0">
+        <p className="font-label-lg text-label-lg text-on-surface font-bold truncate">{person.displayName}</p>
+        <p className="font-label-sm text-label-sm text-on-surface-variant truncate">@{person.username}</p>
+      </div>
+      <div className="flex items-center gap-1.5 shrink-0">{children}</div>
+    </li>
+  );
+}
+
+const primaryButton = 'h-9 px-3 rounded-lg bg-primary text-on-primary font-label-md text-label-md font-bold disabled:opacity-50';
+const secondaryButton = 'h-9 px-3 rounded-lg bg-surface-container text-on-surface font-label-md text-label-md disabled:opacity-50';
+
+export default function Friends() {
+  const navigate = useNavigate();
+  const { profile } = useAuth();
+  const { list, reload } = useFriendships();
+  const [query, setQuery] = useState('');
+  const [results, setResults] = useState<{ q: string; list: ProfileWithStatus[] } | null>(null);
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [error, setError] = useState('');
+  const [copied, setCopied] = useState(false);
+
+  const q = query.trim();
+  const searching = q.replace(/^@/, '').length >= 2;
+
+  useEffect(() => {
+    if (!searching) return;
+    let alive = true;
+    // 입력이 멈추면 검색
+    const timer = setTimeout(() => {
+      searchProfiles(q)
+        .then((found) => alive && setResults({ q, list: found }))
+        .catch((err) => {
+          console.error(err);
+          if (alive) setResults({ q, list: [] });
+        });
+    }, 250);
+    return () => {
+      alive = false;
+      clearTimeout(timer);
+    };
+  }, [q, searching]);
+
+  const act = async (person: ProfileWithStatus, action: 'request' | 'remove') => {
+    if (action === 'remove' && person.status === 'friend' && !confirm(`${person.displayName}님과 친구를 끊을까요? 서로의 지도를 더 이상 볼 수 없어요.`)) return;
+    setBusyId(person.id);
+    setError('');
+    try {
+      let status: FriendStatus = 'none';
+      if (action === 'request') status = await requestFriend(person.id);
+      else await removeFriend(person.id);
+      setResults((r) => r && { ...r, list: r.list.map((p) => (p.id === person.id ? { ...p, status } : p)) });
+      reload();
+    } catch (err) {
+      console.error(err);
+      setError('처리하지 못했어요. 잠시 후 다시 시도해 주세요.');
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const copyMyId = async () => {
+    if (!profile) return;
+    try {
+      await navigator.clipboard.writeText(`@${profile.username}`);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      // 클립보드를 못 쓰는 환경이면 화면의 아이디를 보고 알려 주면 된다
+    }
+  };
+
+  const actions = (person: ProfileWithStatus) => {
+    const busy = busyId === person.id;
+    switch (person.status) {
+      case 'none':
+        return <button onClick={() => act(person, 'request')} disabled={busy} className={primaryButton} type="button">친구 추가</button>;
+      case 'outgoing':
+        return <button onClick={() => act(person, 'remove')} disabled={busy} className={secondaryButton} type="button">요청 취소</button>;
+      case 'incoming':
+        return (
+          <>
+            <button onClick={() => act(person, 'request')} disabled={busy} className={primaryButton} type="button">수락</button>
+            <button onClick={() => act(person, 'remove')} disabled={busy} className={secondaryButton} type="button">거절</button>
+          </>
+        );
+      case 'friend':
+        return (
+          <>
+            <button onClick={() => navigate(`/?user=${person.id}`)} className={secondaryButton} type="button">지도 보기</button>
+            <button
+              onClick={() => act(person, 'remove')}
+              disabled={busy}
+              className="w-9 h-9 rounded-lg bg-surface-container text-on-surface-variant flex items-center justify-center disabled:opacity-50"
+              type="button"
+              aria-label={`${person.displayName}님과 친구 끊기`}
+            >
+              <span className="material-symbols-outlined text-[18px]">person_remove</span>
+            </button>
+          </>
+        );
+    }
+  };
+
+  const incoming = list?.filter((p) => p.status === 'incoming') ?? [];
+  const friends = list?.filter((p) => p.status === 'friend') ?? [];
+  const outgoing = list?.filter((p) => p.status === 'outgoing') ?? [];
+  const shownResults = results?.q === q ? results.list : null;
+
+  return (
+    <div className="flex flex-col w-full pb-6 pt-3 gap-5">
+      {profile && (
+        <button onClick={copyMyId} className="flex items-center gap-3 px-4 py-3 rounded-2xl bg-surface-container-low text-left" type="button">
+          <span className="material-symbols-outlined text-primary text-[22px]">badge</span>
+          <span className="flex-1 min-w-0">
+            <span className="block font-label-sm text-label-sm text-on-surface-variant">내 아이디 (친구에게 알려 주세요)</span>
+            <span className="block font-label-lg text-label-lg text-on-surface font-bold truncate">@{profile.username}</span>
+          </span>
+          <span className="font-label-sm text-label-sm text-primary font-bold">{copied ? '복사됨' : '복사'}</span>
+        </button>
+      )}
+
+      <section className="flex flex-col gap-2">
+        <div className="flex items-center gap-2 px-3 h-11 rounded-xl bg-surface-container-lowest shadow-sm">
+          <span className="material-symbols-outlined text-[20px] text-on-surface-variant">search</span>
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="아이디 또는 이름으로 친구 찾기"
+            className="flex-1 min-w-0 bg-transparent outline-none font-body-md text-body-md text-on-surface placeholder:text-outline/70"
+          />
+          {query && (
+            <button onClick={() => setQuery('')} className="w-7 h-7 flex items-center justify-center text-on-surface-variant" type="button" aria-label="지우기">
+              <span className="material-symbols-outlined text-[18px]">close</span>
+            </button>
+          )}
+        </div>
+        {searching && (
+          shownResults === null ? (
+            <p className="px-1 font-label-md text-label-md text-on-surface-variant">찾는 중…</p>
+          ) : shownResults.length === 0 ? (
+            <p className="px-1 font-label-md text-label-md text-on-surface-variant">찾는 사람이 없어요. 아이디를 다시 확인해 주세요.</p>
+          ) : (
+            <ul className="px-1 divide-y divide-outline-variant/30">
+              {shownResults.map((p) => (
+                <PersonRow key={p.id} person={p}>{actions(p)}</PersonRow>
+              ))}
+            </ul>
+          )
+        )}
+        {query && !searching && <p className="px-1 font-label-md text-label-md text-on-surface-variant">2글자 이상 입력해 주세요.</p>}
+      </section>
+
+      {error && <p className="font-label-md text-label-md text-error">{error}</p>}
+
+      {list === null ? (
+        <p className="font-label-md text-label-md text-on-surface-variant">친구 목록을 불러오는 중…</p>
+      ) : (
+        <>
+          {incoming.length > 0 && (
+            <section>
+              <h2 className="font-headline-sm text-headline-sm text-on-surface">받은 요청 {incoming.length}</h2>
+              <ul className="divide-y divide-outline-variant/30">
+                {incoming.map((p) => (
+                  <PersonRow key={p.id} person={p}>{actions(p)}</PersonRow>
+                ))}
+              </ul>
+            </section>
+          )}
+
+          <section>
+            <h2 className="font-headline-sm text-headline-sm text-on-surface">친구 {friends.length}</h2>
+            {friends.length === 0 ? (
+              <p className="mt-2 font-label-md text-label-md text-on-surface-variant">친구를 추가하면 서로의 지도를 보고, 영상에 태그할 수 있어요.</p>
+            ) : (
+              <ul className="divide-y divide-outline-variant/30">
+                {friends.map((p) => (
+                  <PersonRow key={p.id} person={p}>{actions(p)}</PersonRow>
+                ))}
+              </ul>
+            )}
+          </section>
+
+          {outgoing.length > 0 && (
+            <section>
+              <h2 className="font-headline-sm text-headline-sm text-on-surface">보낸 요청 {outgoing.length}</h2>
+              <ul className="divide-y divide-outline-variant/30">
+                {outgoing.map((p) => (
+                  <PersonRow key={p.id} person={p}>{actions(p)}</PersonRow>
+                ))}
+              </ul>
+            </section>
+          )}
+        </>
+      )}
+    </div>
+  );
+}

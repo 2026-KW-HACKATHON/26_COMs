@@ -1,7 +1,7 @@
 import type { Capsule, NewCapsule } from '../types/capsule';
 import { uuid } from './uuid';
 
-// 기기 저장소: 영상 기록을 이 브라우저의 IndexedDB에 저장한다 (Supabase 설정이 없을 때).
+// 기기 저장소: Supabase 설정이 없을 때 로그인 없이 이 브라우저의 IndexedDB에 저장한다 (친구·태그 없음).
 const DB_NAME = 'memory-capsule';
 const DB_VERSION = 2;
 const STORE = 'capsules';
@@ -38,20 +38,40 @@ async function run<T>(mode: IDBTransactionMode, fn: (store: IDBObjectStore) => I
   });
 }
 
-/** 새 기록 저장. id와 생성 시각은 여기서 채운다. */
+/** 계정 정보가 없던 예전 기록도 같은 모양으로 맞춘다 */
+const normalize = (c: Capsule): Capsule => ({ ...c, userId: c.userId ?? '', author: c.author ?? null, tags: c.tags ?? [] });
+
+/** 새 기록 저장. id와 생성 시각은 여기서 채운다. 태그는 기기 저장에서 쓰지 않는다. */
 export async function addCapsule(data: NewCapsule): Promise<Capsule> {
-  const capsule: Capsule = { ...data, id: uuid(), createdAt: Date.now() };
+  const capsule: Capsule = {
+    id: uuid(),
+    userId: '',
+    author: null,
+    tags: [],
+    placeId: data.placeId,
+    placeName: data.placeName,
+    lat: data.lat,
+    lng: data.lng,
+    video: data.video,
+    clipStart: data.clipStart,
+    clipDuration: data.clipDuration,
+    thumbnail: data.thumbnail,
+    createdAt: Date.now(),
+  };
   await run('readwrite', (s) => s.put(capsule));
   return capsule;
 }
 
-export function getCapsule(id: string): Promise<Capsule | undefined> {
-  return run<Capsule | undefined>('readonly', (s) => s.get(id));
+export async function getCapsule(id: string): Promise<Capsule | undefined> {
+  const capsule = await run<Capsule | undefined>('readonly', (s) => s.get(id));
+  return capsule && normalize(capsule);
 }
 
-export async function listCapsules(): Promise<Capsule[]> {
+/** 이 기기의 모든 기록 (최신순). 다른 사람 지도는 없어서 ownerId는 쓰지 않는다. */
+export async function listCapsules(ownerId?: string): Promise<Capsule[]> {
+  if (ownerId) return [];
   const list = await run<Capsule[]>('readonly', (s) => s.getAll());
-  return list.sort((a, b) => b.createdAt - a.createdAt);
+  return list.map(normalize).sort((a, b) => b.createdAt - a.createdAt);
 }
 
 export async function deleteCapsule(id: string): Promise<void> {

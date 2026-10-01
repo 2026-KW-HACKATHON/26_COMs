@@ -3,9 +3,13 @@ import { CLIP_SECONDS } from '../types/capsule';
 import { captureFrame, pickRecorderMimeType } from '../lib/video';
 
 interface VideoRecorderProps {
-  onRecorded: (video: Blob, thumbnail: Blob | null) => void;
+  /** seconds: 실제 촬영 길이 (중간에 멈추면 5초보다 짧다) */
+  onRecorded: (video: Blob, thumbnail: Blob | null, seconds: number) => void;
   onClose: () => void;
 }
+
+/** 너무 짧으면 재생·썸네일이 깨져서, 일찍 멈춰도 이만큼은 찍는다 */
+const MIN_RECORD_SECONDS = 1;
 
 type Status = 'starting' | 'ready' | 'recording' | 'error';
 type Facing = 'environment' | 'user';
@@ -41,6 +45,8 @@ export default function VideoRecorder({ onRecorded, onClose }: VideoRecorderProp
   const recorderRef = useRef<MediaRecorder | null>(null);
   const discardRef = useRef(false);
   const timersRef = useRef<{ raf: number; stop: number; thumb: number }>({ raf: 0, stop: 0, thumb: 0 });
+  /** 촬영 중일 때 사용자가 멈춤 버튼을 누르면 부르는 함수 */
+  const requestStopRef = useRef<(() => void) | null>(null);
 
   const [facing, setFacing] = useState<Facing>('environment');
   const [status, setStatus] = useState<Status>('starting');
@@ -108,8 +114,21 @@ export default function VideoRecorder({ onRecorded, onClose }: VideoRecorderProp
     }
 
     const chunks: Blob[] = [];
-    let thumbnail: Promise<Blob | null> = Promise.resolve(null);
+    let thumbnail: Promise<Blob | null> | null = null;
+    let seconds = CLIP_SECONDS;
     const timers = timersRef.current;
+    const startedAt = performance.now();
+
+    const grabThumbnail = () => {
+      if (!thumbnail && previewRef.current) thumbnail = captureFrame(previewRef.current).catch(() => null);
+    };
+    // 5초가 되거나 사용자가 멈추면 여기서 끝낸다
+    const finish = () => {
+      if (recorder.state !== 'recording') return;
+      seconds = Math.min(CLIP_SECONDS, (performance.now() - startedAt) / 1000);
+      grabThumbnail();
+      recorder.stop();
+    };
 
     recorder.ondataavailable = (e) => {
       if (e.data.size) chunks.push(e.data);
@@ -117,9 +136,11 @@ export default function VideoRecorder({ onRecorded, onClose }: VideoRecorderProp
     recorder.onstop = () => {
       cancelAnimationFrame(timers.raf);
       clearTimeout(timers.thumb);
+      clearTimeout(timers.stop);
+      requestStopRef.current = null;
       if (discardRef.current) return;
       const video = new Blob(chunks, { type: recorder.mimeType || mimeType || 'video/webm' });
-      thumbnail.then((thumb) => onRecorded(video, thumb));
+      (thumbnail ?? Promise.resolve(null)).then((thumb) => onRecorded(video, thumb, seconds));
     };
 
     recorderRef.current = recorder;
@@ -127,22 +148,25 @@ export default function VideoRecorder({ onRecorded, onClose }: VideoRecorderProp
     setStatus('recording');
     setElapsed(0);
 
-    const startedAt = performance.now();
     const tick = () => {
       setElapsed(Math.min(CLIP_SECONDS, (performance.now() - startedAt) / 1000));
       timers.raf = requestAnimationFrame(tick);
     };
     timers.raf = requestAnimationFrame(tick);
-    timers.thumb = window.setTimeout(() => {
-      if (previewRef.current) thumbnail = captureFrame(previewRef.current).catch(() => null);
-    }, 1000);
-    // 정확히 5초에서 자동 종료
-    timers.stop = window.setTimeout(() => {
-      if (recorder.state === 'recording') recorder.stop();
-    }, CLIP_SECONDS * 1000);
+    timers.thumb = window.setTimeout(grabThumbnail, 1000);
+    // 멈추지 않으면 정확히 5초에서 자동 종료
+    timers.stop = window.setTimeout(finish, CLIP_SECONDS * 1000);
+    // 중간에 멈추면 바로 끝내되, 최소 길이는 채운다
+    requestStopRef.current = () => {
+      clearTimeout(timers.stop);
+      const remaining = MIN_RECORD_SECONDS * 1000 - (performance.now() - startedAt);
+      if (remaining > 0) timers.stop = window.setTimeout(finish, remaining);
+      else finish();
+    };
   };
 
   const recording = status === 'recording';
+  const handleShutter = () => (recording ? requestStopRef.current?.() : startRecording());
 
   return (
     <div className="fixed inset-0 z-[70] bg-black flex flex-col text-white">
@@ -186,14 +210,14 @@ export default function VideoRecorder({ onRecorded, onClose }: VideoRecorderProp
       {status !== 'error' && (
         <div className="relative z-10 mt-auto pb-10 flex flex-col items-center gap-3">
           <p className="font-label-md text-label-md bg-black/40 backdrop-blur px-3 py-1 rounded-full">
-            {status === 'starting' ? '카메라 준비 중…' : recording ? '지금 이 순간을 담는 중' : '버튼을 누르면 5초 동안 촬영돼요'}
+            {status === 'starting' ? '카메라 준비 중…' : recording ? '다시 누르면 멈춰요' : '누르면 최대 5초 촬영, 중간에 멈출 수 있어요'}
           </p>
           <button
-            onClick={startRecording}
-            disabled={status !== 'ready'}
+            onClick={handleShutter}
+            disabled={status !== 'ready' && !recording}
             className="relative w-20 h-20 flex items-center justify-center disabled:opacity-60"
             type="button"
-            aria-label="5초 촬영 시작"
+            aria-label={recording ? '촬영 멈추기' : '촬영 시작 (최대 5초)'}
           >
             <svg className="absolute inset-0 -rotate-90" viewBox="0 0 80 80">
               <circle cx="40" cy="40" r={RING_RADIUS} fill="none" stroke="rgba(255,255,255,0.35)" strokeWidth="5" />

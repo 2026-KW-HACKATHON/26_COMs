@@ -1,7 +1,18 @@
 # 기억캡슐
 
 사라지는 동네의 추억을 **5초 영상**으로 남기는 지도 기반 기록 서비스.
-서울 노원구 월계1동 식당·카페 지도에서 가게를 고르고, 그곳에서의 5초를 남긴 뒤 마이로그에서 다시 본다.
+서울 노원구 월계1동 식당·카페 지도에서 가게를 고르고, 그곳에서의 5초를 남긴다. 함께 간 친구를 태그하고, 친구끼리는 서로의 지도를 볼 수 있다.
+
+## 주요 기능
+
+- **지도**: 월계1동 식당·카페 74곳. 핀의 숫자는 그 가게에 남긴 영상 수
+- **5초 촬영**: 버튼을 누르면 촬영, 다시 누르면 멈춘다(최소 1초). 멈추지 않으면 5초에 자동 종료. 앨범 영상은 5초 구간을 골라 쓴다
+- **로그인**: 카카오·Google 계정. 영상은 계정에 저장되어 다른 기기에서도 보인다
+- **친구**: 아이디·이름으로 검색해 친구 요청 → 상대가 수락하면 친구
+- **태그**: 영상을 남길 때 함께한 친구를 검색해서 태그(인스타그램처럼). 태그된 친구의 지도·마이로그에도 나타난다
+- **친구 지도**: 홈 상단에서 친구를 고르면 그 친구가 남긴(또는 태그된) 영상이 지도에 표시된다
+
+공개 범위: 영상은 **본인, 수락된 친구, 태그된 사람**만 볼 수 있다. 데이터베이스 행 보안 정책(RLS)이 서버에서 강제한다.
 
 ## 기술 스택
 
@@ -10,8 +21,8 @@
 | 앱 형태 | 모바일 웹앱 (PWA) | 기획의 1차 타깃이 모바일 웹 이용자. 설치·심사 없이 링크로 바로 쓰고, 홈 화면에 추가하면 앱처럼 전체 화면으로 실행 |
 | 프론트엔드 | React 19 · TypeScript · Vite · Tailwind CSS · React Router | |
 | 지도 | Leaflet + OpenStreetMap | API 키·호출 비용 없음 (기획서 리스크: 지도 API 호출량·비용) |
-| 영상 | MediaRecorder | 앱 안에서 5초 자동 촬영, 앨범 영상은 5초 구간 선택 |
-| 저장·계정 | Supabase (Postgres · Storage · Auth) | 무료 요금제, 행 보안 정책(RLS)으로 본인 기록만 접근, 익명 계정으로 가입 없이 시작 |
+| 영상 | MediaRecorder | 앱 안에서 최대 5초 촬영, 앨범 영상은 5초 구간 선택 |
+| 계정·저장 | Supabase (Auth · Postgres · Storage) | 카카오·Google 로그인 내장, RLS로 공개 범위 강제, 무료 요금제 |
 | 배포 | Vercel | 카메라는 HTTPS에서만 동작, PR마다 미리보기 주소 |
 
 ## 시작하기
@@ -21,23 +32,45 @@ npm install
 npm run dev
 ```
 
-Supabase를 설정하지 않으면 영상은 각자 기기 브라우저(IndexedDB)에만 저장된다. 저장 방식은 [src/lib/capsuleStore.ts](src/lib/capsuleStore.ts)가 환경변수를 보고 고른다.
+Supabase를 설정하지 않으면 로그인·친구 기능 없이, 영상은 각자 기기 브라우저(IndexedDB)에만 저장된다(개발·데모용). 저장 방식은 [src/lib/capsuleStore.ts](src/lib/capsuleStore.ts)가 환경변수를 보고 고른다.
 
-## Supabase 연결 (서버 저장)
+## Supabase 연결
 
 1. [supabase.com](https://supabase.com)에서 새 프로젝트를 만든다 (Region: Northeast Asia (Seoul)).
-2. SQL Editor에 [supabase/schema.sql](supabase/schema.sql)을 붙여넣고 실행한다.
-3. Authentication > Sign In / Providers에서 **Allow anonymous sign-ins**를 켠다.
-4. `.env.example`을 `.env.local`로 복사하고 Project Settings의 Project URL과 Publishable key를 넣는다.
-5. `npm run dev`를 다시 실행한다. 마이로그의 "이 기기 브라우저에만 저장돼요" 문구가 사라지면 서버 저장 모드다.
+2. SQL Editor에 [supabase/schema.sql](supabase/schema.sql)을 붙여넣고 실행한다. 여러 번 실행해도 된다.
+3. `.env.example`을 `.env.local`로 복사하고 Project Settings의 Project URL과 Publishable key를 넣는다.
+4. 아래 "로그인 설정"을 마친 뒤 `npm run dev`를 다시 실행한다.
 
-처음 영상을 남길 때 익명 계정이 만들어지고, 그 브라우저에서만 자기 기록을 볼 수 있다. 앨범 영상은 무료 요금제 파일 한도 때문에 50MB까지 올릴 수 있다.
+데이터베이스 보안 정책 테스트: `npm run test:db` (메모리 안의 Postgres로 schema.sql을 실행해 공개 범위 규칙을 확인)
+
+## 로그인 설정
+
+공통: 카카오·구글 콘솔의 리다이렉트 URI에는 **`https://<프로젝트>.supabase.co/auth/v1/callback`** 하나만 넣는다 (앱 주소는 넣지 않음).
+
+**Supabase** (Authentication)
+- URL Configuration > Site URL: 배포 주소. Redirect URLs: `http://localhost:5173/**`, `http://localhost:4173/**`, `https://<배포 주소>/**`, Vercel 미리보기용 `https://*-<팀 슬러그>.vercel.app/**`
+- Sign In / Providers: Google·Kakao 켜기, "Allow new users to sign up" 켜기, "Allow anonymous sign-ins"는 끄기(켜져 있어도 스키마가 차단)
+- Kakao 설정의 **Allow users without an email** 켜기 (일반 앱은 이메일 동의항목을 쓸 수 없음)
+
+**카카오** ([developers.kakao.com](https://developers.kakao.com))
+- 앱 생성 → REST API 키 = Supabase Client ID, 카카오 로그인 클라이언트 시크릿 = Client Secret
+- REST API 키의 카카오 로그인 리다이렉트 URI에 위 Supabase callback 주소
+- 카카오 로그인 상태 ON, 동의항목: 닉네임(필수)·프로필 사진
+- 앱은 이메일 없이 `profile_nickname,profile_image`만 요청한다 ([src/lib/social.ts](src/lib/social.ts)의 `KAKAO_SCOPE`). 비즈 앱으로 전환해 이메일을 켰다면 `,account_email`을 붙인다
+- 오류 코드: KOE205 동의항목 미설정, KOE006 리다이렉트 URI 불일치, KOE101 키 종류 오류, KOE010 시크릿 오류, KOE004 로그인 OFF
+
+**Google** ([console.cloud.google.com](https://console.cloud.google.com) > Google Auth Platform)
+- 동의 화면(External) → Clients > 웹 애플리케이션: 승인된 JavaScript 원본 `http://localhost:5173`·배포 주소, 승인된 리디렉션 URI에 Supabase callback 주소
+- 테스트 상태에서는 테스트 사용자만 로그인되므로 시연 전에 앱을 게시(Publish)한다
+
+주의: 카카오톡 안 브라우저에서는 Google 로그인이 막혀 있어 앱이 안내 문구를 띄운다. LAN IP(http://192.168…)로는 로그인 후 돌아오지 못하니 폰 테스트는 Vercel 주소로 한다.
 
 ## 배포 (Vercel)
 
 1. [vercel.com](https://vercel.com)에서 이 GitHub 저장소를 Import한다 (Vite 자동 인식).
 2. Environment Variables에 `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`를 넣는다.
-3. 배포된 https 주소를 폰으로 열고 공유 메뉴에서 **홈 화면에 추가**하면 앱처럼 실행된다.
+3. Supabase Authentication > URL Configuration에 배포 주소를 추가한다 (위 "로그인 설정" 참고).
+4. 배포된 https 주소를 폰으로 열고 공유 메뉴에서 **홈 화면에 추가**하면 앱처럼 실행된다.
 
 Organization 저장소에 Vercel GitHub 앱을 설치할 권한이 없으면 로컬에서 `npx vercel`로 배포할 수 있다.
 
