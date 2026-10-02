@@ -1,14 +1,17 @@
 import { useRef, useState, type ChangeEvent } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import CapsuleVideo from '../components/CapsuleVideo';
+import FriendTagPicker from '../components/FriendTagPicker';
 import PlaceMap from '../components/PlaceMap';
 import PlaceSearch from '../components/PlaceSearch';
 import VideoRecorder from '../components/VideoRecorder';
 import { CATEGORY_EMOJI, PLACES, getPlace, placeSubtitle } from '../data/places';
-import { MAX_VIDEO_BYTES, STORAGE_MODE, addCapsule } from '../lib/capsuleStore';
+import { useFriendships } from '../hooks/useFriendships';
+import { MAX_VIDEO_BYTES, SOCIAL_ENABLED, STORAGE_MODE, addCapsule } from '../lib/capsuleStore';
 import { formatSeconds } from '../lib/format';
 import { probeDuration, thumbnailAt } from '../lib/video';
 import { CLIP_SECONDS } from '../types/capsule';
+import type { Profile } from '../types/social';
 
 interface DraftVideo {
   blob: Blob;
@@ -29,14 +32,18 @@ export default function Leave() {
   const [videoError, setVideoError] = useState('');
   const [processing, setProcessing] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [tags, setTags] = useState<Profile[]>([]);
+  const { list: friendships } = useFriendships();
+  const friends = friendships?.filter((f) => f.status === 'friend') ?? null;
 
   const place = getPlace(placeId);
 
-  const handleRecorded = async (blob: Blob, thumbnail: Blob | null) => {
+  /** seconds: 실제로 촬영한 길이 (중간에 멈추면 5초보다 짧다) */
+  const handleRecorded = async (blob: Blob, thumbnail: Blob | null, seconds: number) => {
     setRecorderOpen(false);
     setVideoError('');
     const duration = await probeDuration(blob).catch(() => 0);
-    setVideo({ blob, duration: duration || CLIP_SECONDS, clipStart: 0, thumbnail, source: 'camera' });
+    setVideo({ blob, duration: duration || seconds, clipStart: 0, thumbnail, source: 'camera' });
   };
 
   const handleFile = async (e: ChangeEvent<HTMLInputElement>) => {
@@ -85,6 +92,7 @@ export default function Leave() {
         clipStart: video.clipStart,
         clipDuration,
         thumbnail,
+        tagIds: tags.map((t) => t.id),
       });
       navigator.vibrate?.(30);
       navigate('/', { replace: true, state: { placeId: place.id } });
@@ -202,6 +210,19 @@ export default function Leave() {
         {videoError && <p className="font-label-sm text-label-sm text-error">{videoError}</p>}
         <input ref={fileInputRef} type="file" accept="video/*" className="hidden" onChange={handleFile} />
       </section>
+
+      {SOCIAL_ENABLED && (
+        <section className="bg-surface-container-lowest rounded-xl p-space-md shadow-[0_4px_20px_rgba(45,41,38,0.05)] flex flex-col gap-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1.5">
+              <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-primary-container text-on-primary text-[11px] font-bold">3</span>
+              <h2 className="font-headline-sm text-headline-sm text-on-surface">함께한 친구 태그</h2>
+            </div>
+            <span className="font-label-sm text-label-sm text-on-surface-variant">선택</span>
+          </div>
+          <FriendTagPicker friends={friends} selected={tags} onChange={setTags} />
+        </section>
+      )}
 
       <div className="flex flex-col gap-2">
         <button

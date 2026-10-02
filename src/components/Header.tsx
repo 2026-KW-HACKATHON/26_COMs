@@ -5,7 +5,10 @@ interface HeaderProps {
 
 const SUB_TITLES: Record<string, string> = {
   leave: '영상 남기기',
-  video: '내 영상',
+  video: '영상',
+  login: '로그인',
+  friends: '친구',
+  profile: '프로필 편집',
 };
 
 export default function Header({ currentPath, goBack }: HeaderProps) {
