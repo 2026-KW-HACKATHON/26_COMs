@@ -68,7 +68,8 @@ create table if not exists public.capsule_tags (
 );
 create index if not exists capsule_tags_user_idx on public.capsule_tags (user_id);
 
--- 5) 새 로그인 사용자의 프로필 생성. 아이디는 이메일 앞부분(없으면 user)으로 만들고 나중에 바꿀 수 있다.
+-- 5) 새 로그인 사용자의 프로필 생성. 아이디는 임시로 "user_<무작위>"를 주고, 앱이 첫 로그인 때 직접 정하게 한다.
+--    이메일 앞부분을 아이디·이름으로 쓰면 검색으로 남의 이메일 주소를 알아낼 수 있어서 이메일은 쓰지 않는다.
 --    여기서 오류가 나면 가입(=로그인) 자체가 실패하므로 아이디가 겹쳐도 절대 실패하지 않게 한다.
 create or replace function public.handle_new_user()
 returns trigger
@@ -78,33 +79,24 @@ set search_path = ''
 as $$
 declare
   meta jsonb := coalesce(new.raw_user_meta_data, '{}'::jsonb);
-  base text := left(lower(regexp_replace(coalesce(split_part(new.email, '@', 1), ''), '[^a-zA-Z0-9._]', '', 'g')), 13);
   display text := left(coalesce(
     nullif(btrim(meta ->> 'full_name'), ''),
     nullif(btrim(meta ->> 'name'), ''),
     nullif(btrim(meta ->> 'nickname'), ''),
     nullif(btrim(meta ->> 'user_name'), ''),
-    nullif(split_part(new.email, '@', 1), ''),
     '친구'
   ), 30);
   -- 카카오 프로필 사진은 http 주소로 와서 https 사이트에서 막힐 수 있다
   avatar text := regexp_replace(coalesce(nullif(meta ->> 'avatar_url', ''), nullif(meta ->> 'picture', '')), '^http://', 'https://');
-  candidate text;
+  candidate text := 'user_' || substr(replace(new.id::text, '-', ''), 1, 8);
 begin
-  if char_length(base) < 3 then
-    base := 'user';
-  end if;
-  candidate := base;
-  -- 겹치면 "_사용자 id 앞 6자리", 그것도 겹치면 임의 6자리. on conflict do nothing은 동시 가입 경합도 흡수한다
+  -- 겹치면(누가 그 아이디로 바꿨거나 동시 가입) 임의 8자리로 다시. on conflict do nothing은 경합도 흡수한다
   for attempt in 1..10 loop
     insert into public.profiles (id, username, display_name, avatar_url)
     values (new.id, candidate, display, avatar)
     on conflict do nothing;
     exit when exists (select 1 from public.profiles where id = new.id);
-    candidate := base || '_' || case
-      when attempt = 1 then substr(replace(new.id::text, '-', ''), 1, 6)
-      else substr(md5(random()::text || clock_timestamp()::text), 1, 6)
-    end;
+    candidate := 'user_' || substr(md5(random()::text || clock_timestamp()::text || attempt::text), 1, 8);
   end loop;
   return new;
 end;

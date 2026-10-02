@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { createDb, schemaSql, DENIED, RLS } from './helpers.mjs';
 
-const hex6 = (id) => id.replace(/-/g, '').slice(0, 6);
+const hex8 = (id) => id.replace(/-/g, '').slice(0, 8);
 const sorted = (xs) => [...xs].sort();
 // anon has no table privileges at all (revoked), so its reads/writes fail with "permission denied"
 const PATH_RULE = /row-level security|check constraint/i;
@@ -61,63 +61,34 @@ describe('R1 profiles', () => {
   });
   after(() => h.close());
 
-  test('profile is created on sign-up from the email local part (lowercase, [a-z0-9._], max 13)', async () => {
-    const id = await h.signUp({ email: 'Kim.Seong_Jun+tag@Gmail.com' });
+  test('new users get a temporary user_<8 hex of id> username; nothing is derived from the email', async () => {
+    const id = await h.signUp({ email: 'Kim.Seong_Jun+tag@Gmail.com', username: null });
     const p = await h.profile(id);
-    assert.equal(p.username, 'kim.seong_jun');
-    assert.equal(p.display_name, 'Kim.Seong_Jun+tag');
+    assert.equal(p.username, 'user_' + hex8(id));
+    assert.equal(p.display_name, '친구'); // no name in metadata -> generic, never the email local part
     assert.equal(p.avatar_url, null);
   });
 
-  test('username collision appends _ + first 6 hex chars of the user id', async () => {
-    const id = await h.signUp({ email: 'kim.seong_jun@naver.com' });
-    const p = await h.profile(id);
-    assert.equal(p.username, 'kim.seong_jun_' + hex6(id));
-  });
-
-  test('collision on a 13-char truncated base still fits the username rule', async () => {
-    const a = await h.signUp({ email: 'abcdefghijklmnopqrstuvwxyz@x.com' });
-    const b = await h.signUp({ email: 'ABCDEFGHIJKLMzzz@y.com' });
-    assert.equal((await h.profile(a)).username, 'abcdefghijklm');
-    assert.equal((await h.profile(b)).username, 'abcdefghijklm_' + hex6(b));
-  });
-
-  test('Korean / too-short local parts fall back to "user"', async () => {
-    const k = await h.signUp({ email: '김철수@kakao.com', meta: { nickname: '철수' } });
-    const pk = await h.profile(k);
-    assert.equal(pk.username, 'user');
-    assert.equal(pk.display_name, '철수');
-
-    const s = await h.signUp({ email: 'ab@x.com' });
-    const ps = await h.profile(s);
-    assert.equal(ps.username, 'user_' + hex6(s));
-    assert.equal(ps.display_name, 'ab');
-  });
-
-  test('sign-up never fails when the "_<6 hex>" fallback username is itself taken', async () => {
-    // "user" is taken (by the Korean-email user above); someone already owns "user_abc123"
-    // (an email local part, or a rename). A new user without usable email whose id starts
-    // with abc123 must still get a profile, otherwise the auth.users insert (= login) fails.
-    const squatter = await h.signUp({ email: 'user_abc123@x.com' });
-    assert.equal((await h.profile(squatter)).username, 'user_abc123');
+  test('sign-up never fails when the temporary username is already taken (someone renamed to it)', async () => {
     const id = 'abc12300-0000-4000-8000-000000000001';
-    await h.signUp({ id, email: null, meta: { nickname: '늦게온사람' } });
+    await h.signUp({ email: 'squatter@x.com', username: 'user_abc12300' });
+    await h.signUp({ id, email: null, meta: { nickname: '늦게온사람' }, username: null });
     const p = await h.profile(id);
     assert.ok(p, 'profile row must exist');
-    assert.match(p.username, /^[a-z0-9._]{3,20}$/);
-    assert.notEqual(p.username, 'user_abc123');
+    assert.match(p.username, /^user_[0-9a-f]{8}$/);
+    assert.notEqual(p.username, 'user_abc12300');
   });
 
   test('users without email (Kakao without consent) still get a profile', async () => {
-    const n = await h.signUp({ email: null, meta: { nickname: '카카오친구', picture: 'http://k/p.png' } });
+    const n = await h.signUp({ email: null, meta: { nickname: '카카오친구', picture: 'http://k/p.png' }, username: null });
     const pn = await h.profile(n);
-    assert.equal(pn.username, 'user_' + hex6(n));
+    assert.equal(pn.username, 'user_' + hex8(n));
     assert.equal(pn.display_name, '카카오친구');
     assert.equal(pn.avatar_url, 'https://k/p.png'); // Kakao sends http:// avatars; stored as https
 
-    const bare = await h.signUp({ email: null, meta: null });
+    const bare = await h.signUp({ email: null, meta: null, username: null });
     const pb = await h.profile(bare);
-    assert.match(pb.username, /^user_[0-9a-f]{6}$/);
+    assert.equal(pb.username, 'user_' + hex8(bare));
     assert.equal(pb.display_name, '친구');
     assert.equal(pb.avatar_url, null);
   });
@@ -128,10 +99,10 @@ describe('R1 profiles', () => {
       [{ full_name: '', name: 'N', nickname: 'K', user_name: 'U' }, 'N'],
       [{ nickname: 'K', user_name: 'U' }, 'K'],
       [{ user_name: 'U' }, 'U'],
-      [{ full_name: '' }, 'localpart'],
+      [{ full_name: '   ' }, '친구'],
     ];
     for (const [meta, expected] of cases) {
-      const id = await h.signUp({ email: 'localpart@x.com', meta });
+      const id = await h.signUp({ email: 'localpart@x.com', meta, username: null });
       assert.equal((await h.profile(id)).display_name, expected, JSON.stringify(meta));
     }
     const long = await h.signUp({ email: 'longname@x.com', meta: { full_name: '가'.repeat(40) } });
@@ -163,7 +134,7 @@ describe('R1 profiles', () => {
     await assert.rejects(h.q(me, `update public.profiles set avatar_url = 'https://evil.example/p.gif' where id = $1`, [me]), DENIED);
 
     assert.equal(await h.run(me, `update public.profiles set display_name = 'hacked' where id = $1`, [other]), 0);
-    assert.equal((await h.profile(other)).display_name, 'victim');
+    assert.equal((await h.profile(other)).display_name, '친구'); // unchanged
   });
 
   test('id and created_at are not updatable; invalid usernames are rejected', async () => {
@@ -780,10 +751,11 @@ describe('hardening', () => {
     assert.equal((await h.q('admin', 'select count(*)::int as n from public.capsules'))[0].n, 1);
   });
 
-  test('handle_new_user absorbs a username race (row with the same username inserted first)', async () => {
-    // simulate the loser of a race: "racer" is already taken by the time the trigger inserts
-    await h.signUp({ email: 'racer@x.com' });
-    const id = await h.signUp({ email: 'racer@y.com' });
-    assert.equal((await h.profile(id)).username, 'racer_' + hex6(id));
+  test('two users whose ids share the first 8 hex chars both get a profile', async () => {
+    const first = await h.signUp({ id: 'feedbeef-0000-4000-8000-000000000001', email: null, username: null });
+    const second = await h.signUp({ id: 'feedbeef-0000-4000-8000-000000000002', email: null, username: null });
+    assert.equal((await h.profile(first)).username, 'user_feedbeef');
+    assert.match((await h.profile(second)).username, /^user_[0-9a-f]{8}$/);
+    assert.notEqual((await h.profile(second)).username, 'user_feedbeef');
   });
 });

@@ -145,13 +145,21 @@ export class Harness {
     }
   }
 
-  /** Insert a row into auth.users (as the auth server would) and return its id. */
-  async signUp({ id = randomUUID(), email = null, meta = null } = {}) {
+  /**
+   * Insert a row into auth.users (as the auth server would) and return its id.
+   * The trigger gives every new user a temporary "user_<hex>" id; to keep tests readable the
+   * harness then sets the username the person would pick in the app: `username`, or by default
+   * the email local part. Pass `username: null` to keep the trigger's temporary id.
+   */
+  async signUp({ id = randomUUID(), email = null, meta = null, username } = {}) {
     await this.q('admin', 'insert into auth.users (id, email, raw_user_meta_data) values ($1, $2, $3)', [
       id,
       email,
       meta === null ? null : JSON.stringify(meta),
     ]);
+    const fromEmail = email?.split('@')[0].toLowerCase();
+    const chosen = username === undefined ? (/^[a-z0-9._]{3,20}$/.test(fromEmail ?? '') ? fromEmail : null) : username;
+    if (chosen) await this.q('admin', 'update public.profiles set username = $2 where id = $1', [id, chosen]);
     return id;
   }
 

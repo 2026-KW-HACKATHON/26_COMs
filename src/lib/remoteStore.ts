@@ -1,5 +1,5 @@
 import type { Capsule, NewCapsule } from '../types/capsule';
-import { PROFILE_COLUMNS, toProfile, type ProfileRow } from './social';
+import { PROFILE_COLUMNS, listFriendships, toProfile, type ProfileRow } from './social';
 import { isUuid, supabase } from './supabase';
 import { uuid } from './uuid';
 
@@ -7,8 +7,11 @@ import { uuid } from './uuid';
 // 본인·친구·태그된 사람만 볼 수 있다 (행 보안 정책은 supabase/schema.sql).
 const TABLE = 'capsules';
 const BUCKET = 'capsules';
-/** 영상·썸네일 서명 URL 유효 시간(초). 목록·상세 화면에 들어올 때마다 새로 받는다. */
-const SIGNED_URL_SECONDS = 60 * 60;
+/**
+ * 영상·썸네일 서명 URL 유효 시간(초). 목록·상세 화면에 들어올 때마다 새로 받는다.
+ * 서명 URL은 친구를 끊어도 만료 전까지 쓸 수 있어서 짧게 둔다.
+ */
+const SIGNED_URL_SECONDS = 10 * 60;
 /** 작성자(capsules.user_id → profiles)와 태그된 친구를 한 번에 불러온다 */
 const CAPSULE_SELECT = `*, author:profiles!capsules_user_id_fkey(${PROFILE_COLUMNS}), capsule_tags(profile:profiles(${PROFILE_COLUMNS}))`;
 
@@ -92,7 +95,6 @@ export async function addCapsule(data: NewCapsule): Promise<Capsule> {
   const videoPath = `${owner}/${id}.${EXTENSION[videoType] ?? 'mp4'}`;
   const thumbnailPath = data.thumbnail ? `${owner}/${id}.jpg` : null;
   const tagIds = [...new Set(data.tagIds)].filter((tagId) => isUuid(tagId) && tagId !== owner);
-  let inserted = false;
   try {
     await upload(videoPath, data.video, videoType);
     if (data.thumbnail && thumbnailPath) await upload(thumbnailPath, data.thumbnail, 'image/jpeg');
@@ -108,19 +110,12 @@ export async function addCapsule(data: NewCapsule): Promise<Capsule> {
       clip_duration: data.clipDuration,
     });
     if (error) throw error;
-    inserted = true;
-    if (tagIds.length) {
-      const { error: tagError } = await client()
-        .from('capsule_tags')
-        .insert(tagIds.map((userId) => ({ capsule_id: id, user_id: userId })));
-      if (tagError) throw tagError;
-    }
   } catch (err) {
-    // 태그까지 모두 저장되지 않았으면 기록과 파일을 되돌린다
-    if (inserted) await client().from(TABLE).delete().eq('id', id);
+    // 기록이 저장되지 않았으면 먼저 올린 파일도 지운다
     await removeFiles([videoPath, thumbnailPath]);
     throw err;
   }
+  await addTags(id, tagIds);
   return {
     id,
     userId: owner,
@@ -136,6 +131,19 @@ export async function addCapsule(data: NewCapsule): Promise<Capsule> {
     thumbnail: data.thumbnail,
     createdAt: Date.now(),
   };
+}
+
+/**
+ * 친구 태그. 화면을 연 뒤 친구가 끊긴 사람은 정책상 태그할 수 없어서 빼고 붙인다.
+ * 태그가 실패해도 이미 올린 영상 기록은 지킨다.
+ */
+async function addTags(capsuleId: string, tagIds: string[]) {
+  if (!tagIds.length) return;
+  const friends = await listFriendships().catch(() => null);
+  const valid = friends ? tagIds.filter((tagId) => friends.some((f) => f.id === tagId && f.status === 'friend')) : tagIds;
+  if (!valid.length) return;
+  const { error } = await client().from('capsule_tags').insert(valid.map((userId) => ({ capsule_id: capsuleId, user_id: userId })));
+  if (error) console.warn('친구 태그를 저장하지 못했어요', error);
 }
 
 export async function getCapsule(id: string): Promise<Capsule | undefined> {

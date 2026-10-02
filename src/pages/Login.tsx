@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Navigate, useLocation, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { SOCIAL_ENABLED } from '../lib/capsuleStore';
-import { isKakaoInAppBrowser, safeNextPath, signInWith, type LoginProvider } from '../lib/social';
+import { isAutoUsername, isKakaoInAppBrowser, safeNextPath, signInWith, type LoginProvider } from '../lib/social';
 
 /** 로그인 서버가 돌려준 오류를 사용자에게 보여 줄 문장으로 (오류는 ?query와 #hash 양쪽에 올 수 있다) */
 function oauthErrorMessage(search: URLSearchParams, hash: string): string {
@@ -13,7 +13,9 @@ function oauthErrorMessage(search: URLSearchParams, hash: string): string {
   if (code === 'access_denied') return '로그인을 취소했어요.';
   if (/email/i.test(description)) return '카카오 계정 이메일을 받지 못했어요. 관리자에게 Supabase 카카오 설정을 확인해 달라고 알려 주세요.';
   if (/saving new user/i.test(description)) return '계정을 만드는 중 문제가 생겼어요. 관리자에게 supabase/schema.sql 실행 여부를 확인해 달라고 알려 주세요.';
-  return `로그인하지 못했어요. 다시 시도해 주세요. (${description || code})`;
+  // 주소에 담긴 문장을 그대로 보여 주면 가짜 안내문(피싱)에 쓰일 수 있어 정해진 문장만 보여 준다
+  console.warn('OAuth error', code, description);
+  return '로그인하지 못했어요. 다시 시도해 주세요.';
 }
 
 function KakaoSymbol() {
@@ -39,7 +41,7 @@ function GoogleSymbol() {
 }
 
 export default function Login() {
-  const { session, loading } = useAuth();
+  const { session, profile, loading } = useAuth();
   const [params] = useSearchParams();
   const { hash } = useLocation();
   const [pending, setPending] = useState<LoginProvider | null>(null);
@@ -54,8 +56,21 @@ export default function Login() {
     : '';
   const inKakaoTalk = isKakaoInAppBrowser();
 
+  // 로그인 페이지로 이동한 뒤 뒤로 가기로 돌아오면 브라우저가 이전 화면 상태(버튼 비활성)를 그대로 복원한다
+  useEffect(() => {
+    const onShow = (e: PageTransitionEvent) => {
+      if (e.persisted) setPending(null);
+    };
+    window.addEventListener('pageshow', onShow);
+    return () => window.removeEventListener('pageshow', onShow);
+  }, []);
+
   if (!SOCIAL_ENABLED) return <Navigate to="/" replace />;
-  if (session) return <Navigate to={next} replace />;
+  if (session && !loading) {
+    // 처음 로그인해서 아이디가 임시(user_xxxx)면 친구가 찾을 수 있게 아이디부터 정한다
+    const setup = profile && isAutoUsername(profile.username);
+    return <Navigate to={setup ? `/profile?setup=1&next=${encodeURIComponent(next)}` : next} replace />;
+  }
 
   const login = async (provider: LoginProvider) => {
     setPending(provider);

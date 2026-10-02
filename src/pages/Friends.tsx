@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import Avatar from '../components/Avatar';
 import { useAuth } from '../hooks/useAuth';
 import { useFriendships } from '../hooks/useFriendships';
-import { removeFriend, requestFriend, searchProfiles } from '../lib/social';
+import { isAutoUsername, removeFriend, requestFriend, searchProfiles } from '../lib/social';
 import type { FriendStatus, ProfileWithStatus } from '../types/social';
 
 function PersonRow({ person, children }: { person: ProfileWithStatus; children: ReactNode }) {
@@ -30,7 +30,7 @@ export default function Friends() {
   const [results, setResults] = useState<{ q: string; list: ProfileWithStatus[] } | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState('');
-  const [copied, setCopied] = useState(false);
+  const [copied, setCopied] = useState<'done' | 'failed' | null>(null);
 
   const q = query.trim();
   const searching = q.replace(/^@/, '').length >= 2;
@@ -73,13 +73,30 @@ export default function Friends() {
 
   const copyMyId = async () => {
     if (!profile) return;
+    const text = `@${profile.username}`;
+    let ok: boolean;
     try {
-      await navigator.clipboard.writeText(`@${profile.username}`);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
+      await navigator.clipboard.writeText(text);
+      ok = true;
     } catch {
-      // 클립보드를 못 쓰는 환경이면 화면의 아이디를 보고 알려 주면 된다
+      // 카카오톡 같은 앱 안 브라우저는 클립보드 API가 없을 때가 있어 예전 방식으로 한 번 더 시도한다
+      const area = document.createElement('textarea');
+      area.value = text;
+      area.setAttribute('readonly', '');
+      area.style.position = 'fixed';
+      area.style.opacity = '0';
+      document.body.appendChild(area);
+      area.select();
+      area.setSelectionRange(0, text.length);
+      try {
+        ok = document.execCommand('copy');
+      } catch {
+        ok = false;
+      }
+      area.remove();
     }
+    setCopied(ok ? 'done' : 'failed');
+    setTimeout(() => setCopied(null), 1500);
   };
 
   const actions = (person: ProfileWithStatus) => {
@@ -122,14 +139,21 @@ export default function Friends() {
   return (
     <div className="flex flex-col w-full pb-6 pt-3 gap-5">
       {profile && (
-        <button onClick={copyMyId} className="flex items-center gap-3 px-4 py-3 rounded-2xl bg-surface-container-low text-left" type="button">
+        <div className="flex items-center gap-3 px-4 py-3 rounded-2xl bg-surface-container-low">
           <span className="material-symbols-outlined text-primary text-[22px]">badge</span>
-          <span className="flex-1 min-w-0">
-            <span className="block font-label-sm text-label-sm text-on-surface-variant">내 아이디 (친구에게 알려 주세요)</span>
-            <span className="block font-label-lg text-label-lg text-on-surface font-bold truncate">@{profile.username}</span>
-          </span>
-          <span className="font-label-sm text-label-sm text-primary font-bold">{copied ? '복사됨' : '복사'}</span>
-        </button>
+          <div className="flex-1 min-w-0">
+            <p className="font-label-sm text-label-sm text-on-surface-variant">내 아이디 (친구에게 알려 주세요)</p>
+            {/* 복사가 안 되는 환경에서도 길게 눌러 직접 선택할 수 있게 버튼 밖에 둔다 */}
+            <p className="font-label-lg text-label-lg text-on-surface font-bold truncate select-all">@{profile.username}</p>
+          </div>
+          {isAutoUsername(profile.username) ? (
+            <button onClick={() => navigate('/profile')} className={primaryButton} type="button">아이디 정하기</button>
+          ) : (
+            <button onClick={copyMyId} className={secondaryButton} type="button">
+              {copied === 'done' ? '복사됨' : copied === 'failed' ? '복사 실패' : '복사'}
+            </button>
+          )}
+        </div>
       )}
 
       <section className="flex flex-col gap-2">
@@ -139,7 +163,8 @@ export default function Friends() {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="아이디 또는 이름으로 친구 찾기"
-            className="flex-1 min-w-0 bg-transparent outline-none font-body-md text-body-md text-on-surface placeholder:text-outline/70"
+            autoCapitalize="none"
+            className="flex-1 min-w-0 bg-transparent outline-none text-base text-on-surface placeholder:text-outline/70"
           />
           {query && (
             <button onClick={() => setQuery('')} className="w-7 h-7 flex items-center justify-center text-on-surface-variant" type="button" aria-label="지우기">

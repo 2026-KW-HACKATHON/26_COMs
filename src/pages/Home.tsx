@@ -11,6 +11,9 @@ import { useFriendships } from '../hooks/useFriendships';
 import { SOCIAL_ENABLED } from '../lib/capsuleStore';
 import { isUuid } from '../lib/supabase';
 import { CATEGORY_EMOJI, PLACES, getPlace, placeSubtitle } from '../data/places';
+import type { Capsule } from '../types/capsule';
+
+const NO_CAPSULES: Capsule[] = [];
 
 export default function Home() {
   const navigate = useNavigate();
@@ -27,18 +30,22 @@ export default function Home() {
   const friends = useMemo(() => friendships?.filter((f) => f.status === 'friend') ?? [], [friendships]);
   const viewing = viewingId ? friends.find((f) => f.id === viewingId) ?? null : null;
   const mapOwnerId = viewingId ?? me;
+  const requestCount = friendships?.filter((f) => f.status === 'incoming').length ?? 0;
+  // 친구가 아닌 사람(끊은 친구, 오래된 링크)의 지도는 보여 주지 않는다 (함께 태그된 영상만 남아 헷갈림)
+  const notFriend = !!viewingId && friendships !== null && !viewing;
+  const shown = notFriend ? NO_CAPSULES : capsules;
 
   // 남기기·영상 상세에서 넘어오면 해당 장소를 선택한 채로 연다
   const [selectedId, setSelectedId] = useState<string | null>((location.state as { placeId?: string } | null)?.placeId ?? null);
 
   const videoCount = useMemo(() => {
     const counts = new Map<string, number>();
-    capsules?.forEach((c) => counts.set(c.placeId, (counts.get(c.placeId) ?? 0) + 1));
+    shown?.forEach((c) => counts.set(c.placeId, (counts.get(c.placeId) ?? 0) + 1));
     return counts;
-  }, [capsules]);
+  }, [shown]);
 
   const selected = getPlace(selectedId);
-  const selectedVideos = capsules?.filter((c) => c.placeId === selectedId) ?? [];
+  const selectedVideos = shown?.filter((c) => c.placeId === selectedId) ?? [];
 
   const selectMap = (friendId: string | null) => setSearchParams(friendId ? { user: friendId } : {}, { replace: true });
 
@@ -62,7 +69,7 @@ export default function Home() {
 
       <div className="absolute top-3 inset-x-3 z-10 flex flex-col gap-2">
         <PlaceSearch onPick={(p) => setSelectedId(p.id)} />
-        {SOCIAL_ENABLED && me && <FriendMapSelector me={profile} friends={friends} selectedId={viewingId} onSelect={selectMap} />}
+        {SOCIAL_ENABLED && me && <FriendMapSelector me={profile} friends={friends} selectedId={viewingId} onSelect={selectMap} requestCount={requestCount} />}
       </div>
 
       {selected ? (

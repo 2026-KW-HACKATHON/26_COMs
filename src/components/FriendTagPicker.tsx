@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
 import type { Profile } from '../types/social';
 import Avatar from './Avatar';
 
@@ -21,12 +20,10 @@ export default function FriendTagPicker({ friends, selected, onChange }: FriendT
     onChange(selectedIds.has(friend.id) ? selected.filter((f) => f.id !== friend.id) : [...selected, friend]);
 
   if (friends && friends.length === 0) {
+    // 여기서 친구 화면으로 이동하면 촬영한 영상이 사라지므로 링크 없이 안내만 한다
     return (
       <p className="font-label-md text-label-md text-on-surface-variant">
-        아직 친구가 없어요.{' '}
-        <Link to="/friends" className="text-primary font-bold underline underline-offset-2">
-          친구 추가하기
-        </Link>
+        아직 친구가 없어요. 영상을 남긴 뒤 마이로그 &gt; 친구에서 추가할 수 있어요.
       </p>
     );
   }
@@ -57,7 +54,7 @@ export default function FriendTagPicker({ friends, selected, onChange }: FriendT
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="친구 이름이나 아이디 검색"
-          className="flex-1 min-w-0 bg-transparent outline-none font-body-md text-body-md text-on-surface placeholder:text-outline/70"
+          className="flex-1 min-w-0 bg-transparent outline-none text-base text-on-surface placeholder:text-outline/70"
         />
       </div>
 

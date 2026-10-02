@@ -62,6 +62,12 @@ export default function VideoRecorder({ onRecorded, onClose }: VideoRecorderProp
           return;
         }
         streamRef.current = stream;
+        // 전화가 오거나 다른 앱이 카메라를 가져가면 화면이 멈추므로 오류로 알린다
+        stream.getVideoTracks()[0]?.addEventListener('ended', () => {
+          if (cancelled || recorderRef.current?.state === 'recording') return;
+          setError('카메라 연결이 끊겼어요. 다시 열거나 앨범에서 영상을 선택해 주세요.');
+          setStatus('error');
+        });
         const el = previewRef.current;
         if (el) {
           el.srcObject = stream;
@@ -143,8 +149,14 @@ export default function VideoRecorder({ onRecorded, onClose }: VideoRecorderProp
       (thumbnail ?? Promise.resolve(null)).then((thumb) => onRecorded(video, thumb, seconds));
     };
 
+    try {
+      recorder.start();
+    } catch {
+      setError('촬영을 시작하지 못했어요. 다시 열거나 앨범에서 영상을 선택해 주세요.');
+      setStatus('error');
+      return;
+    }
     recorderRef.current = recorder;
-    recorder.start();
     setStatus('recording');
     setElapsed(0);
 
