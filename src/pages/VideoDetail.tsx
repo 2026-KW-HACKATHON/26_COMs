@@ -37,14 +37,19 @@ export default function VideoDetail() {
 
   const handleDelete = async () => {
     if (!confirm('이 영상을 삭제할까요? 되돌릴 수 없어요.')) return;
-    await deleteCapsule(capsule.id);
-    navigate('/log', { replace: true });
+    try {
+      await deleteCapsule(capsule.id);
+      navigate('/log', { replace: true });
+    } catch (err) {
+      console.error(err);
+      alert('영상을 삭제하지 못했어요. 잠시 후 다시 시도해 주세요.');
+    }
   };
 
   return (
     <div className="flex flex-col w-full pb-6 pt-3 gap-4">
       <CapsuleVideo
-        blob={capsule.video}
+        src={capsule.video}
         start={capsule.clipStart}
         duration={capsule.clipDuration}
         className="w-full aspect-[3/4] rounded-2xl shadow-sm"

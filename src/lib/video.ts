@@ -1,3 +1,16 @@
+import type { Media } from '../types/capsule';
+
+/** <img>·<video>에 파일(Blob) 또는 URL을 연결하고, 연결을 풀 때 부를 함수를 돌려준다. */
+export function attachSrc(el: HTMLImageElement | HTMLVideoElement, media: Media): () => void {
+  if (typeof media === 'string') {
+    el.src = media;
+    return () => {};
+  }
+  const url = URL.createObjectURL(media);
+  el.src = url;
+  return () => URL.revokeObjectURL(url);
+}
+
 // MediaRecorder가 지원하는 포맷 중 가장 호환성 좋은 것을 고른다 (iOS Safari는 mp4, Chrome은 webm).
 export function pickRecorderMimeType(): string | undefined {
   if (typeof MediaRecorder === 'undefined') return undefined;

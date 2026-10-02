@@ -5,12 +5,10 @@ import PlaceMap from '../components/PlaceMap';
 import PlaceSearch from '../components/PlaceSearch';
 import VideoRecorder from '../components/VideoRecorder';
 import { CATEGORY_EMOJI, PLACES, getPlace, placeSubtitle } from '../data/places';
-import { addCapsule } from '../lib/capsuleStore';
+import { MAX_VIDEO_BYTES, STORAGE_MODE, addCapsule } from '../lib/capsuleStore';
 import { formatSeconds } from '../lib/format';
 import { probeDuration, thumbnailAt } from '../lib/video';
 import { CLIP_SECONDS } from '../types/capsule';
-
-const MAX_UPLOAD_BYTES = 200 * 1024 * 1024;
 
 interface DraftVideo {
   blob: Blob;
@@ -50,8 +48,8 @@ export default function Leave() {
       setVideoError('동영상 파일만 올릴 수 있어요.');
       return;
     }
-    if (file.size > MAX_UPLOAD_BYTES) {
-      setVideoError('영상 용량이 너무 커요 (최대 200MB). 더 짧은 영상을 선택해 주세요.');
+    if (file.size > MAX_VIDEO_BYTES) {
+      setVideoError(`영상 용량이 너무 커요 (최대 ${MAX_VIDEO_BYTES / 1024 / 1024}MB). 더 짧은 영상을 선택하거나 앱에서 5초 촬영해 주세요.`);
       return;
     }
     setProcessing(true);
@@ -90,8 +88,9 @@ export default function Leave() {
       });
       navigator.vibrate?.(30);
       navigate('/', { replace: true, state: { placeId: place.id } });
-    } catch {
-      alert('영상을 저장하지 못했어요. 기기 저장 공간을 확인해 주세요.');
+    } catch (err) {
+      console.error(err);
+      alert(STORAGE_MODE === 'cloud' ? '영상을 올리지 못했어요. 네트워크 상태를 확인하고 다시 시도해 주세요.' : '영상을 저장하지 못했어요. 기기 저장 공간을 확인해 주세요.');
       setSaving(false);
     }
   };
@@ -141,7 +140,7 @@ export default function Leave() {
         {video ? (
           <>
             <CapsuleVideo
-              blob={video.blob}
+              src={video.blob}
               start={video.clipStart}
               duration={Math.min(CLIP_SECONDS, video.duration)}
               className="w-full aspect-[3/4] rounded-xl"

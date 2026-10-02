@@ -1,7 +1,9 @@
 import { useEffect, useRef } from 'react';
+import { attachSrc } from '../lib/video';
+import type { Media } from '../types/capsule';
 
 interface CapsuleThumbProps {
-  thumbnail: Blob | null;
+  thumbnail: Media | null;
   className?: string;
 }
 
@@ -11,9 +13,7 @@ export default function CapsuleThumb({ thumbnail, className = '' }: CapsuleThumb
   useEffect(() => {
     const el = ref.current;
     if (!el || !thumbnail) return;
-    const url = URL.createObjectURL(thumbnail);
-    el.src = url;
-    return () => URL.revokeObjectURL(url);
+    return attachSrc(el, thumbnail);
   }, [thumbnail]);
 
   if (!thumbnail) {

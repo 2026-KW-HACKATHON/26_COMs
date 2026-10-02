@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
-import { CLIP_SECONDS } from '../types/capsule';
+import { attachSrc } from '../lib/video';
+import { CLIP_SECONDS, type Media } from '../types/capsule';
 
 interface CapsuleVideoProps {
-  blob: Blob;
+  /** 영상 파일 또는 서버 URL */
+  src: Media;
   /** 원본 영상에서 재생을 시작할 위치(초) */
   start?: number;
   duration?: number;
@@ -11,7 +13,7 @@ interface CapsuleVideoProps {
 }
 
 /** 원본 영상의 [start, start + duration] 구간만 반복 재생하는 플레이어 */
-export default function CapsuleVideo({ blob, start = 0, duration = CLIP_SECONDS, autoPlay = true, className = '' }: CapsuleVideoProps) {
+export default function CapsuleVideo({ src, start = 0, duration = CLIP_SECONDS, autoPlay = true, className = '' }: CapsuleVideoProps) {
   const ref = useRef<HTMLVideoElement>(null);
   const [playing, setPlaying] = useState(false);
   const [muted, setMuted] = useState(true);
@@ -20,15 +22,14 @@ export default function CapsuleVideo({ blob, start = 0, duration = CLIP_SECONDS,
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
-    const url = URL.createObjectURL(blob);
-    el.src = url;
+    const detach = attachSrc(el, src);
     return () => {
       el.pause();
       el.removeAttribute('src');
       el.load();
-      URL.revokeObjectURL(url);
+      detach();
     };
-  }, [blob]);
+  }, [src]);
 
   useEffect(() => {
     const el = ref.current;
@@ -74,7 +75,7 @@ export default function CapsuleVideo({ blob, start = 0, duration = CLIP_SECONDS,
       el.removeEventListener('loadedmetadata', onLoaded);
       el.removeEventListener('timeupdate', clamp);
     };
-  }, [blob, start, duration, autoPlay]);
+  }, [src, start, duration, autoPlay]);
 
   useEffect(() => {
     if (ref.current) ref.current.muted = muted;
