@@ -15,16 +15,16 @@ const LABEL_MIN_ZOOM = 17;
 
 function pinHtml(place: Place, count: number, selected: boolean) {
   const ring = selected
-    ? 'ring-4 ring-primary-container scale-125'
+    ? 'ring-3 ring-primary-container scale-110'
     : count
       ? 'ring-2 ring-primary-container'
       : 'ring-1 ring-outline-variant';
   const badge = count
-    ? `<span class="absolute -top-1.5 -right-1.5 min-w-[16px] h-4 px-1 rounded-full bg-primary text-on-primary text-[10px] font-bold leading-4 text-center">${count}</span>`
+    ? `<span class="absolute -top-1 -right-1 min-w-[13px] h-3.5 px-1 rounded-full bg-primary text-on-primary text-[9px] font-bold leading-[14px] text-center">${count}</span>`
     : '';
   // 이름 라벨은 확대했을 때만 (place-label은 index.css에서 줌에 따라 토글)
-  const label = `<span class="place-label absolute left-1/2 top-full mt-0.5 -translate-x-1/2 whitespace-nowrap px-1.5 rounded bg-surface-container-lowest/90 text-[11px] font-bold text-on-surface shadow-sm ${selected ? 'place-label-always' : ''}">${place.name}</span>`;
-  return `<div class="relative -translate-x-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-surface-container-lowest shadow-md flex items-center justify-center text-[15px] transition-transform ${ring}">${CATEGORY_EMOJI[place.category] ?? '📍'}${badge}${label}</div>`;
+  const label = `<span class="place-label absolute left-1/2 top-full mt-0.5 -translate-x-1/2 whitespace-nowrap px-1.5 rounded bg-surface-container-lowest/90 text-[10px] font-bold text-on-surface shadow-sm ${selected ? 'place-label-always' : ''}">${place.name}</span>`;
+  return `<div class="relative -translate-x-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-surface-container-lowest shadow-md flex items-center justify-center text-[12px] transition-transform ${ring}">${CATEGORY_EMOJI[place.category] ?? '📍'}${badge}${label}</div>`;
 }
 
 export default function PlaceMap({ places, selectedId, onSelect, videoCount, className = '' }: PlaceMapProps) {
@@ -42,12 +42,13 @@ export default function PlaceMap({ places, selectedId, onSelect, videoCount, cla
     const bounds = L.latLngBounds(BOUNDARY);
     const map = L.map(el, {
       zoomControl: false,
-      minZoom: 14,
+      minZoom: 15,
       maxZoom: 19,
       maxBounds: bounds.pad(0.6),
     });
-    map.fitBounds(bounds, { padding: [8, 8] });
-    map.setZoom(Math.max(map.getZoom(), 16));
+    map.fitBounds(bounds, { padding: [18, 18] });
+    map.panBy([0, -18]);
+    map.setZoom(Math.max(map.getZoom(), 17));
 
     L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19,
