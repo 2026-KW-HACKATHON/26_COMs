@@ -1,6 +1,23 @@
 import { useEffect, useRef } from 'react';
-import L from 'leaflet';
 import { BOUNDARY, CATEGORY_EMOJI, type Place } from '../data/places';
+
+type KakaoMap = {
+  Map: new (container: HTMLElement, options: Record<string, unknown>) => any;
+  CustomOverlay: new (options: Record<string, unknown>) => any;
+  LatLng: new (lat: number, lng: number) => any;
+  LatLngBounds: new () => any;
+  Polygon: new (options: Record<string, unknown>) => any;
+  load: (callback: () => void) => void;
+  event: {
+    addListener: (target: any, type: string, handler: () => void) => void;
+  };
+};
+
+declare global {
+  interface Window {
+    kakao?: { maps: KakaoMap };
+  }
+}
 
 interface PlaceMapProps {
   places: Place[];
@@ -15,87 +32,162 @@ const LABEL_MIN_ZOOM = 17;
 
 function pinHtml(place: Place, count: number, selected: boolean) {
   const ring = selected
-    ? 'ring-4 ring-primary-container scale-125'
+    ? 'ring-3 ring-primary-container scale-110'
     : count
       ? 'ring-2 ring-primary-container'
       : 'ring-1 ring-outline-variant';
   const badge = count
-    ? `<span class="absolute -top-1.5 -right-1.5 min-w-[16px] h-4 px-1 rounded-full bg-primary text-on-primary text-[10px] font-bold leading-4 text-center">${count}</span>`
+    ? `<span class="absolute -top-1 -right-1 min-w-[14px] h-3.5 px-1 rounded-full bg-primary text-on-primary text-[9px] font-bold leading-[14px] text-center">${count}</span>`
     : '';
-  // 이름 라벨은 확대했을 때만 (place-label은 index.css에서 줌에 따라 토글)
-  const label = `<span class="place-label absolute left-1/2 top-full mt-0.5 -translate-x-1/2 whitespace-nowrap px-1.5 rounded bg-surface-container-lowest/90 text-[11px] font-bold text-on-surface shadow-sm ${selected ? 'place-label-always' : ''}">${place.name}</span>`;
-  return `<div class="relative -translate-x-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-surface-container-lowest shadow-md flex items-center justify-center text-[15px] transition-transform ${ring}">${CATEGORY_EMOJI[place.category] ?? '📍'}${badge}${label}</div>`;
+  const label = `<span class="place-label absolute left-1/2 top-full mt-0.5 -translate-x-1/2 whitespace-nowrap px-1.5 rounded bg-surface-container-lowest/90 text-[10px] font-bold text-on-surface shadow-sm ${selected ? 'place-label-always' : ''}">${place.name}</span>`;
+  return `<div class="relative -translate-x-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-surface-container-lowest shadow-md flex items-center justify-center text-[13px] transition-transform ${ring}">${CATEGORY_EMOJI[place.category] ?? '📍'}${badge}${label}</div>`;
 }
 
 export default function PlaceMap({ places, selectedId, onSelect, videoCount, className = '' }: PlaceMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const mapRef = useRef<L.Map | null>(null);
-  const markersRef = useRef<L.LayerGroup | null>(null);
+  const mapRef = useRef<any | null>(null);
+  const markersRef = useRef<any[]>([]);
+  const polygonRef = useRef<any | null>(null);
   const onSelectRef = useRef(onSelect);
 
   useEffect(() => {
     onSelectRef.current = onSelect;
-  });
+  }, [onSelect]);
 
   useEffect(() => {
-    const el = containerRef.current!;
-    const bounds = L.latLngBounds(BOUNDARY);
-    const map = L.map(el, {
-      zoomControl: false,
-      minZoom: 14,
-      maxZoom: 19,
-      maxBounds: bounds.pad(0.6),
-    });
-    map.fitBounds(bounds, { padding: [8, 8] });
-    map.setZoom(Math.max(map.getZoom(), 16));
+    const el = containerRef.current;
+    if (!el) return;
 
-    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 19,
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-    }).addTo(map);
-    L.polygon(BOUNDARY, { color: '#a63a19', weight: 2, dashArray: '6 6', fillOpacity: 0.03, interactive: false }).addTo(map);
-    markersRef.current = L.layerGroup().addTo(map);
+    const initMap = () => {
+      const kakao = window.kakao;
+      if (!kakao?.maps) return;
 
-    const syncLabels = () => el.classList.toggle('map-hide-labels', map.getZoom() < LABEL_MIN_ZOOM);
-    map.on('zoomend', syncLabels);
-    syncLabels();
+      const bounds = new kakao.maps.LatLngBounds();
+      BOUNDARY.forEach(([lat, lng]) => {
+        bounds.extend(new kakao.maps.LatLng(lat, lng));
+      });
 
-    mapRef.current = map;
+      const map = new kakao.maps.Map(el, {
+        center: new kakao.maps.LatLng(37.6287, 127.057),
+        level: 1,
+      });
+      map.setMinLevel(1);
+      map.setMaxLevel(19);
+      map.setBounds(bounds, 20, 20, 20, 20);
+      map.setLevel(1);
+
+      const polygon = new kakao.maps.Polygon({
+        path: BOUNDARY.map(([lat, lng]) => new kakao.maps.LatLng(lat, lng)),
+        strokeWeight: 2,
+        strokeColor: '#a63a19',
+        strokeStyle: 'dash',
+        strokeOpacity: 1,
+        fillColor: '#a63a19',
+        fillOpacity: 0.03,
+      });
+      polygon.setMap(map);
+      polygonRef.current = polygon;
+
+      const syncLabels = () => {
+        el.classList.toggle('map-hide-labels', map.getLevel() > LABEL_MIN_ZOOM);
+      };
+      kakao.maps.event.addListener(map, 'zoom_changed', syncLabels);
+      syncLabels();
+
+      mapRef.current = map;
+    };
+
+    const ensureKakaoSdk = () => {
+      if (window.kakao?.maps) {
+        window.kakao.maps.load(initMap);
+        return;
+      }
+
+      const apiKey = import.meta.env.VITE_KAKAO_MAP_API_KEY;
+      if (!apiKey) {
+        el.innerHTML = '<div class="flex h-full items-center justify-center px-4 text-center text-sm text-on-surface-variant">카카오 지도 API 키를 설정해 주세요.</div>';
+        return;
+      }
+
+      const existing = document.getElementById('kakao-map-sdk');
+      if (existing) {
+        existing.addEventListener('load', () => window.kakao?.maps.load(initMap), { once: true });
+        return;
+      }
+
+      const script = document.createElement('script');
+      script.id = 'kakao-map-sdk';
+      script.async = true;
+      script.src = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${apiKey}&autoload=false`;
+      script.onload = () => {
+        window.kakao?.maps.load(initMap);
+      };
+      script.onerror = () => {
+        console.error('Kakao Maps SDK 로드 실패: 도메인 허용 여부와 앱 키를 확인해 주세요.');
+        el.innerHTML = '<div class="flex h-full items-center justify-center px-4 text-center text-sm text-on-surface-variant">카카오 지도 로드에 실패했습니다. 앱 키와 허용 도메인을 확인해 주세요.</div>';
+      };
+      document.head.appendChild(script);
+    };
+
+    ensureKakaoSdk();
+
     return () => {
-      map.remove();
+      markersRef.current.forEach((marker) => marker.setMap(null));
+      markersRef.current = [];
+      if (polygonRef.current) {
+        polygonRef.current.setMap(null);
+        polygonRef.current = null;
+      }
       mapRef.current = null;
-      markersRef.current = null;
     };
   }, []);
 
   useEffect(() => {
-    const layer = markersRef.current;
-    if (!layer) return;
-    layer.clearLayers();
+    const map = mapRef.current;
+    const kakao = window.kakao;
+    if (!map || !kakao?.maps) return;
+
+    markersRef.current.forEach((marker) => marker.setMap(null));
+    markersRef.current = [];
+
     for (const place of places) {
       const count = videoCount?.get(place.id) ?? 0;
       const selected = place.id === selectedId;
-      L.marker([place.lat, place.lng], {
-        icon: L.divIcon({ className: '', html: pinHtml(place, count, selected), iconSize: [0, 0] }),
-        title: place.name,
-        zIndexOffset: selected ? 1000 : count ? 500 : 0,
-      })
-        .on('click', () => onSelectRef.current(place))
-        .addTo(layer);
+      const markerContent = document.createElement('div');
+      markerContent.innerHTML = pinHtml(place, count, selected);
+      markerContent.style.position = 'relative';
+      markerContent.style.display = 'block';
+      markerContent.style.pointerEvents = 'auto';
+      markerContent.style.transform = 'translate(-50%, -50%)';
+      markerContent.style.cursor = 'pointer';
+
+      const overlay = new kakao.maps.CustomOverlay({
+        position: new kakao.maps.LatLng(place.lat, place.lng),
+        content: markerContent,
+        xAnchor: 0.5,
+        yAnchor: 0.5,
+        zIndex: selected ? 1000 : count ? 500 : 0,
+        clickable: true,
+      });
+
+      overlay.setMap(map);
+      markerContent.addEventListener('click', () => onSelectRef.current(place));
+      markersRef.current.push(overlay);
     }
   }, [places, selectedId, videoCount]);
 
-  // 선택된 장소가 화면 밖(검색으로 고른 경우 등)이면 그쪽으로 이동
   useEffect(() => {
     const map = mapRef.current;
+    const kakao = window.kakao;
     const place = places.find((p) => p.id === selectedId);
-    if (!map || !place) return;
-    const target = L.latLng(place.lat, place.lng);
-    if (!map.getBounds().pad(-0.2).contains(target)) {
-      map.flyTo(target, Math.max(map.getZoom(), LABEL_MIN_ZOOM), { duration: 0.6 });
+    if (!map || !kakao?.maps || !place) return;
+
+    const target = new kakao.maps.LatLng(place.lat, place.lng);
+    const currentBounds = map.getBounds();
+    if (!currentBounds.contain(target)) {
+      map.panTo(target);
     }
   }, [places, selectedId]);
 
-  // isolate: Leaflet 내부 z-index(400~)가 고정 헤더·네비 위로 올라오지 않도록
   return <div ref={containerRef} className={`isolate bg-surface-container-low ${className}`} />;
 }
