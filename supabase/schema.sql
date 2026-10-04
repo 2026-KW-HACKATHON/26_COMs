@@ -428,7 +428,7 @@ create policy "capsules: 본인 폴더 업로드" on storage.objects
   with check (bucket_id = 'capsules' and (storage.foldername(name))[1] = (select auth.uid())::text);
 
 -- 본인 폴더는 항상 조회 (업로드 실패 시 정리용), 다른 사람 파일은 볼 수 있는 기록에 연결된 것만.
--- 주의: 서명 URL은 만들 때만 검사하므로 친구를 끊어도 이미 받은 URL은 만료(앱은 1시간)까지 쓸 수 있다
+-- 주의: 서명 URL은 만들 때만 검사하므로 친구를 끊어도 이미 받은 URL은 만료(앱은 10분)까지 쓸 수 있다
 drop policy if exists "capsules: 본인 폴더 조회" on storage.objects;
 create policy "capsules: 본인 폴더 조회" on storage.objects
   for select to authenticated
