@@ -46,11 +46,27 @@
   .nudge-wiggle {
     animation: nudge-wiggle 0.5s ease-in-out;
   }
+  /* 지도 아래 랭킹 카드: 1~3위가 바뀔 때 아래에서 올라온다 */
+  .ticker-in {
+    animation: ticker-in 0.35s ease-out both;
+  }
   @media (prefers-reduced-motion: reduce) {
     .nudge-drop,
-    .nudge-wiggle {
+    .nudge-wiggle,
+    .ticker-in {
       animation: none;
     }
+  }
+}
+
+@keyframes ticker-in {
+  from {
+    transform: translateY(8px);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
   }
 }
 

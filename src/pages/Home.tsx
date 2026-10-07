@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import Avatar from '../components/Avatar';
 import CapsuleThumb from '../components/CapsuleThumb';
@@ -8,24 +8,31 @@ import PlaceSearch from '../components/PlaceSearch';
 import { useAuth } from '../hooks/useAuth';
 import { useCapsules } from '../hooks/useCapsules';
 import { useFriendships } from '../hooks/useFriendships';
+import { usePlaceRanking } from '../hooks/usePlaceRanking';
 import { SOCIAL_ENABLED } from '../lib/capsuleStore';
+import { DEFAULT_RANKING_DAYS, MEDALS, RANKING_PERIODS } from '../lib/ranking';
 import { isUuid } from '../lib/supabase';
 import { placesInSameBuilding } from '../data/mapData';
 import { CATEGORY_EMOJI, getPlace, placeSubtitle } from '../data/places';
 import type { Capsule } from '../types/capsule';
 
 const NO_CAPSULES: Capsule[] = [];
+const PERIOD_LABEL = RANKING_PERIODS.find((p) => p.days === DEFAULT_RANKING_DAYS)!.label;
+/** 아래 랭킹 카드가 1~3위를 돌아가며 보여 주는 간격 */
+const TICKER_MS = 3500;
 
 export default function Home() {
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { session, profile } = useAuth();
+  const { session, profile, loading: authLoading } = useAuth();
   const me = session?.user.id ?? null;
 
-  // ?user=<친구 id>면 그 친구의 지도, 없으면 내 지도
+  // ?user=<친구 id>면 그 친구의 지도, ?view=town이면 동네 지도(모두의 방문 수), 없으면 내 지도.
+  // 로그인하지 않았으면 내 지도가 없어서 동네 지도를 보여 준다
   const userParam = searchParams.get('user');
   const viewingId = SOCIAL_ENABLED && me && isUuid(userParam) && userParam !== me ? userParam : null;
+  const town = SOCIAL_ENABLED && !viewingId && (searchParams.get('view') === 'town' || (!authLoading && !me));
   const capsules = useCapsules(viewingId ?? undefined);
   const { list: friendships } = useFriendships();
   const friends = useMemo(() => friendships?.filter((f) => f.status === 'friend') ?? [], [friendships]);
@@ -45,12 +52,29 @@ export default function Home() {
     return counts;
   }, [shown]);
 
+  // 동네 랭킹: 동네 지도의 색·메달, 가게 시트의 순위, 아래 랭킹 카드에 쓴다
+  const ranking = usePlaceRanking(DEFAULT_RANKING_DAYS);
+  const rankOf = useMemo(() => new Map(ranking?.map((r) => [r.placeId, r])), [ranking]);
+  const townVisits = useMemo(() => new Map(ranking?.map((r) => [r.placeId, r.visits])), [ranking]);
+  const townRanks = useMemo(() => new Map(ranking?.map((r) => [r.placeId, r.rank])), [ranking]);
+  const [tick, setTick] = useState(0);
+  const tickerSize = Math.min(3, ranking?.length ?? 0);
+  useEffect(() => {
+    if (tickerSize < 2) return;
+    const timer = setInterval(() => setTick((t) => t + 1), TICKER_MS);
+    return () => clearInterval(timer);
+  }, [tickerSize]);
+  const featured = tickerSize ? ranking![tick % tickerSize] : null;
+
   const selected = getPlace(selectedId);
+  const selectedStat = selectedId ? rankOf.get(selectedId) : undefined;
   const selectedVideos = shown?.filter((c) => c.placeId === selectedId) ?? [];
   // 한 건물에 가게가 여럿이면 시트에서 바로 바꿀 수 있게
   const neighbors = selected ? placesInSameBuilding(selected) : [];
+  const mapCount = town ? townVisits : videoCount;
 
   const selectMap = (friendId: string | null) => setSearchParams(friendId ? { user: friendId } : {}, { replace: true });
+  const selectTown = () => setSearchParams({ view: 'town' }, { replace: true });
 
   const hint = viewingId
     ? viewing
@@ -58,15 +82,33 @@ export default function Home() {
       : friendships === null
         ? '친구 지도를 불러오는 중…'
         : '친구의 지도만 볼 수 있어요'
-    : '건물을 눌러 그곳의 5초를 남겨 보세요';
+    : town && ranking?.length
+      ? `${PERIOD_LABEL} 동안 동네 사람들이 다녀간 곳이에요`
+      : '건물을 눌러 그곳의 5초를 남겨 보세요';
 
   return (
     <div className="relative w-full h-[calc(100dvh-7.5rem)]">
-      <PlaceMap selectedId={selectedId} onSelect={(p) => setSelectedId(p.id)} videoCount={videoCount} className="absolute inset-0" />
+      <PlaceMap
+        selectedId={selectedId}
+        onSelect={(p) => setSelectedId(p.id)}
+        videoCount={mapCount}
+        ranks={town ? townRanks : undefined}
+        className="absolute inset-0"
+      />
 
       <div className="absolute top-3 inset-x-3 z-10 flex flex-col gap-2">
         <PlaceSearch onPick={(p) => setSelectedId(p.id)} />
-        {SOCIAL_ENABLED && me && <FriendMapSelector me={profile} friends={friends} selectedId={viewingId} onSelect={selectMap} requestCount={requestCount} />}
+        {SOCIAL_ENABLED && me && (
+          <FriendMapSelector
+            me={profile}
+            friends={friends}
+            selectedId={viewingId}
+            onSelect={selectMap}
+            town={town}
+            onSelectTown={selectTown}
+            requestCount={requestCount}
+          />
+        )}
       </div>
 
       {selected ? (
@@ -86,6 +128,24 @@ export default function Home() {
             </button>
           </div>
 
+          {/* 동네에서 이 가게의 순위 (영상은 비공개, 숫자만) */}
+          {selectedStat ? (
+            <button
+              onClick={() => navigate('/ranking')}
+              className="-mt-1 flex items-center gap-2 px-3.5 py-2.5 rounded-2xl bg-primary-fixed text-on-primary-fixed text-label-md font-semibold text-left pressable"
+              type="button"
+            >
+              <span className="text-[17px] leading-none">{MEDALS[selectedStat.rank - 1] ?? '🏆'}</span>
+              <span className="flex-1 min-w-0 truncate">
+                동네 {selectedStat.rank}위 · {PERIOD_LABEL} {selectedStat.visits}번 방문
+                {selectedStat.regulars > 0 && ` · 단골 ${selectedStat.regulars}명`}
+              </span>
+              <span className="material-symbols-rounded text-[18px]">chevron_right</span>
+            </button>
+          ) : (
+            ranking && <p className="-mt-2 text-label-md text-on-surface-variant">{PERIOD_LABEL} 동안 남긴 사람이 없어요. 첫 기록을 남겨 보세요</p>
+          )}
+
           {neighbors.length > 1 && (
             <div className="flex gap-1.5 overflow-x-auto no-scrollbar -mx-5 px-5">
               {neighbors.map((p) => (
@@ -99,7 +159,7 @@ export default function Home() {
                   aria-pressed={p.id === selected.id}
                 >
                   {p.name}
-                  {(videoCount.get(p.id) ?? 0) > 0 && <span className="ml-1 text-primary">{videoCount.get(p.id)}</span>}
+                  {(mapCount.get(p.id) ?? 0) > 0 && <span className="ml-1 text-primary">{mapCount.get(p.id)}</span>}
                 </button>
               ))}
             </div>
@@ -132,8 +192,26 @@ export default function Home() {
           </button>
         </div>
       ) : (
-        <div className="absolute bottom-4 inset-x-0 z-10 flex justify-center pointer-events-none">
+        <div className="absolute bottom-3 inset-x-3 z-10 flex flex-col items-center gap-2 pointer-events-none">
           <span className="px-4 py-2 rounded-full bg-inverse-surface/90 text-inverse-on-surface text-label-md font-semibold">{hint}</span>
+          {/* 동네 랭킹 1~3위를 돌아가며 보여 주고, 누르면 전체 랭킹 */}
+          {featured && (
+            <button
+              onClick={() => navigate('/ranking')}
+              className="pointer-events-auto w-full h-16 pl-3 pr-2 rounded-2xl bg-surface shadow-sheet flex items-center gap-3 text-left pressable"
+              type="button"
+            >
+              <span className="w-10 h-10 shrink-0 rounded-full bg-primary-fixed flex items-center justify-center text-[20px]">🏆</span>
+              <span className="flex-1 min-w-0">
+                <span className="block text-label-sm text-on-surface-variant">동네 랭킹 · {PERIOD_LABEL}</span>
+                <span key={featured.placeId} className="block text-label-lg font-bold text-on-surface truncate ticker-in">
+                  {MEDALS[featured.rank - 1] ?? `${featured.rank}위`} {featured.place.name}
+                  <span className="ml-1.5 text-primary">{featured.visits}번 방문</span>
+                </span>
+              </span>
+              <span className="material-symbols-rounded text-[22px] text-gray-400">chevron_right</span>
+            </button>
+          )}
         </div>
       )}
     </div>
