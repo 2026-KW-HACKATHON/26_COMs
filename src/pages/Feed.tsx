@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import Avatar from '../components/Avatar';
 import FeedVideo from '../components/FeedVideo';
+import RecallCard from '../components/RecallCard';
 import { CATEGORY_EMOJI, getPlace, placeSubtitle } from '../data/places';
 import { useAuth } from '../hooks/useAuth';
 import { useFriendships } from '../hooks/useFriendships';
@@ -105,6 +106,8 @@ export default function Feed() {
           ))}
         </div>
       )}
+      {/* 기념일(일주일·한 달·100일·1년 전 오늘)에 남긴 내 영상 */}
+      {scope === 'friends' && <RecallCard />}
       <h2 className="mb-1 text-headline-md text-on-surface">{scopeInfo.title}</h2>
       <p className="mb-4 text-body-sm text-on-surface-variant">{scopeInfo.description}</p>
 
