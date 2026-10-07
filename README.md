@@ -48,7 +48,7 @@ Supabase를 설정하지 않으면 로그인·친구 기능 없이, 영상은 �
 공통: 카카오·구글 콘솔의 리다이렉트 URI에는 **`https://<프로젝트>.supabase.co/auth/v1/callback`** 하나만 넣는다 (앱 주소는 넣지 않음).
 
 **Supabase** (Authentication)
-- URL Configuration > Site URL: 배포 주소. Redirect URLs: `http://localhost:5173/**`, `http://localhost:4173/**`, `https://<배포 주소>/**`, Vercel 미리보기용 `https://*-<팀 슬러그>.vercel.app/**`
+- URL Configuration > Site URL: 배포 주소. Redirect URLs: `http://localhost:5173/**`, `http://localhost:4173/**`, `https://<배포 주소>/**`, Vercel 미리보기용 `https://coms-*-com-s.vercel.app/**`
 - Sign In / Providers: Google·Kakao 켜기, "Allow new users to sign up" 켜기, "Allow anonymous sign-ins"는 끄기(켜져 있어도 스키마가 차단)
 - Kakao 설정의 **Allow users without an email** 켜기 (일반 앱은 이메일 동의항목을 쓸 수 없음)
 
@@ -67,12 +67,21 @@ Supabase를 설정하지 않으면 로그인·친구 기능 없이, 영상은 �
 
 ## 배포 (Vercel)
 
-1. [vercel.com](https://vercel.com)에서 이 GitHub 저장소를 Import한다 (Vite 자동 인식).
-2. Environment Variables에 `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`를 넣는다.
-3. Supabase Authentication > URL Configuration에 배포 주소를 추가한다 (위 "로그인 설정" 참고).
-4. 배포된 https 주소를 폰으로 열고 공유 메뉴에서 **홈 화면에 추가**하면 앱처럼 실행된다.
+대회 레포는 조직 소유이고 팀원은 외부 협력자라서 Vercel이 레포를 직접 Import할 수 없다. 대신 [.github/workflows/deploy.yml](.github/workflows/deploy.yml)이 GitHub Actions에서 Vercel CLI로 배포한다.
 
-Organization 저장소에 Vercel GitHub 앱을 설치할 권한이 없으면 로컬에서 `npx vercel`로 배포할 수 있다.
+- main에 푸시(머지)하면 실제 주소에 배포된다.
+- main으로 가는 PR을 올리면 미리보기 주소가 PR 댓글로 달린다.
+- Actions 탭의 "Vercel 배포" → Run workflow로 수동 배포도 된다.
+
+처음 한 번 설정 (Vercel 프로젝트 `com-s/coms`, 무료 플랜):
+
+1. 레포 Settings > Secrets and variables > Actions에 `VERCEL_TOKEN`(Vercel Account Settings > Tokens에서 발급), `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID`(로컬에서 `npx vercel link` 후 `.vercel/project.json`)를 넣는다.
+2. Vercel 프로젝트 Settings > Environment Variables에 `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`를 Production·Preview 모두 체크해서 넣는다. 값을 바꾸면 다시 배포해야 반영된다.
+3. Settings > Deployment Protection의 Vercel Authentication을 끈다 (켜져 있으면 미리보기 주소를 Vercel 로그인한 사람만 볼 수 있다).
+4. Supabase Authentication > URL Configuration에 배포 주소와 미리보기 주소 `https://coms-*-com-s.vercel.app/**`를 추가한다 (위 "로그인 설정" 참고).
+5. 배포된 https 주소를 폰으로 열고 공유 메뉴에서 **홈 화면에 추가**하면 앱처럼 실행된다.
+
+로컬에서 바로 올릴 때: `npx vercel`(미리보기) / `npx vercel --prod`(실제 주소). `vercel.json`의 `framework: "vite"`가 없으면 빌드 결과(`dist`) 대신 `public` 폴더가 올라가니 지우지 않는다.
 
 ## 폰에서 테스트할 때
 
