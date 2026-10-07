@@ -4,6 +4,9 @@ import { listFriendships } from '../lib/social';
 import type { ProfileWithStatus } from '../types/social';
 import { useAuth } from './useAuth';
 
+// 로그인 전·기기 저장에서 돌려주는 빈 목록. 매번 새 배열을 만들면 이 목록에 기대는 화면이 계속 다시 불러온다
+const NONE: ProfileWithStatus[] = [];
+
 /**
  * 내 친구·받은 요청·보낸 요청. 처음 불러오는 중에는 null, 로그인 전이면 빈 목록.
  * reload() 중에는 이전 목록을 그대로 보여 준다.
@@ -28,6 +31,6 @@ export function useFriendships() {
   }, [me, version]);
 
   const reload = useCallback(() => setVersion((v) => v + 1), []);
-  const list = !SOCIAL_ENABLED || !me ? [] : loaded?.me === me ? loaded.list : null;
+  const list = !SOCIAL_ENABLED || !me ? NONE : loaded?.me === me ? loaded.list : null;
   return { list, reload };
 }

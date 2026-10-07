@@ -28,6 +28,17 @@ export interface Capsule {
   createdAt: number;
 }
 
+/** 피드 한 번에 불러오는 개수 */
+export const FEED_PAGE = 15;
+
+export interface FeedQuery {
+  /** 이 사람들이 남긴 기록 (서버 저장일 때) */
+  userIds: string[];
+  /** 이 시각(밀리초)보다 오래된 것부터 */
+  before?: number;
+  limit?: number;
+}
+
 /** 새로 남길 기록. 저장 전이라 영상·썸네일은 항상 파일이다. */
 export interface NewCapsule {
   placeId: string;

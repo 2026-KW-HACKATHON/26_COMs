@@ -1,4 +1,4 @@
-import type { Capsule, NewCapsule } from '../types/capsule';
+import { FEED_PAGE, type Capsule, type FeedQuery, type NewCapsule } from '../types/capsule';
 import type { PlaceStat, RankingDays } from './ranking';
 import { PROFILE_COLUMNS, listFriendships, toProfile, type ProfileRow } from './social';
 import { isUuid, supabase } from './supabase';
@@ -169,6 +169,20 @@ export async function listCapsules(ownerId?: string): Promise<Capsule[]> {
   const taggedIds = (tagged as { capsule_id: string }[]).map((t) => t.capsule_id).filter(isUuid);
   const filter = taggedIds.length ? `user_id.eq.${target},id.in.(${taggedIds.join(',')})` : `user_id.eq.${target}`;
   const { data, error } = await client().from(TABLE).select(CAPSULE_SELECT).or(filter).order('created_at', { ascending: false });
+  if (error) throw error;
+  return toCapsules(data as unknown as CapsuleRow[]);
+}
+
+/**
+ * 피드: 이 사람들(나·친구)이 남긴 기록을 최신순으로 limit개. before(밀리초)를 주면 그보다 오래된 것부터 (더 보기).
+ * 볼 수 없는 기록은 정책이 걸러낸다.
+ */
+export async function listFeed({ userIds, before, limit = FEED_PAGE }: FeedQuery): Promise<Capsule[]> {
+  const ids = userIds.filter(isUuid);
+  if (!ids.length || !(await currentUserId())) return [];
+  let query = client().from(TABLE).select(CAPSULE_SELECT).in('user_id', ids).order('created_at', { ascending: false }).limit(limit);
+  if (before) query = query.lt('created_at', new Date(before).toISOString());
+  const { data, error } = await query;
   if (error) throw error;
   return toCapsules(data as unknown as CapsuleRow[]);
 }

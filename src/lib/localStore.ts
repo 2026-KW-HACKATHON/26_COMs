@@ -1,4 +1,4 @@
-import type { Capsule, NewCapsule } from '../types/capsule';
+import { FEED_PAGE, type Capsule, type FeedQuery, type NewCapsule } from '../types/capsule';
 import { computePlaceStats, type PlaceStat, type RankingDays } from './ranking';
 import { uuid } from './uuid';
 
@@ -73,6 +73,12 @@ export async function listCapsules(ownerId?: string): Promise<Capsule[]> {
   if (ownerId) return [];
   const list = await run<Capsule[]>('readonly', (s) => s.getAll());
   return list.map(normalize).sort((a, b) => b.createdAt - a.createdAt);
+}
+
+/** 피드 (기기 저장은 친구가 없어서 이 기기의 기록만) */
+export async function listFeed({ before, limit = FEED_PAGE }: FeedQuery): Promise<Capsule[]> {
+  const list = await listCapsules();
+  return list.filter((c) => !before || c.createdAt < before).slice(0, limit);
 }
 
 export async function deleteCapsule(id: string): Promise<void> {
