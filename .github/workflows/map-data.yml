@@ -55,5 +55,5 @@ jobs:
             echo "지도 데이터 변경 없음"
             exit 0
           fi
-          git commit -m "자동 커밋: 지도 데이터 갱신 (OpenStreetMap)"
+          git commit -m "자동 커밋: 지도 데이터 갱신"
           git push

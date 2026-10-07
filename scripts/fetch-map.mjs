@@ -432,7 +432,8 @@ for (const el of osm.elements ?? []) {
     continue;
   }
 
-  if (t.railway && el.type === 'way' && el.geometry && !t.tunnel) {
+  // 본선만 (차량기지·측선 선로는 수십 가닥이라 지도가 지저분해진다)
+  if (t.railway && el.type === 'way' && el.geometry && !t.tunnel && !t.service) {
     if (/^(rail|subway|light_rail)$/.test(t.railway)) {
       for (const part of clipLine(wayPoints(el.geometry), view)) rail.push(simplify(part, TOLERANCE.road));
     }
