@@ -930,3 +930,64 @@ describe('R8 push subscriptions', () => {
     await assert.rejects(save(A, 'http://insecure.example/x'), /check constraint/);
   });
 });
+
+// ---------------------------------------------------------------------------
+describe('R9 place ranking', () => {
+  let h, A, B, C, S;
+  const ranking = (who, days = null) =>
+    h.q(who, 'select * from public.place_ranking($1)', [days]);
+  const backdate = (id, days) =>
+    h.q('admin', `update public.capsules set created_at = now() - make_interval(days => $2) where id = $1`, [id, days]);
+
+  before(async () => {
+    h = await createDb();
+    A = await h.signUp({ email: 'ra.rank@x.com' });
+    B = await h.signUp({ email: 'rb.rank@x.com' });
+    C = await h.signUp({ email: 'rc.rank@x.com' });
+    S = await h.signUp({ email: 'rs.rank@x.com' });
+    await h.befriend(A, B);
+    // p1: A가 오늘 3개(같은 날이라 방문 1번) + B를 태그(B도 방문 1번), A가 10일 전에 한 번 더 (단골)
+    const today = await h.capsule(A, { place: 'p1' });
+    await h.q(A, 'insert into public.capsule_tags (capsule_id, user_id) values ($1, $2)', [today.id, B]);
+    await h.capsule(A, { place: 'p1' });
+    await h.capsule(A, { place: 'p1' });
+    await backdate((await h.capsule(A, { place: 'p1' })).id, 10);
+    // p2: C가 오늘 한 번, 40일 전에 한 번
+    await h.capsule(C, { place: 'p2' });
+    await backdate((await h.capsule(C, { place: 'p2' })).id, 40);
+  });
+  after(() => h.close());
+
+  test('counts visits per person per day; tagged friends count; same-day videos count once', async () => {
+    const rows = await ranking(S);
+    assert.deepEqual(rows, [
+      { place_id: 'p1', visits: 3, people: 2, regulars: 1, videos: 4 },
+      { place_id: 'p2', visits: 2, people: 1, regulars: 1, videos: 2 },
+    ]);
+  });
+
+  test('days limits the window to the last N days (Korean date)', async () => {
+    assert.deepEqual(await ranking(S, 30), [
+      { place_id: 'p1', visits: 3, people: 2, regulars: 1, videos: 4 },
+      { place_id: 'p2', visits: 1, people: 1, regulars: 0, videos: 1 },
+    ]);
+    assert.deepEqual((await ranking(S, 1)).map((r) => [r.place_id, r.visits]), [['p1', 2], ['p2', 1]]);
+  });
+
+  test('anyone (strangers, anon) sees the same numbers, but no people, names or times', async () => {
+    const all = await ranking(A);
+    assert.deepEqual(await ranking('anon'), all);
+    assert.deepEqual(await ranking({ id: S, anonymous: true }), all);
+    assert.deepEqual(Object.keys(all[0]).sort(), ['people', 'place_id', 'regulars', 'videos', 'visits']);
+  });
+
+  test('clients cannot backdate a capsule to inflate visits', async () => {
+    await assert.rejects(
+      h.q(A, `insert into public.capsules (place_id, place_name, lat, lng, video_path, clip_duration, created_at)
+              values ('p1', 'x', 0, 0, $1, 5, now() - interval '5 days')`, [`${A}/old.webm`]),
+      DENIED,
+    );
+    // 작성 시각을 빼면 그대로 저장된다
+    assert.ok(await h.capsule(A, { place: 'p3' }));
+  });
+});

@@ -175,15 +175,15 @@ export class Harness {
   }
 
   /** Create a capsule as `owner` with files inside the owner's folder. */
-  async capsule(owner, { thumb = true } = {}) {
+  async capsule(owner, { thumb = true, place = 'p1' } = {}) {
     const id = randomUUID();
     const video = `${owner}/${id}.webm`;
     const thumbnail = thumb ? `${owner}/${id}.jpg` : null;
     await this.q(
       owner,
       `insert into public.capsules (id, place_id, place_name, lat, lng, video_path, thumbnail_path, clip_duration)
-       values ($1, 'p1', '식당', 37.5, 127.0, $2, $3, 5)`,
-      [id, video, thumbnail],
+       values ($1, $4, '식당', 37.5, 127.0, $2, $3, 5)`,
+      [id, video, thumbnail, place],
     );
     return { id, video, thumbnail };
   }

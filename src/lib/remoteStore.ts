@@ -1,4 +1,5 @@
 import type { Capsule, NewCapsule } from '../types/capsule';
+import type { PlaceStat, RankingDays } from './ranking';
 import { PROFILE_COLUMNS, listFriendships, toProfile, type ProfileRow } from './social';
 import { isUuid, supabase } from './supabase';
 import { uuid } from './uuid';
@@ -179,4 +180,17 @@ export async function deleteCapsule(id: string): Promise<void> {
   if (error) throw error;
   const row = data as Pick<CapsuleRow, 'video_path' | 'thumbnail_path'> | null;
   if (row) await removeFiles([row.video_path, row.thumbnail_path]);
+}
+
+/** 동네 랭킹: 가게별 방문 수 (숫자만 공개되어 로그인하지 않아도 불러온다). days: 최근 며칠, null이면 전체 */
+export async function listPlaceStats(days: RankingDays): Promise<PlaceStat[]> {
+  const { data, error } = await client().rpc('place_ranking', days === null ? {} : { days });
+  if (error) throw error;
+  return (data as { place_id: string; visits: number; people: number; regulars: number; videos: number }[]).map((r) => ({
+    placeId: r.place_id,
+    visits: r.visits,
+    people: r.people,
+    regulars: r.regulars,
+    videos: r.videos,
+  }));
 }

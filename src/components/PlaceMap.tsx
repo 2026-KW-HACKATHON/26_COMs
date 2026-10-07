@@ -2,13 +2,16 @@ import { useEffect, useRef } from 'react';
 import L from 'leaflet';
 import { getMapData, type Building, type LatLng } from '../data/mapData';
 import { getPlace, type Place } from '../data/places';
+import { MEDALS } from '../lib/ranking';
 import { MAP_COLORS } from '../lib/theme';
 
 interface PlaceMapProps {
   selectedId: string | null;
   onSelect: (place: Place) => void;
-  /** 장소별 영상 개수. 영상이 있는 건물은 색이 채워진다 */
+  /** 장소별 영상(동네 지도는 방문) 수. 많을수록 건물 색이 진해지고 빛이 번진다 */
   videoCount?: Map<string, number>;
+  /** 동네 랭킹 순위. 1~3위는 이름표에 메달을 단다 */
+  ranks?: Map<string, number>;
   className?: string;
 }
 
@@ -29,17 +32,73 @@ function label(at: LatLng, html: string, className: string, zIndexOffset = 0, st
   });
 }
 
-/** 영상 수가 많을수록 진하게 */
-function videoOpacity(count: number) {
-  return count >= 4 ? 0.95 : count >= 2 ? 0.72 : 0.5;
+/** 영상 수 → 색 단계 (0~4) */
+function heatLevel(count: number) {
+  return count >= 8 ? 4 : count >= 5 ? 3 : count >= 3 ? 2 : count >= 2 ? 1 : 0;
 }
 
+/** 단계별 빛 번짐: 흐림 반경(px)과 진하기 */
+const GLOW = [
+  { blur: 5, alpha: 0.35 },
+  { blur: 8, alpha: 0.45 },
+  { blur: 11, alpha: 0.55 },
+  { blur: 15, alpha: 0.65 },
+  { blur: 20, alpha: 0.75 },
+];
+
+/** 테두리는 얇게(고해상도 화면에서 1픽셀 남짓), 색은 단계별로 채운다 */
 function storeStyle(count: number, selected: boolean): L.PathOptions {
   const base: L.PathOptions = count
-    ? { fillColor: MAP_COLORS.video, fillOpacity: videoOpacity(count), color: MAP_COLORS.video, weight: 1, opacity: 1 }
-    : { fillColor: MAP_COLORS.store, fillOpacity: 1, color: MAP_COLORS.storeStroke, weight: 1, opacity: 1 };
-  return selected ? { ...base, color: MAP_COLORS.selected, weight: 2.5, ...(count ? {} : { fillColor: '#B0B8C1' }) } : base;
+    ? { fillColor: MAP_COLORS.heat[heatLevel(count)], fillOpacity: 1, color: MAP_COLORS.heatStroke, opacity: 0.3, weight: 0.6 }
+    : { fillColor: MAP_COLORS.store, fillOpacity: 1, color: MAP_COLORS.storeStroke, opacity: 1, weight: 0.6 };
+  return selected ? { ...base, color: MAP_COLORS.selected, opacity: 1, weight: 2, ...(count ? {} : { fillColor: '#B0B8C1' }) } : base;
 }
+
+interface GlowOptions extends L.PathOptions {
+  glow?: { color: string; blur: number };
+}
+
+function glowStyle(count: number): GlowOptions {
+  const { blur, alpha } = GLOW[heatLevel(count)];
+  return { interactive: false, stroke: false, glow: { color: `rgba(${MAP_COLORS.glow}, ${alpha})`, blur } };
+}
+
+/** Leaflet 캔버스 렌더러의 내부 함수 (빛 번짐을 그리려고 덮어쓴다) */
+interface CanvasInternals {
+  _fillStroke(ctx: CanvasRenderingContext2D, layer: L.Path): void;
+  _extendRedrawBounds(layer: L.Path): void;
+  _redrawBounds?: L.Bounds;
+}
+const canvasBase = L.Canvas.prototype as unknown as CanvasInternals;
+const glowOf = (layer: L.Path) => (layer.options as GlowOptions).glow;
+/** Leaflet은 고해상도 화면에서 캔버스를 2배로 그리는데, 그림자 흐림은 그 배율을 따르지 않아서 직접 곱한다 */
+const CANVAS_SCALE = L.Browser.retina ? 2 : 1;
+
+/** glow 옵션이 있는 도형은 자기 모양의 흐린 빛만 그린다 (그 위에 같은 건물을 다시 그려 덮는다) */
+const GlowCanvas = L.Canvas.extend({
+  _fillStroke(this: CanvasInternals, ctx: CanvasRenderingContext2D, layer: L.Path) {
+    const glow = glowOf(layer);
+    if (!glow) return canvasBase._fillStroke.call(this, ctx, layer);
+    ctx.save();
+    ctx.globalAlpha = 1;
+    ctx.shadowColor = glow.color;
+    ctx.shadowBlur = glow.blur * CANVAS_SCALE;
+    ctx.fillStyle = `rgb(${MAP_COLORS.glow})`;
+    ctx.fill();
+    ctx.restore();
+  },
+  // 빛이 번진 만큼 다시 그릴 영역을 넓힌다 (좁으면 지운 자리에 빛 자국이 남는다)
+  _extendRedrawBounds(this: CanvasInternals, layer: L.Path) {
+    canvasBase._extendRedrawBounds.call(this, layer);
+    const glow = glowOf(layer);
+    const px = (layer as unknown as { _pxBounds?: L.Bounds })._pxBounds;
+    if (glow && px?.min && px.max && this._redrawBounds) {
+      const pad = glow.blur * 2;
+      this._redrawBounds.extend(px.min.subtract([pad, pad]));
+      this._redrawBounds.extend(px.max.add([pad, pad]));
+    }
+  },
+}) as unknown as new (options?: L.RendererOptions) => L.Canvas;
 
 /** 건물 안 가게가 여러 곳이면 누른 곳에서 가장 가까운 가게 */
 function nearestPlace(places: Place[], at: L.LatLng) {
@@ -51,7 +110,7 @@ function summaryName(places: Place[]) {
   return places.length > 1 ? `${places[0].name} 외 ${places.length - 1}` : places[0].name;
 }
 
-export default function PlaceMap({ selectedId, onSelect, videoCount, className = '' }: PlaceMapProps) {
+export default function PlaceMap({ selectedId, onSelect, videoCount, ranks, className = '' }: PlaceMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const rendererRef = useRef<L.Canvas | null>(null);
@@ -83,7 +142,7 @@ export default function PlaceMap({ selectedId, onSelect, videoCount, className =
       `© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a>${data.attribution.includes('Overture') ? ' · Overture Maps' : ''}`,
     );
 
-    const renderer = L.canvas({ padding: 0.4, tolerance: 6 });
+    const renderer = new GlowCanvas({ padding: 0.4, tolerance: 6 });
     rendererRef.current = renderer;
     const flat = { renderer, interactive: false, stroke: false, fillOpacity: 1 } as const;
     const line = { renderer, interactive: false, lineCap: 'round', lineJoin: 'round' } as const;
@@ -101,7 +160,7 @@ export default function PlaceMap({ selectedId, onSelect, videoCount, className =
     // 가게가 없는 건물은 전부 한 레이어 (가게가 있는 건물은 아래 effect에서 따로)
     L.polygon(
       data.buildings.filter((b) => !b.places.length).map((b) => [b.ring]),
-      { renderer, interactive: false, fillColor: MAP_COLORS.building, fillOpacity: 1, color: MAP_COLORS.buildingStroke, weight: 0.8, fillRule: 'nonzero' },
+      { renderer, interactive: false, fillColor: MAP_COLORS.building, fillOpacity: 1, color: MAP_COLORS.buildingStroke, weight: 0.5, fillRule: 'nonzero' },
     ).addTo(map);
     L.polygon(data.boundary, { renderer, interactive: false, fill: false, color: MAP_COLORS.boundary, weight: 1.5 }).addTo(map);
 
@@ -156,9 +215,25 @@ export default function PlaceMap({ selectedId, onSelect, videoCount, className =
     layer.clearLayers();
     const data = getMapData();
     const countOf = (p: Place) => videoCount?.get(p.id) ?? 0;
+    const buildingCount = (b: Building) => b.places.reduce((s, p) => s + countOf(p), 0);
+    /** 동네 랭킹 1~3위 메달 */
+    const medal = (p: Place | undefined) => {
+      const rank = p && ranks?.get(p.id);
+      return rank && rank <= 3 ? `${MEDALS[rank - 1]} ` : '';
+    };
+
+    // 빛 번짐을 먼저 모두 그려야 옆 건물을 덮지 않고 건물 아래로 깔린다 (약한 것부터)
+    const glows = [
+      ...data.placeBuildings.map((b) => ({ count: buildingCount(b), make: (s: GlowOptions) => L.polygon(b.ring, { renderer, ...s }) })),
+      ...data.unmatched.map((p) => ({ count: countOf(p), make: (s: GlowOptions) => L.circleMarker([p.lat, p.lng], { renderer, radius: 5.5, ...s }) })),
+    ];
+    glows
+      .filter((g) => g.count > 0)
+      .sort((a, b) => a.count - b.count)
+      .forEach((g) => g.make(glowStyle(g.count)).addTo(layer));
 
     const draw = (b: Building) => {
-      const count = b.places.reduce((s, p) => s + countOf(p), 0);
+      const count = buildingCount(b);
       const selected = b.places.find((p) => p.id === selectedId);
       L.polygon(b.ring, { renderer, ...storeStyle(count, !!selected) })
         .on('click', (e: L.LeafletMouseEvent) => onSelectRef.current(nearestPlace(b.places, e.latlng)))
@@ -166,10 +241,10 @@ export default function PlaceMap({ selectedId, onSelect, videoCount, className =
 
       if (selected) {
         const own = countOf(selected);
-        layer.addLayer(label(b.center, `${own ? `<b>${own}</b>` : ''}<span>${esc(selected.name)}</span>`, `map-pill map-pill-selected ${own ? '' : 'map-pill-plain'}`, 1000));
+        layer.addLayer(label(b.center, `${own ? `<b>${own}</b>` : ''}<span>${medal(selected)}${esc(selected.name)}</span>`, `map-pill map-pill-selected ${own ? '' : 'map-pill-plain'}`, 1000));
       } else if (count) {
         const withVideo = b.places.filter((p) => countOf(p)).sort((x, y) => countOf(y) - countOf(x));
-        layer.addLayer(label(b.center, `<b>${count}</b><span>${esc(summaryName(withVideo))}</span>`, 'map-pill', 500 + count));
+        layer.addLayer(label(b.center, `<b>${count}</b><span>${medal(withVideo[0])}${esc(summaryName(withVideo))}</span>`, 'map-pill', 500 + count));
       } else {
         layer.addLayer(label(b.center, esc(summaryName(b.places)), 'map-label-place'));
       }
@@ -188,13 +263,13 @@ export default function PlaceMap({ selectedId, onSelect, videoCount, className =
         .on('click', () => onSelectRef.current(p))
         .addTo(layer);
       if (selected || count) {
-        const html = `${count ? `<b>${count}</b>` : ''}<span>${esc(p.name)}</span>`;
-        layer.addLayer(label([p.lat, p.lng], html, `map-pill ${selected ? 'map-pill-selected' : ''} ${count ? '' : 'map-pill-plain'}`, selected ? 1000 : 500));
+        const html = `${count ? `<b>${count}</b>` : ''}<span>${medal(p)}${esc(p.name)}</span>`;
+        layer.addLayer(label([p.lat, p.lng], html, `map-pill ${selected ? 'map-pill-selected' : ''} ${count ? '' : 'map-pill-plain'}`, selected ? 1000 : 500 + count));
       } else {
         layer.addLayer(label([p.lat, p.lng], esc(p.name), 'map-label-place map-label-dot'));
       }
     }
-  }, [selectedId, videoCount]);
+  }, [selectedId, videoCount, ranks]);
 
   // 선택된 장소가 화면 밖(검색으로 고른 경우 등)이면 그쪽으로 이동
   useEffect(() => {

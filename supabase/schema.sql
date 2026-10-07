@@ -8,6 +8,7 @@
 --   프로필: 나와 관계가 있는 사람(친구·요청 주고받은 사람·같은 영상에 함께 나온 사람)만 조회.
 --           모르는 사람은 search_profiles로 20명까지만 검색된다(전체 목록을 긁어갈 수 없음).
 --   조르기: 같은 영상에 함께 나온 친구끼리만 보낼 수 있고, 보낸 사람·받은 사람만 본다.
+--   동네 랭킹: 가게별 방문 수(숫자)만 누구나 본다. 누가 남겼는지·영상은 공개하지 않는다 (place_ranking).
 
 -- 1) 프로필: 로그인하면 자동으로 만들어진다
 create table if not exists public.profiles (
@@ -221,7 +222,10 @@ grant select on public.profiles to authenticated;
 grant update (username, display_name) on public.profiles to authenticated;
 grant select, insert, delete on public.friendships to authenticated;
 grant update (status) on public.friendships to authenticated;
-grant select, insert, delete on public.capsules to authenticated;
+-- 작성 시각(created_at)은 서버가 정한다. 날짜를 지어내 동네 랭킹의 방문 수를 부풀릴 수 없게
+grant select, delete on public.capsules to authenticated;
+grant insert (id, user_id, place_id, place_name, lat, lng, video_path, thumbnail_path, clip_start, clip_duration)
+  on public.capsules to authenticated;
 grant select, insert, delete on public.capsule_tags to authenticated;
 grant select on public.nudges to authenticated;
 grant update (read_at) on public.nudges to authenticated;
@@ -507,6 +511,52 @@ begin
 end;
 $$;
 
+-- 동네 랭킹: 가게별 방문 수. 누가 남겼는지·영상은 드러내지 않고 숫자만 돌려줘서 로그인하지 않아도 볼 수 있다.
+--   방문 = 영상에 나온 사람(작성자·태그된 친구) × 날짜(한국 시간). 한 사람이 같은 날 여러 개 남겨도 한 번이라
+--          영상을 몰아서 올려도 순위가 오르지 않고, 다른 날 다시 오면 오른다.
+--   단골 = 다른 날 두 번 이상 온 사람.
+--   days: 오늘 포함 최근 며칠 (null이면 전체). 날짜 단위로만 받아서 영상을 남긴 시각을 좁혀 알아낼 수 없다.
+--   가게 이름은 앱에 들어 있는 가게 목록에서 찾는다 (기록의 place_name은 사용자가 보낸 값이라 그대로 공개하지 않음)
+create or replace function public.place_ranking(days integer default null)
+returns table (place_id text, visits integer, people integer, regulars integer, videos integer)
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  with seen as (
+    select c.id, c.place_id, c.created_at, who.person, (c.created_at at time zone 'Asia/Seoul')::date as day
+    from public.capsules c
+    cross join lateral (
+      select c.user_id as person
+      union
+      select t.user_id from public.capsule_tags t where t.capsule_id = c.id
+    ) who
+    where days is null
+      or (c.created_at at time zone 'Asia/Seoul')::date > (now() at time zone 'Asia/Seoul')::date - least(greatest(days, 1), 3650)
+  ),
+  by_place as (
+    select s.place_id, count(distinct s.id)::integer as videos, max(s.created_at) as last_at
+    from seen s
+    group by s.place_id
+  ),
+  by_person as (
+    select s.place_id, count(distinct s.day)::integer as visit_days
+    from seen s
+    group by s.place_id, s.person
+  )
+  select b.place_id,
+    sum(p.visit_days)::integer as visits,
+    count(*)::integer as people,
+    (count(*) filter (where p.visit_days >= 2))::integer as regulars,
+    b.videos
+  from by_place b
+  join by_person p on p.place_id = b.place_id
+  group by b.place_id, b.videos, b.last_at
+  order by visits desc, people desc, b.last_at desc
+  limit 200;
+$$;
+
 revoke execute on function public.handle_new_user() from public, anon, authenticated;
 revoke execute on function public.is_friend(uuid) from public, anon;
 revoke execute on function public.my_friend_ids() from public, anon;
@@ -518,6 +568,7 @@ revoke execute on function public.request_friend(uuid) from public, anon;
 revoke execute on function public.remove_friend(uuid) from public, anon;
 revoke execute on function public.nudge_friend(uuid, uuid) from public, anon;
 revoke execute on function public.save_push_subscription(text, text, text) from public, anon;
+revoke execute on function public.place_ranking(integer) from public;
 grant execute on function public.is_friend(uuid) to authenticated;
 grant execute on function public.my_friend_ids() to authenticated;
 grant execute on function public.my_tagged_capsule_ids() to authenticated;
@@ -528,6 +579,7 @@ grant execute on function public.request_friend(uuid) to authenticated;
 grant execute on function public.remove_friend(uuid) to authenticated;
 grant execute on function public.nudge_friend(uuid, uuid) to authenticated;
 grant execute on function public.save_push_subscription(text, text, text) to authenticated;
+grant execute on function public.place_ranking(integer) to anon, authenticated;
 
 -- 10) 영상·썸네일 저장소: 비공개 버킷, 파일당 50MB(무료 요금제 한도)
 insert into storage.buckets (id, name, public, file_size_limit)

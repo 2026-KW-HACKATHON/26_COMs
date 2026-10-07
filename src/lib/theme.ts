@@ -14,11 +14,14 @@ export const MAP_COLORS = {
   green: '#E1EFE3',
   /** 가게가 없는 건물 */
   building: '#E1E4E9',
-  buildingStroke: '#D5D9DF',
+  buildingStroke: '#D3D8DE',
   /** 가게가 있는 건물 */
-  store: '#CDD2D9',
-  storeStroke: '#AEB5BF',
-  /** 영상이 있는 건물: 영상 수에 따라 진해진다 */
-  video: BRAND,
+  store: '#D0D5DC',
+  storeStroke: '#B3BAC4',
+  /** 영상이 있는 건물: 영상(방문) 수에 따라 연한 살구색 → 강조색 → 진한 주황 5단계 */
+  heat: ['#FFC8B4', '#FFA486', '#FF7E57', BRAND, '#CF3A12'],
+  heatStroke: '#A8300C',
+  /** 영상이 있는 건물 아래로 번지는 빛 (rgb만, 투명도는 단계별로) */
+  glow: '242, 85, 44',
   selected: '#191F28',
 };
