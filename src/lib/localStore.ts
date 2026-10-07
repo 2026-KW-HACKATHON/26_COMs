@@ -1,4 +1,4 @@
-import { FEED_PAGE, type Capsule, type FeedQuery, type NewCapsule } from '../types/capsule';
+import { FEED_PAGE, type Capsule, type FeedQuery, type NewCapsule, type Visibility } from '../types/capsule';
 import { computePlaceStats, type PlaceStat, type RankingDays } from './ranking';
 import { uuid } from './uuid';
 
@@ -40,7 +40,7 @@ async function run<T>(mode: IDBTransactionMode, fn: (store: IDBObjectStore) => I
 }
 
 /** 계정 정보가 없던 예전 기록도 같은 모양으로 맞춘다 */
-const normalize = (c: Capsule): Capsule => ({ ...c, userId: c.userId ?? '', author: c.author ?? null, tags: c.tags ?? [] });
+const normalize = (c: Capsule): Capsule => ({ ...c, userId: c.userId ?? '', author: c.author ?? null, tags: c.tags ?? [], visibility: 'friends' });
 
 /** 새 기록 저장. id와 생성 시각은 여기서 채운다. 태그는 기기 저장에서 쓰지 않는다. */
 export async function addCapsule(data: NewCapsule): Promise<Capsule> {
@@ -58,6 +58,8 @@ export async function addCapsule(data: NewCapsule): Promise<Capsule> {
     clipDuration: data.clipDuration,
     thumbnail: data.thumbnail,
     createdAt: Date.now(),
+    // 기기 저장은 이 기기에서만 보여서 공개 범위가 없다
+    visibility: 'friends',
   };
   await run('readwrite', (s) => s.put(capsule));
   return capsule;
@@ -75,11 +77,19 @@ export async function listCapsules(ownerId?: string): Promise<Capsule[]> {
   return list.map(normalize).sort((a, b) => b.createdAt - a.createdAt);
 }
 
-/** 피드 (기기 저장은 친구가 없어서 이 기기의 기록만) */
-export async function listFeed({ before, limit = FEED_PAGE }: FeedQuery): Promise<Capsule[]> {
+/** 피드 (기기 저장은 친구·동네가 없어서 이 기기의 기록만) */
+export async function listFeed({ scope, before, limit = FEED_PAGE }: FeedQuery): Promise<Capsule[]> {
+  if (scope === 'town') return [];
   const list = await listCapsules();
   return list.filter((c) => !before || c.createdAt < before).slice(0, limit);
 }
+
+export async function listPlaceCapsules(placeId: string, limit = 20): Promise<Capsule[]> {
+  return (await listCapsules()).filter((c) => c.placeId === placeId).slice(0, limit);
+}
+
+/** 기기 저장은 이 기기에서만 보여서 공개 범위를 바꿀 것이 없다 */
+export const setVisibility: (id: string, visibility: Visibility) => Promise<void> = async () => {};
 
 export async function deleteCapsule(id: string): Promise<void> {
   await run('readwrite', (s) => s.delete(id));

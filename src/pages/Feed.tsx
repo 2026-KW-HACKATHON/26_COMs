@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import Avatar from '../components/Avatar';
 import FeedVideo from '../components/FeedVideo';
 import { CATEGORY_EMOJI, getPlace, placeSubtitle } from '../data/places';
@@ -11,44 +11,59 @@ import { formatRelative } from '../lib/format';
 import { DEFAULT_RANKING_DAYS, MEDALS, type RankedPlace } from '../lib/ranking';
 import { FEED_PAGE, type Capsule } from '../types/capsule';
 
-/** 피드: 나와 친구들이 최근 다녀온 가게를 5초 영상으로 */
+type Scope = 'friends' | 'town';
+
+const SCOPES: { value: Scope; label: string; title: string; description: string }[] = [
+  { value: 'friends', label: '친구', title: '친구들이 다녀온 곳', description: '친구가 남긴 5초를 보고, 다음엔 같이 가 봐요.' },
+  { value: 'town', label: '동네', title: '동네 사람들이 다녀온 곳', description: '월계1동 주민들이 동네에 공개한 5초예요.' },
+];
+
+/** 피드: 나와 친구들(또는 동네 사람들)이 최근 다녀온 가게를 5초 영상으로 */
 export default function Feed() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  // ?tab=town이면 동네 피드 (기기 저장은 동네가 없어서 늘 친구 피드)
+  const scope: Scope = SOCIAL_ENABLED && searchParams.get('tab') === 'town' ? 'town' : 'friends';
+  const scopeInfo = SCOPES.find((s) => s.value === scope)!;
   const me = useAuth().session?.user.id ?? '';
   const { list: friendships } = useFriendships();
   const friendIds = useMemo(() => friendships?.filter((f) => f.status === 'friend').map((f) => f.id) ?? null, [friendships]);
   const ranking = usePlaceRanking(DEFAULT_RANKING_DAYS);
   const rankOf = useMemo(() => new Map(ranking?.map((r) => [r.placeId, r])), [ranking]);
 
-  const [items, setItems] = useState<Capsule[] | null>(null);
+  // 탭을 바꾸면 이전 탭 목록이 잠깐 보이지 않도록 어느 탭의 목록인지 함께 기억한다
+  const [loaded, setLoaded] = useState<{ scope: Scope; list: Capsule[]; failed: boolean } | null>(null);
   const [hasMore, setHasMore] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
-  const [failed, setFailed] = useState(false);
 
-  // 친구 목록이 오면(서버 저장) 나와 친구들의 기록을 불러온다
+  // 친구 피드는 친구 목록이 오면(서버 저장) 나와 친구들의 기록을, 동네 피드는 동네 공개 기록을 불러온다
   const userIds = useMemo(() => (SOCIAL_ENABLED ? (friendIds ? [me, ...friendIds] : null) : []), [friendIds, me]);
-  const load = useCallback((before?: number) => (userIds ? listFeed({ userIds, before }) : Promise.resolve([])), [userIds]);
+  const ready = scope === 'town' || userIds !== null;
+  const load = useCallback(
+    (before?: number) => (scope === 'town' ? listFeed({ scope, before }) : listFeed({ scope, userIds: userIds ?? [], before })),
+    [scope, userIds],
+  );
 
   useEffect(() => {
     let alive = true;
-    if (!userIds) return;
+    if (!ready) return;
     load()
       .then((page) => {
         if (!alive) return;
-        setItems(page);
+        setLoaded({ scope, list: page, failed: false });
         setHasMore(page.length === FEED_PAGE);
       })
       .catch((err) => {
         console.error(err);
-        if (alive) {
-          setFailed(true);
-          setItems([]);
-        }
+        if (alive) setLoaded({ scope, list: [], failed: true });
       });
     return () => {
       alive = false;
     };
-  }, [load, userIds]);
+  }, [load, ready, scope]);
+
+  const items = loaded?.scope === scope ? loaded.list : null;
+  const failed = !!loaded?.failed;
 
   const loadMore = async () => {
     if (!items?.length || loadingMore) return;
@@ -57,7 +72,7 @@ export default function Feed() {
       const page = await load(items[items.length - 1].createdAt);
       setHasMore(page.length === FEED_PAGE);
       const seen = new Set(items.map((c) => c.id));
-      setItems([...items, ...page.filter((c) => !seen.has(c.id))]);
+      setLoaded({ scope, list: [...items, ...page.filter((c) => !seen.has(c.id))], failed: false });
     } catch (err) {
       console.error(err);
       alert('더 불러오지 못했어요. 잠시 후 다시 시도해 주세요.');
@@ -68,17 +83,37 @@ export default function Feed() {
 
   const openOnMap = (c: Capsule) => navigate('/?view=town', { state: { placeId: c.placeId } });
 
-  if (items === null) return <FeedSkeleton />;
+  const selectScope = (s: Scope) => setSearchParams(s === 'town' ? { tab: 'town' } : {}, { replace: true });
 
   return (
     <div className="flex flex-col w-full pt-3 pb-6">
-      <h2 className="mb-1 text-headline-md text-on-surface">친구들이 다녀온 곳</h2>
-      <p className="mb-4 text-body-sm text-on-surface-variant">친구가 남긴 5초를 보고, 다음엔 같이 가 봐요.</p>
+      {SOCIAL_ENABLED && (
+        <div className="flex p-1 mb-4 rounded-xl bg-surface-container" role="tablist" aria-label="피드">
+          {SCOPES.map((s) => (
+            <button
+              key={s.value}
+              onClick={() => selectScope(s.value)}
+              className={`flex-1 h-9 rounded-lg text-label-md font-semibold transition-colors ${
+                scope === s.value ? 'bg-surface text-on-surface shadow-float' : 'text-gray-500'
+              }`}
+              type="button"
+              role="tab"
+              aria-selected={scope === s.value}
+            >
+              {s.label}
+            </button>
+          ))}
+        </div>
+      )}
+      <h2 className="mb-1 text-headline-md text-on-surface">{scopeInfo.title}</h2>
+      <p className="mb-4 text-body-sm text-on-surface-variant">{scopeInfo.description}</p>
 
-      {failed ? (
+      {items === null ? (
+        <FeedSkeleton />
+      ) : failed ? (
         <p className="py-10 text-center text-body-md text-on-surface-variant">피드를 불러오지 못했어요. 잠시 후 다시 시도해 주세요.</p>
       ) : items.length === 0 ? (
-        <EmptyFeed noFriends={SOCIAL_ENABLED && friendIds?.length === 0} />
+        <EmptyFeed scope={scope} noFriends={SOCIAL_ENABLED && friendIds?.length === 0} onTown={() => selectScope('town')} />
       ) : (
         <div className="flex flex-col gap-7">
           {items.map((c) => (
@@ -131,7 +166,16 @@ function FeedItem({ capsule: c, me, stat, onOpen, onMap }: FeedItemProps) {
             <b>{name}</b>
             {withText && <span className="text-on-surface-variant"> · {withText}</span>}
           </span>
-          <span className="block text-label-sm text-on-surface-variant">{formatRelative(c.createdAt)}</span>
+          <span className="flex items-center gap-1 text-label-sm text-on-surface-variant">
+            {formatRelative(c.createdAt)}
+            {c.visibility === 'town' && (
+              <>
+                <span aria-hidden>·</span>
+                <span className="material-symbols-rounded text-[14px]">location_city</span>
+                동네 공개
+              </>
+            )}
+          </span>
         </span>
         <span className="material-symbols-rounded text-[20px] text-gray-400">more_horiz</span>
       </button>
@@ -157,27 +201,36 @@ function FeedItem({ capsule: c, me, stat, onOpen, onMap }: FeedItemProps) {
   );
 }
 
-function EmptyFeed({ noFriends }: { noFriends: boolean }) {
+function EmptyFeed({ scope, noFriends, onTown }: { scope: Scope; noFriends: boolean; onTown: () => void }) {
   const navigate = useNavigate();
+  const town = scope === 'town';
+  const findFriends = !town && noFriends;
+  const title = town ? '아직 동네에 공개된 영상이 없어요' : findFriends ? '친구를 추가하면 친구가 다녀온 가게가 여기에 떠요' : '아직 남긴 영상이 없어요';
+  const hint = town ? "영상을 남길 때 '동네 모두'를 고르면 여기에 떠요." : findFriends ? '같은 동네 친구를 찾아 보세요.' : '가게에서 5초를 남기면 친구들 피드에 떠요.';
   return (
     <div className="flex flex-col items-center text-center py-14 px-6 rounded-2xl bg-surface-container-low text-on-surface-variant">
-      <span className="material-symbols-rounded text-[40px] text-gray-300">{noFriends ? 'group_add' : 'dynamic_feed'}</span>
-      <p className="mt-2 text-body-md text-on-surface">{noFriends ? '친구를 추가하면 친구가 다녀온 가게가 여기에 떠요' : '아직 남긴 영상이 없어요'}</p>
-      <p className="mt-1 text-label-md">{noFriends ? '같은 동네 친구를 찾아 보세요.' : '가게에서 5초를 남기면 친구들 피드에 떠요.'}</p>
+      <span className="material-symbols-rounded text-[40px] text-gray-300">{town ? 'location_city' : findFriends ? 'group_add' : 'dynamic_feed'}</span>
+      <p className="mt-2 text-body-md text-on-surface">{title}</p>
+      <p className="mt-1 text-label-md">{hint}</p>
       <button
-        onClick={() => navigate(noFriends ? '/friends' : '/leave')}
+        onClick={() => navigate(findFriends ? '/friends' : '/leave')}
         className="mt-5 h-12 px-6 rounded-xl bg-primary text-on-primary text-label-lg font-bold pressable"
         type="button"
       >
-        {noFriends ? '친구 찾기' : '5초 남기기'}
+        {findFriends ? '친구 찾기' : '5초 남기기'}
       </button>
+      {findFriends && (
+        <button onClick={onTown} className="mt-2 h-10 px-4 text-label-md font-semibold text-gray-600" type="button">
+          동네 피드 먼저 보기
+        </button>
+      )}
     </div>
   );
 }
 
 function FeedSkeleton() {
   return (
-    <div className="flex flex-col w-full pt-3 gap-7 animate-pulse" aria-label="불러오는 중">
+    <div className="flex flex-col w-full gap-7 animate-pulse" aria-label="불러오는 중">
       {[0, 1].map((i) => (
         <div key={i} className="flex flex-col gap-2.5">
           <div className="flex items-center gap-2.5">

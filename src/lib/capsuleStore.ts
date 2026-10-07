@@ -9,7 +9,7 @@ export const STORAGE_MODE = supabase ? 'cloud' : 'device';
 /** 로그인·친구·태그 기능을 쓸 수 있는지 (서버 저장일 때만) */
 export const SOCIAL_ENABLED = STORAGE_MODE === 'cloud';
 
-export const { addCapsule, getCapsule, listCapsules, listFeed, deleteCapsule, listPlaceStats } = supabase ? cloud : device;
+export const { addCapsule, getCapsule, listCapsules, listFeed, listPlaceCapsules, setVisibility, deleteCapsule, listPlaceStats } = supabase ? cloud : device;
 
 /** 앨범 영상 최대 용량. Supabase 무료 요금제는 파일당 50MB까지 올릴 수 있다. */
 export const MAX_VIDEO_BYTES = (supabase ? 50 : 200) * 1024 * 1024;

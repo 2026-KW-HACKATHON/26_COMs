@@ -10,7 +10,7 @@ import { useFriendships } from '../hooks/useFriendships';
 import { MAX_VIDEO_BYTES, SOCIAL_ENABLED, STORAGE_MODE, addCapsule } from '../lib/capsuleStore';
 import { formatSeconds } from '../lib/format';
 import { probeDuration, thumbnailAt } from '../lib/video';
-import { CLIP_SECONDS } from '../types/capsule';
+import { CLIP_SECONDS, type Visibility } from '../types/capsule';
 import type { Profile } from '../types/social';
 
 interface DraftVideo {
@@ -33,6 +33,7 @@ export default function Leave() {
   const [processing, setProcessing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [tags, setTags] = useState<Profile[]>([]);
+  const [visibility, setVisibility] = useState<Visibility>('friends');
   const { list: friendships } = useFriendships();
   const friends = friendships?.filter((f) => f.status === 'friend') ?? null;
 
@@ -93,6 +94,7 @@ export default function Leave() {
         clipDuration,
         thumbnail,
         tagIds: tags.map((t) => t.id),
+        visibility,
       });
       navigator.vibrate?.(30);
       navigate('/', { replace: true, state: { placeId: place.id } });
@@ -217,6 +219,29 @@ export default function Leave() {
             </div>
             <FriendTagPicker friends={friends} selected={tags} onChange={setTags} />
           </section>
+
+          <Divider />
+          <section className="flex flex-col gap-3 py-6">
+            <StepTitle step={4} title="누구에게 보여 줄까요?" />
+            <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label="공개 범위">
+              {VISIBILITY_OPTIONS.map((o) => (
+                <button
+                  key={o.value}
+                  onClick={() => setVisibility(o.value)}
+                  className={`p-3.5 rounded-2xl border-2 text-left flex flex-col gap-1 pressable transition-colors ${
+                    visibility === o.value ? 'border-primary bg-primary-fixed' : 'border-transparent bg-surface-container'
+                  }`}
+                  type="button"
+                  role="radio"
+                  aria-checked={visibility === o.value}
+                >
+                  <span className={`material-symbols-rounded text-[22px] ${visibility === o.value ? 'text-primary icon-fill' : 'text-gray-500'}`}>{o.icon}</span>
+                  <span className="text-label-lg font-bold text-on-surface">{o.label}</span>
+                  <span className="text-label-sm text-on-surface-variant">{o.description}</span>
+                </button>
+              ))}
+            </div>
+          </section>
         </>
       )}
 
@@ -236,6 +261,11 @@ export default function Leave() {
     </div>
   );
 }
+
+const VISIBILITY_OPTIONS: { value: Visibility; icon: string; label: string; description: string }[] = [
+  { value: 'friends', icon: 'group', label: '친구만', description: '친구와 태그된 사람만 봐요' },
+  { value: 'town', icon: 'location_city', label: '동네 모두', description: '동네 피드와 가게에 떠요. 태그된 친구는 친구에게만 보여요' },
+];
 
 function StepTitle({ step, title }: { step: number; title: string }) {
   return (

@@ -9,7 +9,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useCapsules } from '../hooks/useCapsules';
 import { useFriendships } from '../hooks/useFriendships';
 import { usePlaceRanking } from '../hooks/usePlaceRanking';
-import { SOCIAL_ENABLED } from '../lib/capsuleStore';
+import { SOCIAL_ENABLED, listPlaceCapsules } from '../lib/capsuleStore';
 import { DEFAULT_RANKING_DAYS, MEDALS, RANKING_PERIODS } from '../lib/ranking';
 import { isUuid } from '../lib/supabase';
 import { placesInSameBuilding } from '../data/mapData';
@@ -66,9 +66,27 @@ export default function Home() {
   }, [tickerSize]);
   const featured = tickerSize ? ranking![tick % tickerSize] : null;
 
+  // 동네 지도에서 가게를 고르면 그 가게에서 내가 볼 수 있는 영상(내 것·친구 것·동네 공개)을 모두 보여 준다
+  const [placeVideos, setPlaceVideos] = useState<{ placeId: string; list: Capsule[] } | null>(null);
+  useEffect(() => {
+    if (!town || !me || !selectedId) return;
+    let alive = true;
+    listPlaceCapsules(selectedId)
+      .then((list) => alive && setPlaceVideos({ placeId: selectedId, list }))
+      .catch((err) => console.error(err));
+    return () => {
+      alive = false;
+    };
+  }, [town, me, selectedId]);
+
   const selected = getPlace(selectedId);
   const selectedStat = selectedId ? rankOf.get(selectedId) : undefined;
-  const selectedVideos = shown?.filter((c) => c.placeId === selectedId) ?? [];
+  const selectedVideos =
+    town && me
+      ? placeVideos?.placeId === selectedId
+        ? placeVideos.list
+        : NO_CAPSULES
+      : (shown?.filter((c) => c.placeId === selectedId) ?? NO_CAPSULES);
   // 한 건물에 가게가 여럿이면 시트에서 바로 바꿀 수 있게
   const neighbors = selected ? placesInSameBuilding(selected) : [];
   const mapCount = town ? townVisits : videoCount;
