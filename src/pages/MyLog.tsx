@@ -124,6 +124,10 @@ export default function MyLog() {
           ))}
         </div>
       )}
+
+      <button onClick={() => navigate('/privacy')} className="mt-10 self-center text-label-sm text-gray-400 underline underline-offset-2" type="button">
+        개인정보처리방침
+      </button>
     </div>
   );
 }

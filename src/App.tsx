@@ -9,6 +9,7 @@ import Leave from './pages/Leave';
 import Login from './pages/Login';
 import MyLog from './pages/MyLog';
 import Notifications from './pages/Notifications';
+import Privacy from './pages/Privacy';
 import ProfileEdit from './pages/ProfileEdit';
 import Ranking from './pages/Ranking';
 import VideoDetail from './pages/VideoDetail';
@@ -21,6 +22,7 @@ const router = createBrowserRouter([
       // 지도는 로그인 없이 둘러볼 수 있고, 기록을 남기거나 보려면 로그인한다
       { path: '/', element: <Home /> },
       { path: '/login', element: <Login /> },
+      { path: '/privacy', element: <Privacy /> },
       // 동네 랭킹은 숫자만 보여 줘서 로그인 없이 볼 수 있다 (공유 링크로 처음 들어오는 사람용)
       { path: '/ranking', element: <Ranking /> },
       { path: '/leave', element: <RequireAuth><Leave /></RequireAuth> },

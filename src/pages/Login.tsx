@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Navigate, useLocation, useSearchParams } from 'react-router-dom';
+import { Link, Navigate, useLocation, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { SOCIAL_ENABLED } from '../lib/capsuleStore';
 import { isAutoUsername, isKakaoInAppBrowser, safeNextPath, signInWith, type LoginProvider } from '../lib/social';
@@ -127,6 +127,14 @@ export default function Login() {
           </p>
         )}
       </div>
+
+      <p className="text-label-sm text-on-surface-variant text-center">
+        시작하면{' '}
+        <Link to="/privacy" className="underline underline-offset-2">
+          개인정보처리방침
+        </Link>
+        에 동의하는 것으로 봐요.
+      </p>
 
       {loading && <p className="text-label-md text-on-surface-variant">로그인 정보를 확인하는 중…</p>}
       {(error || oauthError || unfinished) && (
