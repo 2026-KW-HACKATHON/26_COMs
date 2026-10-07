@@ -1,0 +1,47 @@
+# 지도 데이터 갱신
+# OpenStreetMap에서 월계1동 건물 윤곽·도로를 받아 src/data/wolgye1-map.json을 만들고 같은 브랜치에 커밋한다.
+# (로컬에서 node scripts/fetch-map.mjs로 만들어도 된다. Overpass 서버가 느리거나 막힌 환경에서 쓰기 좋다)
+# - Actions 탭 → "지도 데이터 갱신" → Run workflow (브랜치 선택)
+# - main이 아닌 브랜치에서 scripts/fetch-map.mjs를 고쳐 푸시하면 자동 실행
+name: 지도 데이터 갱신
+
+on:
+  workflow_dispatch:
+  push:
+    branches-ignore: [main]
+    paths:
+      - scripts/fetch-map.mjs
+      - .github/workflows/map-data.yml
+
+concurrency:
+  group: map-data-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+
+      - name: OpenStreetMap에서 지도 데이터 받기
+        run: node scripts/fetch-map.mjs
+
+      # GITHUB_TOKEN으로 올린 커밋은 다른 워크플로를 다시 실행하지 않는다
+      - name: 바뀌었으면 커밋
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/data/wolgye1-map.json
+          if git diff --cached --quiet; then
+            echo "지도 데이터 변경 없음"
+            exit 0
+          fi
+          git commit -m "자동 커밋: 지도 데이터 갱신 (OpenStreetMap)"
+          git push
