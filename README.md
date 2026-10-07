@@ -60,7 +60,7 @@ Supabase를 설정하지 않으면 로그인·친구 기능 없이, 영상은 �
 - 오류 코드: KOE205 동의항목 미설정, KOE006 리다이렉트 URI 불일치, KOE101 키 종류 오류, KOE010 시크릿 오류, KOE004 로그인 OFF
 
 **Google** ([console.cloud.google.com](https://console.cloud.google.com) > Google Auth Platform)
-- 동의 화면(External) → Clients > 웹 애플리케이션: 승인된 JavaScript 원본 `http://localhost:5173`·배포 주소, 승인된 리디렉션 URI에 Supabase callback 주소
+- 동의 화면(External) → Clients > 웹 애플리케이션: 승인된 리디렉션 URI에 Supabase callback 주소. 승인된 JavaScript 원본은 비워 둬도 된다 (앱이 Google 스크립트를 직접 부르지 않고 Supabase를 거쳐 이동하는 방식이라 쓰이지 않음)
 - 테스트 상태에서는 테스트 사용자만 로그인되므로 시연 전에 앱을 게시(Publish)한다
 
 주의: 카카오톡 안 브라우저에서는 Google 로그인이 막혀 있어 앱이 안내 문구를 띄운다. LAN IP(http://192.168…)로는 로그인 후 돌아오지 못하니 폰 테스트는 Vercel 주소로 한다.
