@@ -22,7 +22,7 @@ export default function FriendTagPicker({ friends, selected, onChange }: FriendT
   if (friends && friends.length === 0) {
     // 여기서 친구 화면으로 이동하면 촬영한 영상이 사라지므로 링크 없이 안내만 한다
     return (
-      <p className="font-label-md text-label-md text-on-surface-variant">
+      <p className="text-label-md text-on-surface-variant">
         아직 친구가 없어요. 영상을 남긴 뒤 마이로그 &gt; 친구에서 추가할 수 있어요.
       </p>
     );
@@ -36,47 +36,47 @@ export default function FriendTagPicker({ friends, selected, onChange }: FriendT
             <button
               key={f.id}
               onClick={() => toggle(f)}
-              className="h-8 pl-1 pr-2 rounded-full bg-primary-fixed text-on-primary-fixed font-label-md text-label-md flex items-center gap-1"
+              className="h-8 pl-1 pr-2 rounded-full bg-inverse-surface text-inverse-on-surface text-label-md flex items-center gap-1 pressable"
               type="button"
               aria-label={`${f.displayName} 태그 빼기`}
             >
               <Avatar profile={f} size={24} />
               <span className="font-bold">@{f.username}</span>
-              <span className="material-symbols-outlined text-[16px]">close</span>
+              <span className="material-symbols-rounded text-[16px]">close</span>
             </button>
           ))}
         </div>
       )}
 
-      <div className="flex items-center gap-2 px-3 h-11 rounded-xl bg-surface-container-low">
-        <span className="material-symbols-outlined text-[20px] text-on-surface-variant">alternate_email</span>
+      <div className="flex items-center gap-2 px-4 h-12 rounded-xl bg-surface-container">
+        <span className="material-symbols-rounded text-[20px] text-gray-400">alternate_email</span>
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="친구 이름이나 아이디 검색"
-          className="flex-1 min-w-0 bg-transparent outline-none text-base text-on-surface placeholder:text-outline/70"
+          className="flex-1 min-w-0 bg-transparent outline-none text-[16px] text-on-surface placeholder:text-gray-400"
         />
       </div>
 
       {friends === null ? (
-        <p className="font-label-sm text-label-sm text-on-surface-variant">친구 목록을 불러오는 중…</p>
+        <p className="text-label-sm text-on-surface-variant">친구 목록을 불러오는 중…</p>
       ) : visible.length === 0 ? (
-        <p className="font-label-sm text-label-sm text-on-surface-variant">찾는 친구가 없어요.</p>
+        <p className="text-label-sm text-on-surface-variant">찾는 친구가 없어요.</p>
       ) : (
         <div className="flex gap-3 overflow-x-auto no-scrollbar pb-1">
           {visible.map((f) => {
             const on = selectedIds.has(f.id);
             return (
               <button key={f.id} onClick={() => toggle(f)} className="w-14 shrink-0 flex flex-col items-center gap-1" type="button" aria-pressed={on}>
-                <span className={`relative rounded-full p-0.5 ${on ? 'ring-2 ring-primary-container' : ''}`}>
+                <span className={`relative rounded-full p-0.5 ${on ? 'ring-2 ring-primary' : ''}`}>
                   <Avatar profile={f} size={48} />
                   {on && (
-                    <span className="absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full bg-primary-container text-white flex items-center justify-center ring-2 ring-surface-container-lowest">
-                      <span className="material-symbols-outlined text-[14px]">check</span>
+                    <span className="absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full bg-primary text-white flex items-center justify-center ring-2 ring-surface">
+                      <span className="material-symbols-rounded text-[14px]">check</span>
                     </span>
                   )}
                 </span>
-                <span className={`w-full truncate text-center font-label-sm text-label-sm ${on ? 'text-primary font-bold' : 'text-on-surface-variant'}`}>
+                <span className={`w-full truncate text-center text-label-sm ${on ? 'text-primary font-bold' : 'text-on-surface-variant'}`}>
                   {f.displayName}
                 </span>
               </button>

@@ -5,7 +5,7 @@
 
 ## 주요 기능
 
-- **지도**: 월계1동 식당·카페 74곳. 핀의 숫자는 그 가게에 남긴 영상 수
+- **지도**: 월계1동 건물 윤곽을 직접 그린 지도. 가게가 있는 건물을 누르면 그 가게가 선택되고, 영상을 남긴 건물은 색이 채워진다(많이 남길수록 진하게). 말풍선 숫자는 그 건물에 남긴 영상 수
 - **5초 촬영**: 버튼을 누르면 촬영, 다시 누르면 멈춘다(최소 1초). 멈추지 않으면 5초에 자동 종료. 앨범 영상은 5초 구간을 골라 쓴다
 - **로그인**: 카카오·Google 계정. 영상은 계정에 저장되어 다른 기기에서도 보인다
 - **친구**: 아이디·이름으로 검색해 친구 요청 → 상대가 수락하면 친구
@@ -20,7 +20,7 @@
 | --- | --- | --- |
 | 앱 형태 | 모바일 웹앱 (PWA) | 기획의 1차 타깃이 모바일 웹 이용자. 설치·심사 없이 링크로 바로 쓰고, 홈 화면에 추가하면 앱처럼 전체 화면으로 실행 |
 | 프론트엔드 | React 19 · TypeScript · Vite · Tailwind CSS · React Router | |
-| 지도 | Leaflet + OpenStreetMap | API 키·호출 비용 없음 (기획서 리스크: 지도 API 호출량·비용) |
+| 지도 | Leaflet + 자체 벡터 지도 (OpenStreetMap·Overture Maps 건물 윤곽) | 지도 타일 이미지 없이 앱에 포함된 데이터(약 40KB)로 그려서 가볍고 오프라인에서도 보인다. API 키·호출 비용 없음 (기획서 리스크: 지도 API 호출량·비용) |
 | 영상 | MediaRecorder | 앱 안에서 최대 5초 촬영, 앨범 영상은 5초 구간 선택 |
 | 계정·저장 | Supabase (Auth · Postgres · Storage) | 카카오·Google 로그인 내장, RLS로 공개 범위 강제, 무료 요금제 |
 | 배포 | Vercel | 카메라는 HTTPS에서만 동작, PR마다 미리보기 주소 |
@@ -91,4 +91,6 @@ Supabase를 설정하지 않으면 로그인·친구 기능 없이, 영상은 �
 ## 데이터·아이콘 갱신
 
 - 월계1동 가게 목록: `node scripts/fetch-places.mjs` (OpenStreetMap)
+- 월계1동 지도(건물 윤곽·도로·철도·물·공원·지명): `node scripts/fetch-map.mjs` → `src/data/wolgye1-map.json`. OSM에 그려진 건물이 적어서 Overture Maps 건물(OSM + Microsoft 위성 인식)을 함께 쓰는데, 이건 Python 도구가 필요해서 GitHub Actions의 **지도 데이터 갱신** 워크플로로 돌리는 게 편하다 (Actions 탭 → Run workflow, 결과를 같은 브랜치에 자동 커밋). 가게 목록을 갱신한 뒤에도 한 번 돌린다
+- 화면 색: 토스처럼 회색 단계 + 강조색 하나. 강조색은 [tailwind.config.js](tailwind.config.js)의 `BRAND`와 [src/lib/theme.ts](src/lib/theme.ts)(캔버스로 그리는 지도용)를 같이 바꾼다. 글꼴은 Pretendard(앱에 포함)
 - 앱 아이콘: [public/favicon.svg](public/favicon.svg)를 고친 뒤 `npx @vite-pwa/assets-generator@1`

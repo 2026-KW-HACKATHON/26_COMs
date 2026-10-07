@@ -15,8 +15,8 @@ interface FriendMapSelectorProps {
 /** 홈 지도 위에서 누구의 지도를 볼지 고르는 칩 목록 */
 export default function FriendMapSelector({ me, friends, selectedId, onSelect, requestCount = 0 }: FriendMapSelectorProps) {
   const chip = (active: boolean) =>
-    `h-9 shrink-0 pl-1 pr-3 rounded-full flex items-center gap-1.5 shadow-md font-label-md text-label-md transition-colors ${
-      active ? 'bg-primary text-on-primary font-bold' : 'bg-surface-container-lowest/95 text-on-surface'
+    `h-9 shrink-0 pl-1 pr-3 rounded-full flex items-center gap-1.5 shadow-float text-label-md font-semibold transition-colors pressable ${
+      active ? 'bg-inverse-surface text-inverse-on-surface' : 'bg-surface text-gray-700'
     }`;
 
   return (
@@ -31,8 +31,8 @@ export default function FriendMapSelector({ me, friends, selectedId, onSelect, r
           <span className="max-w-[6rem] truncate">{f.displayName}</span>
         </button>
       ))}
-      <Link to="/friends" className="h-9 shrink-0 px-3 rounded-full flex items-center gap-1 shadow-md bg-surface-container-lowest/95 text-primary font-label-md text-label-md font-bold">
-        <span className="material-symbols-outlined text-[18px]">person_add</span>
+      <Link to="/friends" className="h-9 shrink-0 px-3 rounded-full flex items-center gap-1 shadow-float bg-surface text-gray-700 text-label-md font-semibold pressable">
+        <span className="material-symbols-rounded text-[18px]">person_add</span>
         친구
         {requestCount > 0 && (
           <span className="min-w-[18px] h-[18px] px-1 rounded-full bg-error text-on-error text-[11px] font-bold leading-[18px] text-center" aria-label={`받은 요청 ${requestCount}개`}>

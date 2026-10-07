@@ -89,9 +89,9 @@ export default function Login() {
   return (
     <div className="flex flex-col items-center w-full pt-10 pb-6 gap-8">
       <div className="flex flex-col items-center text-center gap-3">
-        <img src="/pwa-192x192.png" alt="" className="w-20 h-20 rounded-[22px] shadow-md" />
-        <h2 className="font-headline-md text-headline-md text-on-surface">동네의 5초를 함께 남겨요</h2>
-        <p className="font-body-md text-body-md text-on-surface-variant leading-relaxed">
+        <img src="/pwa-192x192.png" alt="" className="w-20 h-20 rounded-[22px]" />
+        <h2 className="text-headline-md text-on-surface">동네의 5초를 함께 남겨요</h2>
+        <p className="text-body-md text-on-surface-variant leading-relaxed">
           로그인하면 영상이 내 계정에 저장되고,
           <br />
           친구를 태그하거나 서로의 지도를 볼 수 있어요.
@@ -102,7 +102,7 @@ export default function Login() {
         <button
           onClick={() => login('kakao')}
           disabled={busy}
-          className="relative h-12 rounded-xl bg-[#FEE500] text-black/85 font-label-lg text-label-lg font-bold flex items-center justify-center gap-2 disabled:opacity-60 active:scale-[0.98] transition-transform"
+          className="relative h-14 rounded-2xl bg-[#FEE500] text-black/85 text-[16px] font-bold flex items-center justify-center gap-2 disabled:opacity-60 pressable"
           type="button"
         >
           <span className="absolute left-4">
@@ -113,7 +113,7 @@ export default function Login() {
         <button
           onClick={() => login('google')}
           disabled={busy || inKakaoTalk}
-          className="relative h-12 rounded-xl bg-surface-container-lowest border border-outline-variant text-on-surface font-label-lg text-label-lg font-bold flex items-center justify-center gap-2 disabled:opacity-60 active:scale-[0.98] transition-transform"
+          className="relative h-14 rounded-2xl bg-surface border border-gray-200 text-on-surface text-[16px] font-bold flex items-center justify-center gap-2 disabled:opacity-60 pressable"
           type="button"
         >
           <span className="absolute left-4">
@@ -122,15 +122,15 @@ export default function Login() {
           {pending === 'google' ? 'Google로 이동 중…' : 'Google로 시작하기'}
         </button>
         {inKakaoTalk && (
-          <p className="font-label-sm text-label-sm text-on-surface-variant text-center">
+          <p className="text-label-sm text-on-surface-variant text-center">
             카카오톡 안에서는 Google 로그인이 막혀 있어요. 오른쪽 아래 ⋯ 메뉴에서 &lsquo;다른 브라우저로 열기&rsquo;를 눌러 주세요.
           </p>
         )}
       </div>
 
-      {loading && <p className="font-label-md text-label-md text-on-surface-variant">로그인 정보를 확인하는 중…</p>}
+      {loading && <p className="text-label-md text-on-surface-variant">로그인 정보를 확인하는 중…</p>}
       {(error || oauthError || unfinished) && (
-        <p className="font-label-md text-label-md text-error text-center">{error || oauthError || unfinished}</p>
+        <p className="text-label-md text-error text-center">{error || oauthError || unfinished}</p>
       )}
     </div>
   );

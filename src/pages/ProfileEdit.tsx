@@ -25,10 +25,10 @@ export default function ProfileEdit() {
         // 프로필이 바뀌면(다른 계정) 입력값을 새로 채우도록 key를 준다
         <ProfileForm key={profile.id} profile={profile} />
       ) : (
-        <p className="font-body-md text-body-md text-on-surface-variant">프로필을 불러오지 못했어요. 잠시 후 다시 열어 주세요.</p>
+        <p className="text-body-md text-on-surface-variant">프로필을 불러오지 못했어요. 잠시 후 다시 열어 주세요.</p>
       )}
 
-      <button onClick={handleSignOut} className="h-12 rounded-xl bg-surface-container-low text-on-surface-variant font-label-lg text-label-lg" type="button">
+      <button onClick={handleSignOut} className="h-12 rounded-xl bg-surface-container text-gray-600 text-label-lg pressable" type="button">
         로그아웃
       </button>
     </div>
@@ -74,30 +74,30 @@ function ProfileForm({ profile }: { profile: Profile }) {
     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
       {setup && (
         <div className="flex flex-col gap-1">
-          <h2 className="font-headline-md text-headline-md text-on-surface">아이디를 정해 주세요</h2>
-          <p className="font-body-md text-body-md text-on-surface-variant">친구가 이 아이디로 나를 찾고 영상에 태그해요.</p>
+          <h2 className="text-headline-md text-on-surface">아이디를 정해 주세요</h2>
+          <p className="text-body-md text-on-surface-variant">친구가 이 아이디로 나를 찾고 영상에 태그해요.</p>
         </div>
       )}
 
       <div className="flex flex-col items-center gap-2 py-2">
         <Avatar profile={{ displayName: name || profile.displayName, avatarUrl: profile.avatarUrl }} size={88} />
-        <p className="font-label-sm text-label-sm text-on-surface-variant">사진은 로그인한 계정의 프로필 사진을 써요</p>
+        <p className="text-label-sm text-on-surface-variant">사진은 로그인한 계정의 프로필 사진을 써요</p>
       </div>
 
       <label className="flex flex-col gap-1.5">
-        <span className="font-label-md text-label-md text-on-surface-variant">이름</span>
+        <span className="text-label-md text-on-surface-variant">이름</span>
         <input
           value={displayName}
           onChange={(e) => setDisplayName(e.target.value)}
           maxLength={30}
-          className="h-12 px-3 rounded-xl bg-surface-container-lowest border border-outline-variant/60 outline-none focus:border-primary text-base text-on-surface"
+          className="h-14 px-4 rounded-xl bg-surface-container-low border border-gray-200 outline-none focus:border-primary text-[16px] text-on-surface transition-colors"
         />
       </label>
 
       <label className="flex flex-col gap-1.5">
-        <span className="font-label-md text-label-md text-on-surface-variant">아이디 (친구가 나를 찾고 태그할 때 써요)</span>
-        <div className="h-12 px-3 rounded-xl bg-surface-container-lowest border border-outline-variant/60 focus-within:border-primary flex items-center gap-1">
-          <span className="text-base text-on-surface-variant">@</span>
+        <span className="text-label-md text-on-surface-variant">아이디 (친구가 나를 찾고 태그할 때 써요)</span>
+        <div className="h-14 px-4 rounded-xl bg-surface-container-low border border-gray-200 focus-within:border-primary flex items-center gap-1 transition-colors">
+          <span className="text-[16px] text-gray-400">@</span>
           <input
             value={username}
             onChange={(e) => setUsername(e.target.value.toLowerCase().trim())}
@@ -106,25 +106,25 @@ function ProfileForm({ profile }: { profile: Profile }) {
             autoCapitalize="none"
             autoCorrect="off"
             spellCheck={false}
-            className="flex-1 min-w-0 bg-transparent outline-none text-base text-on-surface placeholder:text-outline/60"
+            className="flex-1 min-w-0 bg-transparent outline-none text-[16px] text-on-surface placeholder:text-gray-400"
           />
         </div>
-        <span className={`font-label-sm text-label-sm ${username && !usernameValid ? 'text-error' : 'text-on-surface-variant'}`}>
+        <span className={`text-label-sm ${username && !usernameValid ? 'text-error' : 'text-on-surface-variant'}`}>
           영문 소문자·숫자·마침표(.)·밑줄(_)로 3~20자
         </span>
       </label>
 
-      {error && <p className="font-label-md text-label-md text-error">{error}</p>}
+      {error && <p className="text-label-md text-error">{error}</p>}
 
       <button
         disabled={!canSave}
-        className="h-12 rounded-xl bg-primary text-on-primary font-label-lg text-label-lg font-bold disabled:opacity-50"
+        className="h-14 rounded-2xl bg-primary text-on-primary text-[17px] font-bold pressable disabled:bg-gray-200 disabled:text-gray-400"
         type="submit"
       >
         {saving ? '저장 중…' : setup ? '시작하기' : '저장'}
       </button>
       {setup && (
-        <button onClick={() => navigate(next, { replace: true })} className="h-10 font-label-md text-label-md text-on-surface-variant" type="button">
+        <button onClick={() => navigate(next, { replace: true })} className="h-10 text-label-md text-on-surface-variant" type="button">
           나중에 할게요
         </button>
       )}
