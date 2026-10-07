@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { CLIP_SECONDS } from '../types/capsule';
+import { BRAND } from '../lib/theme';
 import { captureFrame, pickRecorderMimeType } from '../lib/video';
 
 interface VideoRecorderProps {
@@ -192,9 +193,9 @@ export default function VideoRecorder({ onRecorded, onClose }: VideoRecorderProp
 
       <div className="relative z-10 flex items-center justify-between px-4 pt-4">
         <button onClick={onClose} className="w-11 h-11 rounded-full bg-black/40 backdrop-blur flex items-center justify-center" type="button" aria-label="닫기">
-          <span className="material-symbols-outlined text-[24px]">close</span>
+          <span className="material-symbols-rounded text-[24px]">close</span>
         </button>
-        <div className="px-3 py-1.5 rounded-full bg-black/40 backdrop-blur font-label-md text-label-md flex items-center gap-1.5">
+        <div className="px-3 py-1.5 rounded-full bg-black/40 backdrop-blur text-label-md flex items-center gap-1.5">
           {recording && <span className="w-2 h-2 rounded-full bg-error animate-pulse" />}
           {recording ? `${elapsed.toFixed(1)} / ${CLIP_SECONDS}.0초` : `${CLIP_SECONDS}초 기억 촬영`}
         </div>
@@ -205,15 +206,15 @@ export default function VideoRecorder({ onRecorded, onClose }: VideoRecorderProp
           type="button"
           aria-label="카메라 전환"
         >
-          <span className="material-symbols-outlined text-[24px]">cameraswitch</span>
+          <span className="material-symbols-rounded text-[24px]">cameraswitch</span>
         </button>
       </div>
 
       {status === 'error' && (
         <div className="relative z-10 flex-1 flex flex-col items-center justify-center px-8 text-center gap-4">
-          <span className="material-symbols-outlined text-[48px] opacity-70">videocam_off</span>
-          <p className="font-body-md text-body-md leading-relaxed">{error}</p>
-          <button onClick={onClose} className="px-5 py-2.5 rounded-xl bg-white text-on-surface font-label-lg" type="button">
+          <span className="material-symbols-rounded text-[48px] opacity-70">videocam_off</span>
+          <p className="text-body-md leading-relaxed">{error}</p>
+          <button onClick={onClose} className="h-12 px-6 rounded-2xl bg-white text-on-surface text-label-lg font-bold pressable" type="button">
             돌아가기
           </button>
         </div>
@@ -221,7 +222,7 @@ export default function VideoRecorder({ onRecorded, onClose }: VideoRecorderProp
 
       {status !== 'error' && (
         <div className="relative z-10 mt-auto pb-10 flex flex-col items-center gap-3">
-          <p className="font-label-md text-label-md bg-black/40 backdrop-blur px-3 py-1 rounded-full">
+          <p className="text-label-md bg-black/40 backdrop-blur px-3 py-1 rounded-full">
             {status === 'starting' ? '카메라 준비 중…' : recording ? '다시 누르면 멈춰요' : '누르면 최대 5초 촬영, 중간에 멈출 수 있어요'}
           </p>
           <button
@@ -238,14 +239,14 @@ export default function VideoRecorder({ onRecorded, onClose }: VideoRecorderProp
                 cy="40"
                 r={RING_RADIUS}
                 fill="none"
-                stroke="#ff7b54"
+                stroke={BRAND}
                 strokeWidth="5"
                 strokeLinecap="round"
                 strokeDasharray={RING_LENGTH}
                 strokeDashoffset={RING_LENGTH * (1 - elapsed / CLIP_SECONDS)}
               />
             </svg>
-            <span className={`bg-primary-container transition-all ${recording ? 'w-7 h-7 rounded-md' : 'w-14 h-14 rounded-full'}`} />
+            <span className={`bg-primary transition-all ${recording ? 'w-7 h-7 rounded-md' : 'w-14 h-14 rounded-full'}`} />
           </button>
         </div>
       )}

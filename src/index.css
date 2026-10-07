@@ -2,19 +2,142 @@
 @tailwind components;
 @tailwind utilities;
 
-/* 추가적으로 바디 스크롤 및 탭 하이라이트 방지 스타일 (원래 있던 코드) */
-body {
-  overscroll-behavior-y: none;
-  -webkit-tap-highlight-color: transparent;
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    @apply bg-surface text-on-surface antialiased;
+    /* 한글은 단어 중간에서 줄바꿈하지 않는다 */
+    word-break: keep-all;
+    overflow-wrap: anywhere;
+    overscroll-behavior-y: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  button {
+    -webkit-tap-highlight-color: transparent;
+  }
 }
+
+@layer utilities {
+  .no-scrollbar {
+    scrollbar-width: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .pt-safe {
+    padding-top: env(safe-area-inset-top);
+  }
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  /* 누를 때 살짝 작아지는 토스식 피드백 */
+  .pressable {
+    transition: transform 0.12s ease, background-color 0.15s ease, opacity 0.15s ease;
+  }
+  .pressable:active {
+    transform: scale(0.97);
+  }
+}
+
 ::-webkit-scrollbar {
   display: none;
 }
 
-/* 지도: 축소 상태에서는 가게 이름 라벨을 숨기고 선택된 가게만 표시 */
-.map-hide-labels .place-label:not(.place-label-always) {
-  display: none;
+.material-symbols-rounded {
+  font-variation-settings: 'FILL' 0, 'wght' 500, 'GRAD' 0, 'opsz' 24;
+  user-select: none;
 }
+.icon-fill {
+  font-variation-settings: 'FILL' 1, 'wght' 500, 'GRAD' 0, 'opsz' 24;
+}
+
+/* ── 지도 (src/components/PlaceMap.tsx) ── */
 .leaflet-container {
   font-family: inherit;
+}
+.leaflet-container .leaflet-control-attribution {
+  background: transparent;
+  color: theme('colors.gray.500');
+  font-size: 10px;
+  padding: 0 6px 2px;
+}
+.leaflet-container .leaflet-control-attribution a {
+  color: inherit;
+}
+.map-label {
+  position: absolute;
+  left: 0;
+  top: 0;
+  white-space: nowrap;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+  line-height: 1.2;
+  font-size: 11px;
+  font-weight: 600;
+  text-shadow: 0 0 2px #fff, 0 0 2px #fff, 0 0 3px #fff, 0 0 4px #fff;
+}
+.map-label .material-symbols-rounded {
+  font-size: 13px;
+  vertical-align: -2px;
+  margin-right: 1px;
+  text-shadow: none;
+}
+.map-label-road {
+  color: theme('colors.gray.400');
+  letter-spacing: 0.04em;
+}
+.map-label-landmark {
+  color: theme('colors.gray.500');
+}
+.map-label-place {
+  color: theme('colors.gray.700');
+}
+/* 영상이 있는 건물·선택한 가게: 흰 말풍선 + 영상 수 */
+.map-pill {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 9px 3px 3px;
+  border-radius: 999px;
+  background: #fff;
+  color: theme('colors.gray.900');
+  font-size: 12px;
+  font-weight: 700;
+  text-shadow: none;
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.14);
+  transform: translate(-50%, calc(-100% - 4px));
+}
+.map-pill b {
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: theme('colors.primary');
+  color: #fff;
+  font-size: 11px;
+  line-height: 18px;
+  text-align: center;
+}
+.map-pill-plain {
+  padding: 4px 10px;
+}
+.map-pill-selected {
+  background: theme('colors.gray.900');
+  color: #fff;
+}
+/* 줌 단계별로 보이는 이름 (PlaceMap이 컨테이너에 map-z-* 클래스를 붙인다) */
+.map-z-low .map-label-place,
+.map-z-low .map-label-road:not(.map-label-major),
+.map-z-low .map-label-school,
+.map-z-low .map-label-park,
+.map-z-mid .map-label-place {
+  display: none;
+}
+.map-z-low .map-pill:not(.map-pill-selected) span {
+  display: none;
+}
+.map-z-low .map-pill:not(.map-pill-selected) {
+  padding: 3px;
 }

@@ -8,19 +8,19 @@ import type { FriendStatus, ProfileWithStatus } from '../types/social';
 
 function PersonRow({ person, children }: { person: ProfileWithStatus; children: ReactNode }) {
   return (
-    <li className="flex items-center gap-3 py-2.5">
+    <li className="flex items-center gap-3 py-3">
       <Avatar profile={person} size={44} />
       <div className="flex-1 min-w-0">
-        <p className="font-label-lg text-label-lg text-on-surface font-bold truncate">{person.displayName}</p>
-        <p className="font-label-sm text-label-sm text-on-surface-variant truncate">@{person.username}</p>
+        <p className="text-label-lg text-on-surface font-bold truncate">{person.displayName}</p>
+        <p className="text-label-sm text-on-surface-variant truncate">@{person.username}</p>
       </div>
       <div className="flex items-center gap-1.5 shrink-0">{children}</div>
     </li>
   );
 }
 
-const primaryButton = 'h-9 px-3 rounded-lg bg-primary text-on-primary font-label-md text-label-md font-bold disabled:opacity-50';
-const secondaryButton = 'h-9 px-3 rounded-lg bg-surface-container text-on-surface font-label-md text-label-md disabled:opacity-50';
+const primaryButton = 'h-9 px-3.5 rounded-lg bg-primary text-on-primary text-label-md font-bold pressable disabled:opacity-50';
+const secondaryButton = 'h-9 px-3.5 rounded-lg bg-surface-container text-gray-700 text-label-md font-semibold pressable disabled:opacity-50';
 
 export default function Friends() {
   const navigate = useNavigate();
@@ -120,11 +120,11 @@ export default function Friends() {
             <button
               onClick={() => act(person, 'remove')}
               disabled={busy}
-              className="w-9 h-9 rounded-lg bg-surface-container text-on-surface-variant flex items-center justify-center disabled:opacity-50"
+              className="w-9 h-9 rounded-lg bg-surface-container text-gray-500 flex items-center justify-center pressable disabled:opacity-50"
               type="button"
               aria-label={`${person.displayName}님과 친구 끊기`}
             >
-              <span className="material-symbols-outlined text-[18px]">person_remove</span>
+              <span className="material-symbols-rounded text-[18px]">person_remove</span>
             </button>
           </>
         );
@@ -137,14 +137,14 @@ export default function Friends() {
   const shownResults = results?.q === q ? results.list : null;
 
   return (
-    <div className="flex flex-col w-full pb-6 pt-3 gap-5">
+    <div className="flex flex-col w-full pb-6 pt-3 gap-6">
       {profile && (
         <div className="flex items-center gap-3 px-4 py-3 rounded-2xl bg-surface-container-low">
-          <span className="material-symbols-outlined text-primary text-[22px]">badge</span>
+          <span className="material-symbols-rounded text-gray-500 text-[22px]">badge</span>
           <div className="flex-1 min-w-0">
-            <p className="font-label-sm text-label-sm text-on-surface-variant">내 아이디 (친구에게 알려 주세요)</p>
+            <p className="text-label-sm text-on-surface-variant">내 아이디 (친구에게 알려 주세요)</p>
             {/* 복사가 안 되는 환경에서도 길게 눌러 직접 선택할 수 있게 버튼 밖에 둔다 */}
-            <p className="font-label-lg text-label-lg text-on-surface font-bold truncate select-all">@{profile.username}</p>
+            <p className="text-label-lg text-on-surface font-bold truncate select-all">@{profile.username}</p>
           </div>
           {isAutoUsername(profile.username) ? (
             <button onClick={() => navigate('/profile')} className={primaryButton} type="button">아이디 정하기</button>
@@ -157,47 +157,47 @@ export default function Friends() {
       )}
 
       <section className="flex flex-col gap-2">
-        <div className="flex items-center gap-2 px-3 h-11 rounded-xl bg-surface-container-lowest shadow-sm">
-          <span className="material-symbols-outlined text-[20px] text-on-surface-variant">search</span>
+        <div className="flex items-center gap-2 px-4 h-12 rounded-xl bg-surface-container">
+          <span className="material-symbols-rounded text-[22px] text-gray-400">search</span>
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="아이디 또는 이름으로 친구 찾기"
             autoCapitalize="none"
-            className="flex-1 min-w-0 bg-transparent outline-none text-base text-on-surface placeholder:text-outline/70"
+            className="flex-1 min-w-0 bg-transparent outline-none text-[16px] text-on-surface placeholder:text-gray-400"
           />
           {query && (
             <button onClick={() => setQuery('')} className="w-7 h-7 flex items-center justify-center text-on-surface-variant" type="button" aria-label="지우기">
-              <span className="material-symbols-outlined text-[18px]">close</span>
+              <span className="material-symbols-rounded text-[18px]">close</span>
             </button>
           )}
         </div>
         {searching && (
           shownResults === null ? (
-            <p className="px-1 font-label-md text-label-md text-on-surface-variant">찾는 중…</p>
+            <p className="px-1 text-label-md text-on-surface-variant">찾는 중…</p>
           ) : shownResults.length === 0 ? (
-            <p className="px-1 font-label-md text-label-md text-on-surface-variant">찾는 사람이 없어요. 아이디를 다시 확인해 주세요.</p>
+            <p className="px-1 text-label-md text-on-surface-variant">찾는 사람이 없어요. 아이디를 다시 확인해 주세요.</p>
           ) : (
-            <ul className="px-1 divide-y divide-outline-variant/30">
+            <ul className="px-1 divide-y divide-gray-100">
               {shownResults.map((p) => (
                 <PersonRow key={p.id} person={p}>{actions(p)}</PersonRow>
               ))}
             </ul>
           )
         )}
-        {query && !searching && <p className="px-1 font-label-md text-label-md text-on-surface-variant">2글자 이상 입력해 주세요.</p>}
+        {query && !searching && <p className="px-1 text-label-md text-on-surface-variant">2글자 이상 입력해 주세요.</p>}
       </section>
 
-      {error && <p className="font-label-md text-label-md text-error">{error}</p>}
+      {error && <p className="text-label-md text-error">{error}</p>}
 
       {list === null ? (
-        <p className="font-label-md text-label-md text-on-surface-variant">친구 목록을 불러오는 중…</p>
+        <p className="text-label-md text-on-surface-variant">친구 목록을 불러오는 중…</p>
       ) : (
         <>
           {incoming.length > 0 && (
             <section>
-              <h2 className="font-headline-sm text-headline-sm text-on-surface">받은 요청 {incoming.length}</h2>
-              <ul className="divide-y divide-outline-variant/30">
+              <h2 className="text-headline-sm text-on-surface">받은 요청 {incoming.length}</h2>
+              <ul className="divide-y divide-gray-100">
                 {incoming.map((p) => (
                   <PersonRow key={p.id} person={p}>{actions(p)}</PersonRow>
                 ))}
@@ -206,11 +206,11 @@ export default function Friends() {
           )}
 
           <section>
-            <h2 className="font-headline-sm text-headline-sm text-on-surface">친구 {friends.length}</h2>
+            <h2 className="text-headline-sm text-on-surface">친구 {friends.length}</h2>
             {friends.length === 0 ? (
-              <p className="mt-2 font-label-md text-label-md text-on-surface-variant">친구를 추가하면 서로의 지도를 보고, 영상에 태그할 수 있어요.</p>
+              <p className="mt-2 text-label-md text-on-surface-variant">친구를 추가하면 서로의 지도를 보고, 영상에 태그할 수 있어요.</p>
             ) : (
-              <ul className="divide-y divide-outline-variant/30">
+              <ul className="divide-y divide-gray-100">
                 {friends.map((p) => (
                   <PersonRow key={p.id} person={p}>{actions(p)}</PersonRow>
                 ))}
@@ -220,8 +220,8 @@ export default function Friends() {
 
           {outgoing.length > 0 && (
             <section>
-              <h2 className="font-headline-sm text-headline-sm text-on-surface">보낸 요청 {outgoing.length}</h2>
-              <ul className="divide-y divide-outline-variant/30">
+              <h2 className="text-headline-sm text-on-surface">보낸 요청 {outgoing.length}</h2>
+              <ul className="divide-y divide-gray-100">
                 {outgoing.map((p) => (
                   <PersonRow key={p.id} person={p}>{actions(p)}</PersonRow>
                 ))}

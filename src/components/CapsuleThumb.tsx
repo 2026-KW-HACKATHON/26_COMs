@@ -18,8 +18,8 @@ export default function CapsuleThumb({ thumbnail, className = '' }: CapsuleThumb
 
   if (!thumbnail) {
     return (
-      <div className={`w-full h-full bg-gradient-to-br from-primary-fixed to-secondary-container flex items-center justify-center text-primary ${className}`}>
-        <span className="material-symbols-outlined text-[40px] opacity-60">movie</span>
+      <div className={`w-full h-full bg-surface-container flex items-center justify-center text-gray-400 ${className}`}>
+        <span className="material-symbols-rounded text-[36px]">movie</span>
       </div>
     );
   }

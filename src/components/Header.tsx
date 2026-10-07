@@ -16,25 +16,22 @@ export default function Header({ currentPath, goBack }: HeaderProps) {
   const subTitle = SUB_TITLES[section];
 
   return (
-    <header className="fixed top-0 w-full z-50 pt-safe bg-surface/85 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.03)]">
-      <div className="h-16 px-4 flex items-center justify-between max-w-md mx-auto">
+    <header className="fixed top-0 w-full z-50 pt-safe bg-surface">
+      <div className="h-14 px-2 flex items-center justify-between max-w-md mx-auto">
         {subTitle ? (
           <>
-            <button onClick={goBack} className="w-11 h-11 flex items-center justify-center rounded-full hover:bg-surface-container text-on-surface transition-colors" aria-label="뒤로">
-              <span className="material-symbols-outlined text-[24px]">arrow_back</span>
+            <button onClick={goBack} className="w-11 h-11 flex items-center justify-center rounded-full active:bg-surface-container text-on-surface transition-colors" aria-label="뒤로">
+              <span className="material-symbols-rounded text-[26px]">arrow_back_ios_new</span>
             </button>
-            <h1 className="font-headline-sm text-headline-sm text-on-surface tracking-tight">{subTitle}</h1>
+            <h1 className="text-[17px] font-bold text-on-surface">{subTitle}</h1>
             <span className="w-11" />
           </>
         ) : (
           <>
-            <div className="flex items-center gap-1.5">
-              <span className="material-symbols-outlined text-primary text-[22px]">lock_clock</span>
-              <span className="font-headline-sm text-headline-sm text-on-surface tracking-tight">기억캡슐</span>
-            </div>
-            <span className="flex items-center gap-0.5 px-2.5 py-1 bg-surface-container-low rounded-full">
-              <span className="material-symbols-outlined text-secondary text-[16px]">location_on</span>
-              <span className="font-label-sm text-label-sm text-on-surface-variant">노원구 월계1동</span>
+            <span className="pl-3 text-[20px] font-bold tracking-tight text-on-surface">기억캡슐</span>
+            <span className="mr-2 flex items-center gap-0.5 h-8 pl-2 pr-3 bg-surface-container rounded-full text-[13px] font-semibold text-gray-700">
+              <span className="material-symbols-rounded text-[16px] text-gray-500">location_on</span>
+              노원구 월계1동
             </span>
           </>
         )}

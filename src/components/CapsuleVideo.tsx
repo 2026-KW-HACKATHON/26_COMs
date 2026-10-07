@@ -95,7 +95,7 @@ export default function CapsuleVideo({ src, start = 0, duration = CLIP_SECONDS, 
       {!playing && (
         <button onClick={togglePlay} className="absolute inset-0 flex items-center justify-center" type="button" aria-label="재생">
           <span className="w-14 h-14 rounded-full bg-black/45 backdrop-blur text-white flex items-center justify-center">
-            <span className="material-symbols-outlined text-[34px]" style={{ fontVariationSettings: "'FILL' 1" }}>play_arrow</span>
+            <span className="material-symbols-rounded text-[34px] icon-fill">play_arrow</span>
           </span>
         </button>
       )}
@@ -106,11 +106,11 @@ export default function CapsuleVideo({ src, start = 0, duration = CLIP_SECONDS, 
         type="button"
         aria-label={muted ? '소리 켜기' : '소리 끄기'}
       >
-        <span className="material-symbols-outlined text-[20px]">{muted ? 'volume_off' : 'volume_up'}</span>
+        <span className="material-symbols-rounded text-[20px]">{muted ? 'volume_off' : 'volume_up'}</span>
       </button>
 
       <div className="absolute bottom-0 inset-x-0 h-1 bg-white/25">
-        <div className="h-full bg-primary-container" style={{ width: `${progress * 100}%` }} />
+        <div className="h-full bg-primary" style={{ width: `${progress * 100}%` }} />
       </div>
     </div>
   );
