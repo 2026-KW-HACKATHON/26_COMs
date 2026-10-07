@@ -239,6 +239,11 @@ grant select, insert, delete on public.capsule_tags to authenticated;
 grant select on public.nudges to authenticated;
 grant update (read_at) on public.nudges to authenticated;
 grant select, delete on public.push_subscriptions to authenticated;
+-- 알림 서버(api/push.ts·api/recall.ts)가 secret key(service_role)로 읽고 쓴다. 최근 Supabase 프로젝트는 SQL로 만든 테이블에
+-- 이 권한을 자동으로 주지 않아서 직접 준다 (service_role은 행 보안 정책을 건너뛰는 관리자 키라 앱에는 들어가지 않는다)
+grant select, insert, update, delete
+  on public.profiles, public.friendships, public.capsules, public.capsule_tags, public.nudges, public.push_subscriptions
+  to service_role;
 
 -- 8) 행 보안 정책
 alter table public.profiles enable row level security;

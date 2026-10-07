@@ -105,6 +105,15 @@ export class Harness {
       );
       return;
     }
+    if (who === 'service') {
+      // secret key (service_role): 행 보안 정책을 건너뛰지만 테이블 권한은 필요하다
+      await this.db.query(
+        `select set_config('request.jwt.claims', $1, false), set_config('request.jwt.claim.sub', '', false)`,
+        [JSON.stringify({ role: 'service_role' })],
+      );
+      await this.db.query('set role service_role');
+      return;
+    }
     if (who === 'anon') {
       await this.db.query(
         `select set_config('request.jwt.claims', $1, false), set_config('request.jwt.claim.sub', '', false)`,
@@ -123,7 +132,7 @@ export class Harness {
     await this.db.query('set role authenticated');
   }
 
-  /** Run one statement as `who` ('admin' | 'anon' | user id | { id, anonymous: true }). Returns rows. */
+  /** Run one statement as `who` ('admin' | 'service' | 'anon' | user id | { id, anonymous: true }). Returns rows. */
   async q(who, sql, params = []) {
     await this.#become(who);
     try {
