@@ -2,16 +2,21 @@ import { useEffect, useRef } from 'react';
 import L from 'leaflet';
 import { getMapData, type Building, type LatLng } from '../data/mapData';
 import { getPlace, type Place } from '../data/places';
-import { MEDALS } from '../lib/ranking';
 import { MAP_COLORS } from '../lib/theme';
+
+/** 가게 이름표에 붙이는 표시: 앞에 이모지(메달·단골 별), 뒤에 짧은 글(오랜만) */
+export interface PlaceMark {
+  emoji?: string;
+  note?: string;
+}
 
 interface PlaceMapProps {
   selectedId: string | null;
   onSelect: (place: Place) => void;
   /** 장소별 영상(동네 지도는 방문) 수. 많을수록 건물 색이 진해지고 빛이 번진다 */
   videoCount?: Map<string, number>;
-  /** 동네 랭킹 순위. 1~3위는 이름표에 메달을 단다 */
-  ranks?: Map<string, number>;
+  /** 가게별 이름표 표시 (동네 지도는 1~3위 메달, 내 지도는 단골·오랜만) */
+  marks?: Map<string, PlaceMark>;
   className?: string;
 }
 
@@ -110,7 +115,7 @@ function summaryName(places: Place[]) {
   return places.length > 1 ? `${places[0].name} 외 ${places.length - 1}` : places[0].name;
 }
 
-export default function PlaceMap({ selectedId, onSelect, videoCount, ranks, className = '' }: PlaceMapProps) {
+export default function PlaceMap({ selectedId, onSelect, videoCount, marks, className = '' }: PlaceMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const rendererRef = useRef<L.Canvas | null>(null);
@@ -216,10 +221,10 @@ export default function PlaceMap({ selectedId, onSelect, videoCount, ranks, clas
     const data = getMapData();
     const countOf = (p: Place) => videoCount?.get(p.id) ?? 0;
     const buildingCount = (b: Building) => b.places.reduce((s, p) => s + countOf(p), 0);
-    /** 동네 랭킹 1~3위 메달 */
-    const medal = (p: Place | undefined) => {
-      const rank = p && ranks?.get(p.id);
-      return rank && rank <= 3 ? `${MEDALS[rank - 1]} ` : '';
+    /** 이름표 글: 이모지 + 이름 + 짧은 글 */
+    const named = (p: Place | undefined, name: string) => {
+      const mark = p && marks?.get(p.id);
+      return `${mark?.emoji ? `${mark.emoji} ` : ''}${esc(name)}${mark?.note ? `<i>${esc(mark.note)}</i>` : ''}`;
     };
 
     // 빛 번짐을 먼저 모두 그려야 옆 건물을 덮지 않고 건물 아래로 깔린다 (약한 것부터)
@@ -241,10 +246,10 @@ export default function PlaceMap({ selectedId, onSelect, videoCount, ranks, clas
 
       if (selected) {
         const own = countOf(selected);
-        layer.addLayer(label(b.center, `${own ? `<b>${own}</b>` : ''}<span>${medal(selected)}${esc(selected.name)}</span>`, `map-pill map-pill-selected ${own ? '' : 'map-pill-plain'}`, 1000));
+        layer.addLayer(label(b.center, `${own ? `<b>${own}</b>` : ''}<span>${named(selected, selected.name)}</span>`, `map-pill map-pill-selected ${own ? '' : 'map-pill-plain'}`, 1000));
       } else if (count) {
         const withVideo = b.places.filter((p) => countOf(p)).sort((x, y) => countOf(y) - countOf(x));
-        layer.addLayer(label(b.center, `<b>${count}</b><span>${medal(withVideo[0])}${esc(summaryName(withVideo))}</span>`, 'map-pill', 500 + count));
+        layer.addLayer(label(b.center, `<b>${count}</b><span>${named(withVideo[0], summaryName(withVideo))}</span>`, 'map-pill', 500 + count));
       } else {
         layer.addLayer(label(b.center, esc(summaryName(b.places)), 'map-label-place'));
       }
@@ -263,13 +268,13 @@ export default function PlaceMap({ selectedId, onSelect, videoCount, ranks, clas
         .on('click', () => onSelectRef.current(p))
         .addTo(layer);
       if (selected || count) {
-        const html = `${count ? `<b>${count}</b>` : ''}<span>${medal(p)}${esc(p.name)}</span>`;
+        const html = `${count ? `<b>${count}</b>` : ''}<span>${named(p, p.name)}</span>`;
         layer.addLayer(label([p.lat, p.lng], html, `map-pill ${selected ? 'map-pill-selected' : ''} ${count ? '' : 'map-pill-plain'}`, selected ? 1000 : 500 + count));
       } else {
         layer.addLayer(label([p.lat, p.lng], esc(p.name), 'map-label-place map-label-dot'));
       }
     }
-  }, [selectedId, videoCount, ranks]);
+  }, [selectedId, videoCount, marks]);
 
   // 선택된 장소가 화면 밖(검색으로 고른 경우 등)이면 그쪽으로 이동
   useEffect(() => {

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Avatar from '../components/Avatar';
 import CapsuleThumb from '../components/CapsuleThumb';
+import MyTownCard from '../components/MyTownCard';
 import { useAuth } from '../hooks/useAuth';
 import { useCapsules } from '../hooks/useCapsules';
 import { useFriendships } from '../hooks/useFriendships';
@@ -87,6 +88,9 @@ export default function MyLog() {
               프로필 편집
             </button>
           </div>
+          <div className="mt-2">
+            <MyTownCard capsules={capsules} />
+          </div>
           <div className="flex mb-4 border-b border-gray-100">
             {tabButton('mine', '내 영상', mine.length)}
             {tabButton('tagged', '태그된 영상', tagged.length)}
@@ -94,6 +98,7 @@ export default function MyLog() {
         </>
       ) : (
         <>
+          <MyTownCard capsules={capsules} />
           <div className="flex items-baseline justify-between mb-3">
             <h2 className="text-headline-md text-on-surface">내 영상</h2>
             <span className="text-label-md text-on-surface-variant">{capsules.length}개</span>
