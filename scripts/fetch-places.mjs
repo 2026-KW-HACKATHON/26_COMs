@@ -155,6 +155,10 @@ try {
   console.warn('Boundary fetch failed, using saved boundary fallback:', err.message);
 }
 
+// OSM에 식당·카페로 잘못 등록된 편의점 (대학 건물 안 매점 등). 동네 가게 지도·"176곳 중 N곳"에서 뺀다
+const NOT_A_RESTAURANT = /^(CU|GS25|7-?Eleven|세븐일레븐|이마트24|emart24|미니스톱|MINISTOP)$/i;
+const isRestaurant = (p) => !NOT_A_RESTAURANT.test(p.name);
+
 try {
   const placesRes = await overpass(`[out:json][timeout:60];
 nwr["amenity"~"^(restaurant|cafe|fast_food|bar|pub)$"]["name"](${bounds.minlat},${bounds.minlon},${bounds.maxlat},${bounds.maxlon});
@@ -177,15 +181,15 @@ out center tags;`);
         lng: Number(lng?.toFixed(6)),
       };
     })
-    .filter((p) => p.name && Number.isFinite(p.lat) && Number.isFinite(p.lng) && inside([p.lat, p.lng]))
+    .filter((p) => p.name && isRestaurant(p) && Number.isFinite(p.lat) && Number.isFinite(p.lng) && inside([p.lat, p.lng]))
     .sort((a, b) => a.name.localeCompare(b.name, 'ko'));
 } catch (err) {
   console.warn('Overpass place fetch failed, using Nominatim fallback:', err.message);
-  list = (await fetchNominatimPlaces(bounds)).filter((p) => p.name && inside([p.lat, p.lng]));
+  list = (await fetchNominatimPlaces(bounds)).filter((p) => p.name && isRestaurant(p) && inside([p.lat, p.lng]));
 }
 
 if (!list.length) {
-  list = (await fetchNominatimPlaces(bounds)).filter((p) => p.name && inside([p.lat, p.lng]));
+  list = (await fetchNominatimPlaces(bounds)).filter((p) => p.name && isRestaurant(p) && inside([p.lat, p.lng]));
 }
 
 if (!list.length) {

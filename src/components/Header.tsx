@@ -15,6 +15,7 @@ const SUB_TITLES: Record<string, string> = {
   friends: '친구',
   profile: '프로필 편집',
   notifications: '알림',
+  privacy: '개인정보처리방침',
 };
 
 export default function Header({ currentPath, goBack }: HeaderProps) {

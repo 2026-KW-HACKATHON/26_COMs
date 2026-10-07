@@ -30,6 +30,8 @@ export interface Capsule {
   thumbnail: Media | null;
   createdAt: number;
   visibility: Visibility;
+  /** 현장 인증: 앱에서 촬영할 때 가게 근처였는지 */
+  verified: boolean;
 }
 
 /** 피드 한 번에 불러오는 개수 */
@@ -57,4 +59,5 @@ export interface NewCapsule {
   /** 태그할 친구 id (서버 저장일 때만 쓰임) */
   tagIds: string[];
   visibility: Visibility;
+  verified: boolean;
 }

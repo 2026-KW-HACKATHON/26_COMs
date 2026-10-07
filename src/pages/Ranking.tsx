@@ -98,7 +98,7 @@ export default function Ranking() {
                 <span className="flex-1 min-w-0">
                   <span className="block text-label-lg font-bold text-on-surface truncate">{r.place.name}</span>
                   <span className="block text-label-sm text-on-surface-variant truncate">
-                    {[placeSubtitle(r.place), `${r.people}명이 다녀갔어요`].filter(Boolean).join(' · ')}
+                    {[placeSubtitle(r.place), `${r.people}명이 다녀갔어요`, r.verifiedVisits > 0 && `현장 인증 ${r.verifiedVisits}번`].filter(Boolean).join(' · ')}
                   </span>
                 </span>
                 <span className="shrink-0 flex flex-col items-end">
@@ -118,7 +118,7 @@ export default function Ranking() {
 
       <p className="mt-4 text-label-sm text-on-surface-variant">
         영상에 나온 사람(태그된 친구 포함)이 그날 다녀간 것을 방문 한 번으로 세요. 같은 날 여러 개를 남겨도 한 번이고, 단골은 다른 날 두 번 이상 온
-        사람이에요. 영상과 누가 남겼는지는 공개되지 않아요.
+        사람이에요. 현장 인증은 앱에서 촬영할 때 가게에서 100m 안이었던 방문이에요. 영상과 누가 남겼는지는 공개되지 않아요.
       </p>
 
       <div className="mt-5 grid grid-cols-2 gap-2">

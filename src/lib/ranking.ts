@@ -10,6 +10,8 @@ export interface PlaceStat {
   /** 다른 날 두 번 이상 온 사람 수 */
   regulars: number;
   videos: number;
+  /** 그중 현장 인증된 영상이 있는 방문 */
+  verifiedVisits: number;
 }
 
 export interface RankedPlace extends PlaceStat {
@@ -36,22 +38,28 @@ interface Visit {
   createdAt: number;
   /** 영상에 나온 사람 id (작성자와 태그된 친구) */
   people: string[];
+  verified: boolean;
 }
 
 /** 기기 저장(서버 없음)에서 place_ranking과 같은 계산을 한다. days: 오늘 포함 최근 며칠, null이면 전체 */
 export function computePlaceStats(visits: Visit[], days: RankingDays, now = Date.now()): PlaceStat[] {
   const from = days === null ? -Infinity : kstDay(now) - days + 1;
-  const byPlace = new Map<string, { videos: number; last: number; days: Map<string, Set<number>> }>();
+  const byPlace = new Map<string, { videos: number; last: number; days: Map<string, Set<number>>; verifiedDays: Map<string, Set<number>> }>();
   for (const v of visits) {
     const day = kstDay(v.createdAt);
     if (day < from) continue;
-    const s = byPlace.get(v.placeId) ?? { videos: 0, last: 0, days: new Map<string, Set<number>>() };
+    const s = byPlace.get(v.placeId) ?? { videos: 0, last: 0, days: new Map<string, Set<number>>(), verifiedDays: new Map<string, Set<number>>() };
     s.videos += 1;
     s.last = Math.max(s.last, v.createdAt);
     for (const person of new Set(v.people)) {
       const set = s.days.get(person) ?? new Set<number>();
       set.add(day);
       s.days.set(person, set);
+      if (v.verified) {
+        const verified = s.verifiedDays.get(person) ?? new Set<number>();
+        verified.add(day);
+        s.verifiedDays.set(person, verified);
+      }
     }
     byPlace.set(v.placeId, s);
   }
@@ -65,6 +73,7 @@ export function computePlaceStats(visits: Visit[], days: RankingDays, now = Date
           people: perPerson.length,
           regulars: perPerson.filter((n) => n >= 2).length,
           videos: s.videos,
+          verifiedVisits: [...s.verifiedDays.values()].reduce((a, d) => a + d.size, 0),
         },
         last: s.last,
       };

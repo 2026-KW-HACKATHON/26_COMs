@@ -40,7 +40,7 @@ async function run<T>(mode: IDBTransactionMode, fn: (store: IDBObjectStore) => I
 }
 
 /** 계정 정보가 없던 예전 기록도 같은 모양으로 맞춘다 */
-const normalize = (c: Capsule): Capsule => ({ ...c, userId: c.userId ?? '', author: c.author ?? null, tags: c.tags ?? [], visibility: 'friends' });
+const normalize = (c: Capsule): Capsule => ({ ...c, userId: c.userId ?? '', author: c.author ?? null, tags: c.tags ?? [], visibility: 'friends', verified: !!c.verified });
 
 /** 새 기록 저장. id와 생성 시각은 여기서 채운다. 태그는 기기 저장에서 쓰지 않는다. */
 export async function addCapsule(data: NewCapsule): Promise<Capsule> {
@@ -60,6 +60,7 @@ export async function addCapsule(data: NewCapsule): Promise<Capsule> {
     createdAt: Date.now(),
     // 기기 저장은 이 기기에서만 보여서 공개 범위가 없다
     visibility: 'friends',
+    verified: data.verified,
   };
   await run('readwrite', (s) => s.put(capsule));
   return capsule;
@@ -98,5 +99,5 @@ export async function deleteCapsule(id: string): Promise<void> {
 /** 동네 랭킹 (기기 저장은 이 기기의 기록만으로 센다) */
 export async function listPlaceStats(days: RankingDays): Promise<PlaceStat[]> {
   const list = await listCapsules();
-  return computePlaceStats(list.map((c) => ({ placeId: c.placeId, createdAt: c.createdAt, people: [c.userId] })), days);
+  return computePlaceStats(list.map((c) => ({ placeId: c.placeId, createdAt: c.createdAt, people: [c.userId], verified: c.verified })), days);
 }

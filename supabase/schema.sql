@@ -66,6 +66,9 @@ alter table public.capsules add column if not exists visibility text not null de
 alter table public.capsules drop constraint if exists capsules_visibility_check;
 alter table public.capsules add constraint capsules_visibility_check check (visibility in ('friends', 'town'));
 create index if not exists capsules_town_created_idx on public.capsules (created_at desc) where visibility = 'town';
+-- 현장 인증: 앱에서 촬영할 때 기기 위치가 가게에서 100m 안이었는지 (좌표는 저장하지 않는다).
+-- 앱이 기기에서 판단해 보내는 값이라 조작을 완전히 막지는 못한다. 앨범 영상은 늘 false
+alter table public.capsules add column if not exists verified boolean not null default false;
 
 -- 4) 기록에 태그한 친구 (인스타그램 태그처럼)
 create table if not exists public.capsule_tags (
@@ -232,7 +235,7 @@ grant select, insert, delete on public.friendships to authenticated;
 grant update (status) on public.friendships to authenticated;
 -- 작성 시각(created_at)은 서버가 정한다. 날짜를 지어내 동네 랭킹의 방문 수를 부풀릴 수 없게
 grant select, delete on public.capsules to authenticated;
-grant insert (id, user_id, place_id, place_name, lat, lng, video_path, thumbnail_path, clip_start, clip_duration, visibility)
+grant insert (id, user_id, place_id, place_name, lat, lng, video_path, thumbnail_path, clip_start, clip_duration, visibility, verified)
   on public.capsules to authenticated;
 grant update (visibility) on public.capsules to authenticated;
 grant select, insert, delete on public.capsule_tags to authenticated;
@@ -541,17 +544,20 @@ $$;
 --   방문 = 영상에 나온 사람(작성자·태그된 친구) × 날짜(한국 시간). 한 사람이 같은 날 여러 개 남겨도 한 번이라
 --          영상을 몰아서 올려도 순위가 오르지 않고, 다른 날 다시 오면 오른다.
 --   단골 = 다른 날 두 번 이상 온 사람.
+--   현장 인증 방문 = 그중 현장 인증된 영상(verified)이 있는 사람×날짜.
 --   days: 오늘 포함 최근 며칠 (null이면 전체). 날짜 단위로만 받아서 영상을 남긴 시각을 좁혀 알아낼 수 없다.
 --   가게 이름은 앱에 들어 있는 가게 목록에서 찾는다 (기록의 place_name은 사용자가 보낸 값이라 그대로 공개하지 않음)
-create or replace function public.place_ranking(days integer default null)
-returns table (place_id text, visits integer, people integer, regulars integer, videos integer)
+-- 돌려주는 열이 바뀌면 create or replace로는 못 바꿔서 지우고 다시 만든다 (권한은 아래에서 다시 준다)
+drop function if exists public.place_ranking(integer);
+create function public.place_ranking(days integer default null)
+returns table (place_id text, visits integer, people integer, regulars integer, videos integer, verified_visits integer)
 language sql
 stable
 security definer
 set search_path = ''
 as $$
   with seen as (
-    select c.id, c.place_id, c.created_at, who.person, (c.created_at at time zone 'Asia/Seoul')::date as day
+    select c.id, c.place_id, c.created_at, c.verified, who.person, (c.created_at at time zone 'Asia/Seoul')::date as day
     from public.capsules c
     cross join lateral (
       select c.user_id as person
@@ -567,7 +573,9 @@ as $$
     group by s.place_id
   ),
   by_person as (
-    select s.place_id, count(distinct s.day)::integer as visit_days
+    select s.place_id,
+      count(distinct s.day)::integer as visit_days,
+      (count(distinct s.day) filter (where s.verified))::integer as verified_days
     from seen s
     group by s.place_id, s.person
   )
@@ -575,7 +583,8 @@ as $$
     sum(p.visit_days)::integer as visits,
     count(*)::integer as people,
     (count(*) filter (where p.visit_days >= 2))::integer as regulars,
-    b.videos
+    b.videos,
+    sum(p.verified_days)::integer as verified_visits
   from by_place b
   join by_person p on p.place_id = b.place_id
   group by b.place_id, b.videos, b.last_at

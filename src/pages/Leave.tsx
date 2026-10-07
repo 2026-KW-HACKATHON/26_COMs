@@ -9,9 +9,13 @@ import { CATEGORY_EMOJI, getPlace, placeSubtitle } from '../data/places';
 import { useFriendships } from '../hooks/useFriendships';
 import { MAX_VIDEO_BYTES, SOCIAL_ENABLED, STORAGE_MODE, addCapsule } from '../lib/capsuleStore';
 import { formatSeconds } from '../lib/format';
-import { probeDuration, thumbnailAt } from '../lib/video';
+import { distanceMeters, formatDistance, getFix, isOnSite, type Fix } from '../lib/location';
+import { probeDuration, thumbnailAt, trimClip } from '../lib/video';
 import { CLIP_SECONDS, type Visibility } from '../types/capsule';
 import type { Profile } from '../types/social';
+
+/** 이보다 크거나 5초보다 긴 앨범 영상은 고른 구간만 다시 녹화해서 올린다 */
+const TRIM_OVER_BYTES = 4 * 1024 * 1024;
 
 interface DraftVideo {
   blob: Blob;
@@ -31,9 +35,12 @@ export default function Leave() {
   const [recorderOpen, setRecorderOpen] = useState(false);
   const [videoError, setVideoError] = useState('');
   const [processing, setProcessing] = useState(false);
-  const [saving, setSaving] = useState(false);
+  /** 남기는 중인 단계: 앨범 영상 줄이기 → 올리기 */
+  const [saving, setSaving] = useState<false | 'trim' | 'upload'>(false);
   const [tags, setTags] = useState<Profile[]>([]);
   const [visibility, setVisibility] = useState<Visibility>('friends');
+  /** 촬영 직후 기기 위치 (현장 인증용, 저장하지 않음). pending: 확인 중, null: 못 잡음·거절 */
+  const [fix, setFix] = useState<Fix | null | 'pending'>(null);
   const { list: friendships } = useFriendships();
   const friends = friendships?.filter((f) => f.status === 'friend') ?? null;
 
@@ -43,6 +50,9 @@ export default function Leave() {
   const handleRecorded = async (blob: Blob, thumbnail: Blob | null, seconds: number) => {
     setRecorderOpen(false);
     setVideoError('');
+    // 현장 인증: 방금 찍은 곳이 가게 근처인지 (가게는 나중에 바꿀 수 있어서 위치만 기억해 두고 남길 때 판단한다)
+    setFix('pending');
+    void getFix().then(setFix);
     const duration = await probeDuration(blob).catch(() => 0);
     setVideo({ blob, duration: duration || seconds, clipStart: 0, thumbnail, source: 'camera' });
   };
@@ -65,6 +75,7 @@ export default function Leave() {
       const duration = await probeDuration(file);
       if (!duration) throw new Error('empty');
       setVideo({ blob: file, duration, clipStart: 0, thumbnail: null, source: 'upload' });
+      setFix(null);
     } catch {
       setVideoError('이 영상은 브라우저에서 재생할 수 없는 형식이에요. 다른 영상을 선택해 주세요.');
     } finally {
@@ -76,25 +87,37 @@ export default function Leave() {
 
   const handleLeave = async () => {
     if (!place || !video || saving) return;
-    setSaving(true);
+    const clipDuration = Math.min(CLIP_SECONDS, video.duration - video.clipStart);
+    // 큰 앨범 원본 대신 고른 구간만 다시 녹화해서 올린다. 버튼을 누른 이 순간(await 전)에 시작해야 iPhone에서 소리까지 담긴다.
+    // 줄이지 못하면(지원하지 않는 브라우저 등) 원본을 그대로 올린다
+    const needsTrim = video.source === 'upload' && (video.blob.size > TRIM_OVER_BYTES || video.duration > CLIP_SECONDS + 0.1);
+    const trimming = needsTrim
+      ? trimClip(video.blob, video.clipStart, clipDuration).catch((err) => {
+          console.warn('영상을 줄이지 못해 원본을 올려요', err);
+          return null;
+        })
+      : Promise.resolve(null);
+    setSaving(needsTrim ? 'trim' : 'upload');
     try {
-      const clipDuration = Math.min(CLIP_SECONDS, video.duration - video.clipStart);
       // 앨범 영상은 사용자가 고른 구간의 첫 부분을 썸네일로 쓴다
       let thumbnail = video.source === 'camera' ? video.thumbnail : null;
       if (!thumbnail) {
         thumbnail = await thumbnailAt(video.blob, video.clipStart + Math.min(1, clipDuration / 2)).catch(() => null);
       }
+      const trimmed = await trimming;
+      setSaving('upload');
       await addCapsule({
         placeId: place.id,
         placeName: place.name,
         lat: place.lat,
         lng: place.lng,
-        video: video.blob,
-        clipStart: video.clipStart,
+        video: trimmed ?? video.blob,
+        clipStart: trimmed ? 0 : video.clipStart,
         clipDuration,
         thumbnail,
         tagIds: tags.map((t) => t.id),
         visibility,
+        verified: onSite,
       });
       navigator.vibrate?.(30);
       navigate('/', { replace: true, state: { placeId: place.id } });
@@ -106,6 +129,9 @@ export default function Leave() {
   };
 
   const canTrim = video && video.duration > CLIP_SECONDS + 0.1;
+  // 앱에서 찍은 영상이고, 그때 위치가 고른 가게 근처면 현장 인증
+  const fixed = fix && fix !== 'pending' ? fix : null;
+  const onSite = video?.source === 'camera' && !!place && !!fixed && isOnSite(fixed, place);
 
   return (
     <div className="flex flex-col w-full pb-6 pt-2">
@@ -205,6 +231,7 @@ export default function Leave() {
           </div>
         )}
 
+        {video && <OnSiteNote source={video.source} fix={fix} place={place ?? null} onSite={onSite} />}
         {videoError && <p className="text-label-sm text-error">{videoError}</p>}
         <input ref={fileInputRef} type="file" accept="video/*" className="hidden" onChange={handleFile} />
       </section>
@@ -248,11 +275,11 @@ export default function Leave() {
       <div className="flex flex-col gap-2 pt-2">
         <button
           onClick={handleLeave}
-          disabled={!!missing || saving}
+          disabled={!!missing || !!saving}
           className="w-full h-14 rounded-2xl bg-primary text-on-primary text-[17px] font-bold flex items-center justify-center pressable disabled:bg-gray-200 disabled:text-gray-400"
           type="button"
         >
-          {saving ? '남기는 중…' : '남기기'}
+          {saving === 'trim' ? '5초로 줄이는 중…' : saving ? '남기는 중…' : '남기기'}
         </button>
         {missing && <p className="text-center text-label-sm text-on-surface-variant">{missing}</p>}
       </div>
@@ -266,6 +293,31 @@ const VISIBILITY_OPTIONS: { value: Visibility; icon: string; label: string; desc
   { value: 'friends', icon: 'group', label: '친구만', description: '친구와 태그된 사람만 봐요' },
   { value: 'town', icon: 'location_city', label: '동네 모두', description: '동네 피드와 가게에 떠요. 태그된 친구는 친구에게만 보여요' },
 ];
+
+/** 현장 인증 상태 한 줄 */
+function OnSiteNote({ source, fix, place, onSite }: { source: DraftVideo['source']; fix: Fix | null | 'pending'; place: { lat: number; lng: number } | null; onSite: boolean }) {
+  const [icon, text, strong] =
+    source === 'upload'
+      ? ['photo_library', '앨범 영상은 현장 인증이 붙지 않아요. 가게에서 바로 찍으면 붙어요', false]
+      : fix === 'pending'
+        ? ['my_location', '가게 근처에서 찍었는지 확인하는 중…', false]
+        : !fix
+          ? ['location_off', '위치를 확인하지 못해 현장 인증 없이 남겨요', false]
+          : !place
+            ? ['my_location', '가게를 고르면 현장 인증을 확인해요', false]
+            : onSite
+              ? ['verified', `현장 인증 · 가게에서 ${formatDistance(distanceMeters(fix, place))}`, true]
+              : ['wrong_location', `가게에서 ${formatDistance(distanceMeters(fix, place))} 떨어져 있어 현장 인증이 안 돼요`, false];
+  return (
+    <p className={`flex items-center gap-1.5 text-label-md ${strong ? 'text-primary font-bold' : 'text-on-surface-variant'}`}>
+      <span className={`material-symbols-rounded text-[18px] ${strong ? 'icon-fill' : ''}`}>{icon}</span>
+      <span className="min-w-0">
+        {text}
+        {source === 'camera' && <span className="block text-label-sm font-normal text-gray-400">위치는 인증에만 쓰고 저장하지 않아요</span>}
+      </span>
+    </p>
+  );
+}
 
 function StepTitle({ step, title }: { step: number; title: string }) {
   return (
