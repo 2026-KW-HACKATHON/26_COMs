@@ -24,3 +24,6 @@ Thumbs.db
 
 # Claude Code local config
 .claude/
+
+# Vercel CLI (프로젝트 연결 정보)
+.vercel

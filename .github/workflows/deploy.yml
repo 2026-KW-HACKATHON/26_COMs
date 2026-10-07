@@ -1,0 +1,86 @@
+# Vercel 배포
+# 대회 레포(조직 소유)는 Vercel이 직접 연결할 수 없어서 GitHub Actions에서 Vercel CLI로 올린다.
+# - main에 푸시(머지) → 실제 주소(Production)에 배포
+# - main으로 가는 PR → 미리보기(Preview) 배포 후 PR에 주소를 댓글로 남김
+# 필요한 레포 Secrets: VERCEL_TOKEN, VERCEL_ORG_ID, VERCEL_PROJECT_ID (README "배포" 참고)
+name: Vercel 배포
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: vercel-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: write
+
+env:
+  VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+  VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+  VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Secrets 확인
+        run: |
+          for name in VERCEL_TOKEN VERCEL_ORG_ID VERCEL_PROJECT_ID; do
+            if [ -z "${!name}" ]; then
+              echo "::error::레포 Secrets에 $name 이(가) 없습니다. README의 '배포 (Vercel)'를 참고하세요."
+              missing=1
+            fi
+          done
+          [ -z "$missing" ]
+
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: 배포 종류 정하기
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo "TARGET=preview" >> "$GITHUB_ENV"
+            echo "PROD_FLAG=" >> "$GITHUB_ENV"
+          else
+            echo "TARGET=production" >> "$GITHUB_ENV"
+            echo "PROD_FLAG=--prod" >> "$GITHUB_ENV"
+          fi
+
+      - name: Vercel CLI 설치
+        run: npm install --global vercel@latest
+
+      # Vercel 대시보드에 넣은 환경변수(VITE_SUPABASE_*)를 받아온다
+      - name: Vercel 설정·환경변수 받기
+        run: vercel pull --yes --environment="$TARGET" --token="$VERCEL_TOKEN"
+
+      - name: 빌드
+        run: vercel build $PROD_FLAG --token="$VERCEL_TOKEN"
+
+      - name: 배포
+        id: deploy
+        run: |
+          url=$(vercel deploy --prebuilt $PROD_FLAG --token="$VERCEL_TOKEN")
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+          echo "배포 주소: $url" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: PR에 미리보기 주소 남기기
+        if: github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+          SHA: ${{ github.event.pull_request.head.sha }}
+          URL: ${{ steps.deploy.outputs.url }}
+        run: |
+          body="미리보기: $URL (커밋 ${SHA:0:7})"
+          gh pr comment "$PR" --repo "$GITHUB_REPOSITORY" --edit-last --body "$body" \
+            || gh pr comment "$PR" --repo "$GITHUB_REPOSITORY" --body "$body"
