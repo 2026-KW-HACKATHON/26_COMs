@@ -29,7 +29,7 @@ export const DEFAULT_RANKING_DAYS: RankingDays = RANKING_PERIODS[0].days;
 const DAY_MS = 86_400_000;
 const KST_OFFSET_MS = 9 * 3_600_000;
 /** 한국 시간 기준 날짜 번호 */
-const kstDay = (ms: number) => Math.floor((ms + KST_OFFSET_MS) / DAY_MS);
+export const kstDay = (ms: number) => Math.floor((ms + KST_OFFSET_MS) / DAY_MS);
 
 interface Visit {
   placeId: string;
