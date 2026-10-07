@@ -6,6 +6,9 @@ export const CLIP_SECONDS = 5;
 /** 기기 저장(IndexedDB)은 파일(Blob) 그대로, 서버 저장은 재생용 URL */
 export type Media = Blob | string;
 
+/** 공개 범위: 친구만(본인·친구·태그된 사람) / 동네(로그인한 모두) */
+export type Visibility = 'friends' | 'town';
+
 export interface Capsule {
   id: string;
   /** 작성자 id. 기기 저장은 계정이 없어서 빈 문자열 */
@@ -26,6 +29,19 @@ export interface Capsule {
   /** 목록·지도용 썸네일 (JPEG) */
   thumbnail: Media | null;
   createdAt: number;
+  visibility: Visibility;
+}
+
+/** 피드 한 번에 불러오는 개수 */
+export const FEED_PAGE = 15;
+
+export interface FeedQuery {
+  /** 친구 피드: 이 사람들(나·친구)이 남긴 기록. 동네 피드: 동네 공개 기록 전체 */
+  scope: 'friends' | 'town';
+  userIds?: string[];
+  /** 이 시각(밀리초)보다 오래된 것부터 */
+  before?: number;
+  limit?: number;
 }
 
 /** 새로 남길 기록. 저장 전이라 영상·썸네일은 항상 파일이다. */
@@ -40,4 +56,5 @@ export interface NewCapsule {
   thumbnail: Blob | null;
   /** 태그할 친구 id (서버 저장일 때만 쓰임) */
   tagIds: string[];
+  visibility: Visibility;
 }

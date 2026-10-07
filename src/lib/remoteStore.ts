@@ -1,4 +1,4 @@
-import type { Capsule, NewCapsule } from '../types/capsule';
+import { FEED_PAGE, type Capsule, type FeedQuery, type NewCapsule, type Visibility } from '../types/capsule';
 import type { PlaceStat, RankingDays } from './ranking';
 import { PROFILE_COLUMNS, listFriendships, toProfile, type ProfileRow } from './social';
 import { isUuid, supabase } from './supabase';
@@ -30,6 +30,7 @@ interface CapsuleRow {
   clip_start: number;
   clip_duration: number;
   created_at: string;
+  visibility: Visibility;
   author: ProfileRow | null;
   capsule_tags: { profile: ProfileRow | null }[];
 }
@@ -83,6 +84,7 @@ async function toCapsules(rows: CapsuleRow[]): Promise<Capsule[]> {
     clipDuration: r.clip_duration,
     thumbnail: (r.thumbnail_path && urls.get(r.thumbnail_path)) || null,
     createdAt: Date.parse(r.created_at),
+    visibility: r.visibility ?? 'friends',
   }));
 }
 
@@ -109,6 +111,7 @@ export async function addCapsule(data: NewCapsule): Promise<Capsule> {
       thumbnail_path: thumbnailPath,
       clip_start: data.clipStart,
       clip_duration: data.clipDuration,
+      visibility: data.visibility,
     });
     if (error) throw error;
   } catch (err) {
@@ -131,6 +134,7 @@ export async function addCapsule(data: NewCapsule): Promise<Capsule> {
     clipDuration: data.clipDuration,
     thumbnail: data.thumbnail,
     createdAt: Date.now(),
+    visibility: data.visibility,
   };
 }
 
@@ -171,6 +175,41 @@ export async function listCapsules(ownerId?: string): Promise<Capsule[]> {
   const { data, error } = await client().from(TABLE).select(CAPSULE_SELECT).or(filter).order('created_at', { ascending: false });
   if (error) throw error;
   return toCapsules(data as unknown as CapsuleRow[]);
+}
+
+/**
+ * 피드: 친구 피드는 이 사람들(나·친구)이 남긴 기록, 동네 피드는 동네 공개 기록을 최신순으로 limit개.
+ * before(밀리초)를 주면 그보다 오래된 것부터 (더 보기). 볼 수 없는 기록은 정책이 걸러낸다.
+ */
+export async function listFeed({ scope, userIds = [], before, limit = FEED_PAGE }: FeedQuery): Promise<Capsule[]> {
+  const ids = userIds.filter(isUuid);
+  if ((scope === 'friends' && !ids.length) || !(await currentUserId())) return [];
+  let query = client().from(TABLE).select(CAPSULE_SELECT).order('created_at', { ascending: false }).limit(limit);
+  query = scope === 'town' ? query.eq('visibility', 'town') : query.in('user_id', ids);
+  if (before) query = query.lt('created_at', new Date(before).toISOString());
+  const { data, error } = await query;
+  if (error) throw error;
+  return toCapsules(data as unknown as CapsuleRow[]);
+}
+
+/** 한 가게에 남긴 기록 중 내가 볼 수 있는 것 (내 것·친구 것·태그된 것·동네 공개) 최신순 */
+export async function listPlaceCapsules(placeId: string, limit = 20): Promise<Capsule[]> {
+  if (!(await currentUserId())) return [];
+  const { data, error } = await client()
+    .from(TABLE)
+    .select(CAPSULE_SELECT)
+    .eq('place_id', placeId)
+    .order('created_at', { ascending: false })
+    .limit(limit);
+  if (error) throw error;
+  return toCapsules(data as unknown as CapsuleRow[]);
+}
+
+/** 공개 범위 바꾸기 (작성자만) */
+export async function setVisibility(id: string, visibility: Visibility): Promise<void> {
+  if (!isUuid(id)) return;
+  const { error } = await client().from(TABLE).update({ visibility }).eq('id', id);
+  if (error) throw error;
 }
 
 /** 작성자만 지울 수 있다 (태그·파일도 함께 삭제) */

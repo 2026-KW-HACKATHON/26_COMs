@@ -3,15 +3,16 @@ import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import Avatar from '../components/Avatar';
 import CapsuleThumb from '../components/CapsuleThumb';
 import FriendMapSelector from '../components/FriendMapSelector';
-import PlaceMap from '../components/PlaceMap';
+import PlaceMap, { type PlaceMark } from '../components/PlaceMap';
 import PlaceSearch from '../components/PlaceSearch';
 import { useAuth } from '../hooks/useAuth';
 import { useCapsules } from '../hooks/useCapsules';
 import { useFriendships } from '../hooks/useFriendships';
 import { usePlaceRanking } from '../hooks/usePlaceRanking';
-import { SOCIAL_ENABLED } from '../lib/capsuleStore';
+import { SOCIAL_ENABLED, listPlaceCapsules } from '../lib/capsuleStore';
 import { DEFAULT_RANKING_DAYS, MEDALS, RANKING_PERIODS } from '../lib/ranking';
 import { isUuid } from '../lib/supabase';
+import { daysAgo, myPlaceVisits, summarizeVisits, type MyPlaceVisit } from '../lib/visits';
 import { placesInSameBuilding } from '../data/mapData';
 import { CATEGORY_EMOJI, getPlace, placeSubtitle } from '../data/places';
 import type { Capsule } from '../types/capsule';
@@ -56,7 +57,21 @@ export default function Home() {
   const ranking = usePlaceRanking(DEFAULT_RANKING_DAYS);
   const rankOf = useMemo(() => new Map(ranking?.map((r) => [r.placeId, r])), [ranking]);
   const townVisits = useMemo(() => new Map(ranking?.map((r) => [r.placeId, r.visits])), [ranking]);
-  const townRanks = useMemo(() => new Map(ranking?.map((r) => [r.placeId, r.rank])), [ranking]);
+  const medals = useMemo(
+    () => new Map<string, PlaceMark>(ranking?.filter((r) => r.rank <= 3).map((r) => [r.placeId, { emoji: MEDALS[r.rank - 1] }])),
+    [ranking],
+  );
+
+  // 내 방문 (내 지도·동네 지도일 때 capsules는 내 기록): 단골은 별, 오래 안 간 곳은 "오랜만"
+  const myVisits = useMemo(() => (viewingId ? new Map<string, MyPlaceVisit>() : myPlaceVisits(capsules ?? [])), [viewingId, capsules]);
+  const mySummary = useMemo(() => summarizeVisits(myVisits), [myVisits]);
+  const myMarks = useMemo(
+    () =>
+      new Map<string, PlaceMark>(
+        [...myVisits.values()].filter((v) => v.regular || v.due).map((v) => [v.placeId, { emoji: v.regular ? '⭐' : undefined, note: v.due ? '오랜만' : undefined }]),
+      ),
+    [myVisits],
+  );
   const [tick, setTick] = useState(0);
   const tickerSize = Math.min(3, ranking?.length ?? 0);
   useEffect(() => {
@@ -66,9 +81,28 @@ export default function Home() {
   }, [tickerSize]);
   const featured = tickerSize ? ranking![tick % tickerSize] : null;
 
+  // 동네 지도에서 가게를 고르면 그 가게에서 내가 볼 수 있는 영상(내 것·친구 것·동네 공개)을 모두 보여 준다
+  const [placeVideos, setPlaceVideos] = useState<{ placeId: string; list: Capsule[] } | null>(null);
+  useEffect(() => {
+    if (!town || !me || !selectedId) return;
+    let alive = true;
+    listPlaceCapsules(selectedId)
+      .then((list) => alive && setPlaceVideos({ placeId: selectedId, list }))
+      .catch((err) => console.error(err));
+    return () => {
+      alive = false;
+    };
+  }, [town, me, selectedId]);
+
   const selected = getPlace(selectedId);
   const selectedStat = selectedId ? rankOf.get(selectedId) : undefined;
-  const selectedVideos = shown?.filter((c) => c.placeId === selectedId) ?? [];
+  const myVisit = selectedId ? myVisits.get(selectedId) : undefined;
+  const selectedVideos =
+    town && me
+      ? placeVideos?.placeId === selectedId
+        ? placeVideos.list
+        : NO_CAPSULES
+      : (shown?.filter((c) => c.placeId === selectedId) ?? NO_CAPSULES);
   // 한 건물에 가게가 여럿이면 시트에서 바로 바꿀 수 있게
   const neighbors = selected ? placesInSameBuilding(selected) : [];
   const mapCount = town ? townVisits : videoCount;
@@ -84,7 +118,9 @@ export default function Home() {
         : '친구의 지도만 볼 수 있어요'
     : town && ranking?.length
       ? `${PERIOD_LABEL} 동안 동네 사람들이 다녀간 곳이에요`
-      : '건물을 눌러 그곳의 5초를 남겨 보세요';
+      : !town && mySummary.visited
+        ? `월계1동 ${mySummary.total}곳 중 ${mySummary.visited}곳 가 봤어요`
+        : '건물을 눌러 그곳의 5초를 남겨 보세요';
 
   return (
     <div className="relative w-full h-[calc(100dvh-7.5rem)]">
@@ -92,7 +128,7 @@ export default function Home() {
         selectedId={selectedId}
         onSelect={(p) => setSelectedId(p.id)}
         videoCount={mapCount}
-        ranks={town ? townRanks : undefined}
+        marks={town ? medals : viewingId ? undefined : myMarks}
         className="absolute inset-0"
       />
 
@@ -144,6 +180,17 @@ export default function Home() {
             </button>
           ) : (
             ranking && <p className="-mt-2 text-label-md text-on-surface-variant">{PERIOD_LABEL} 동안 남긴 사람이 없어요. 첫 기록을 남겨 보세요</p>
+          )}
+
+          {/* 내 방문: 단골이면 별, 오래 안 갔으면 다시 가 보자고 */}
+          {myVisit && (
+            <p className={`-mt-1 flex items-center gap-1.5 text-label-md ${myVisit.due ? 'text-on-primary-fixed font-semibold' : 'text-on-surface-variant'}`}>
+              <span className={`material-symbols-rounded text-[18px] ${myVisit.regular ? 'icon-fill text-primary' : ''}`}>{myVisit.regular ? 'star' : 'history'}</span>
+              <span className="min-w-0 truncate">
+                {myVisit.regular ? '단골 · ' : ''}나는 {myVisit.days}번 갔어요 · 마지막 {daysAgo(myVisit.daysSince)}
+                {myVisit.due && ' · 오랜만이에요!'}
+              </span>
+            </p>
           )}
 
           {neighbors.length > 1 && (

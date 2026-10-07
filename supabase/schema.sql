@@ -4,7 +4,8 @@
 -- 정책 테스트: npm run test:db
 --
 -- 공개 범위
---   영상: 본인, 수락된 친구, 그 영상에 태그된 사람만 본다.
+--   영상: 본인, 수락된 친구, 그 영상에 태그된 사람만 본다. 작성자가 '동네 공개'로 둔 영상은 로그인한 모두가 본다
+--         (태그된 친구는 동네 공개여도 원래 볼 수 있던 사람에게만 보인다).
 --   프로필: 나와 관계가 있는 사람(친구·요청 주고받은 사람·같은 영상에 함께 나온 사람)만 조회.
 --           모르는 사람은 search_profiles로 20명까지만 검색된다(전체 목록을 긁어갈 수 없음).
 --   조르기: 같은 영상에 함께 나온 친구끼리만 보낼 수 있고, 보낸 사람·받은 사람만 본다.
@@ -60,6 +61,11 @@ alter table public.capsules add constraint capsules_paths_in_owner_folder check 
 create index if not exists capsules_user_created_idx on public.capsules (user_id, created_at desc);
 create index if not exists capsules_video_path_idx on public.capsules (video_path);
 create index if not exists capsules_thumbnail_path_idx on public.capsules (thumbnail_path);
+-- 공개 범위: friends(본인·친구·태그된 사람, 기본) / town(로그인한 동네 사람 모두). 작성자만 바꿀 수 있다
+alter table public.capsules add column if not exists visibility text not null default 'friends';
+alter table public.capsules drop constraint if exists capsules_visibility_check;
+alter table public.capsules add constraint capsules_visibility_check check (visibility in ('friends', 'town'));
+create index if not exists capsules_town_created_idx on public.capsules (created_at desc) where visibility = 'town';
 
 -- 4) 기록에 태그한 친구 (인스타그램 태그처럼)
 create table if not exists public.capsule_tags (
@@ -212,7 +218,9 @@ as $$
         and (c.user_id = auth.uid()
           or c.user_id in (select public.my_friend_ids())
           or c.id in (select public.my_tagged_capsule_ids()))
-    );
+    )
+    -- 동네 공개 영상의 작성자 (태그된 사람은 공개하지 않는다)
+    or exists (select 1 from public.capsules c where c.user_id = target and c.visibility = 'town');
 $$;
 
 -- 7) 테이블 권한: 필요한 것만 (TRUNCATE 등 Supabase 기본 권한은 회수). 행 단위 허용은 아래 정책이 정한다
@@ -224,8 +232,9 @@ grant select, insert, delete on public.friendships to authenticated;
 grant update (status) on public.friendships to authenticated;
 -- 작성 시각(created_at)은 서버가 정한다. 날짜를 지어내 동네 랭킹의 방문 수를 부풀릴 수 없게
 grant select, delete on public.capsules to authenticated;
-grant insert (id, user_id, place_id, place_name, lat, lng, video_path, thumbnail_path, clip_start, clip_duration)
+grant insert (id, user_id, place_id, place_name, lat, lng, video_path, thumbnail_path, clip_start, clip_duration, visibility)
   on public.capsules to authenticated;
+grant update (visibility) on public.capsules to authenticated;
 grant select, insert, delete on public.capsule_tags to authenticated;
 grant select on public.nudges to authenticated;
 grant update (read_at) on public.nudges to authenticated;
@@ -284,7 +293,8 @@ create policy "friendships: 당사자 삭제" on public.friendships
   for delete to authenticated
   using (requester_id = (select auth.uid()) or addressee_id = (select auth.uid()));
 
--- 영상 기록: 본인·친구·태그된 사람이 조회, 본인 이름·본인 폴더로만 생성, 삭제는 본인만 (수정 없음)
+-- 영상 기록: 본인·친구·태그된 사람(동네 공개면 모두)이 조회, 본인 이름·본인 폴더로만 생성,
+--           삭제와 공개 범위 변경은 본인만 (다른 내용은 수정 없음)
 drop policy if exists "capsules: 본인 기록 조회" on public.capsules;
 drop policy if exists "capsules: 본인·친구·태그 조회" on public.capsules;
 create policy "capsules: 본인·친구·태그 조회" on public.capsules
@@ -293,7 +303,12 @@ create policy "capsules: 본인·친구·태그 조회" on public.capsules
     user_id = (select auth.uid())
     or user_id in (select public.my_friend_ids())
     or id in (select public.my_tagged_capsule_ids())
+    or visibility = 'town'
   );
+drop policy if exists "capsules: 본인 공개 범위 변경" on public.capsules;
+create policy "capsules: 본인 공개 범위 변경" on public.capsules
+  for update to authenticated
+  using (user_id = (select auth.uid())) with check (user_id = (select auth.uid()));
 drop policy if exists "capsules: 본인 기록 생성" on public.capsules;
 create policy "capsules: 본인 기록 생성" on public.capsules
   for insert to authenticated
@@ -306,11 +321,17 @@ drop policy if exists "capsules: 본인 기록 삭제" on public.capsules;
 create policy "capsules: 본인 기록 삭제" on public.capsules
   for delete to authenticated using (user_id = (select auth.uid()));
 
--- 태그: 기록을 볼 수 있는 사람이 조회, 작성자만 친구를 태그, 작성자나 태그된 본인이 삭제
+-- 태그: 기록을 볼 수 있는 사람(동네 공개로만 보는 사람은 제외)이 조회, 작성자만 친구를 태그, 작성자나 태그된 본인이 삭제
 drop policy if exists "capsule_tags: 기록 조회 가능자" on public.capsule_tags;
 create policy "capsule_tags: 기록 조회 가능자" on public.capsule_tags
   for select to authenticated
-  using (exists (select 1 from public.capsules c where c.id = capsule_id));
+  using (exists (
+    select 1 from public.capsules c
+    where c.id = capsule_id
+      and (c.user_id = (select auth.uid())
+        or c.user_id in (select public.my_friend_ids())
+        or c.id in (select public.my_tagged_capsule_ids()))
+  ));
 drop policy if exists "capsule_tags: 작성자가 친구 태그" on public.capsule_tags;
 create policy "capsule_tags: 작성자가 친구 태그" on public.capsule_tags
   for insert to authenticated

@@ -6,7 +6,7 @@ import NudgeButton from '../components/NudgeButton';
 import { getPlace, placeSubtitle } from '../data/places';
 import { useAuth } from '../hooks/useAuth';
 import { useFriendships } from '../hooks/useFriendships';
-import { SOCIAL_ENABLED, deleteCapsule, getCapsule } from '../lib/capsuleStore';
+import { SOCIAL_ENABLED, deleteCapsule, getCapsule, setVisibility } from '../lib/capsuleStore';
 import { formatDate } from '../lib/format';
 import { removeMyTag } from '../lib/social';
 import type { Capsule } from '../types/capsule';
@@ -38,7 +38,7 @@ export default function VideoDetail() {
       <div className="flex flex-col items-center justify-center w-full h-[60vh] text-on-surface-variant text-center px-6">
         <span className="material-symbols-rounded text-[48px] mb-4 text-gray-300">search_off</span>
         <p className="text-body-md">영상을 찾을 수 없어요.</p>
-        {SOCIAL_ENABLED && <p className="mt-1 text-label-md">친구의 영상이나 나를 태그한 영상만 볼 수 있어요.</p>}
+        {SOCIAL_ENABLED && <p className="mt-1 text-label-md">친구의 영상, 나를 태그한 영상, 동네에 공개된 영상만 볼 수 있어요.</p>}
       </div>
     );
   }
@@ -46,14 +46,28 @@ export default function VideoDetail() {
   const place = getPlace(capsule.placeId);
   const isMine = !SOCIAL_ENABLED || capsule.userId === me;
   const taggedMe = SOCIAL_ENABLED && capsule.tags.some((t) => t.id === me);
-  // 내 영상이거나 내가 태그된 영상은 내 지도에, 친구 영상은 친구 지도에 있다
-  const mapPath = isMine || taggedMe ? '/' : `/?user=${capsule.userId}`;
-  // 같이 간 친구: 내가 이 영상에 나올 때(작성자·태그), 함께 나온 사람 중 지금 친구인 사람
   const friendIds = new Set(friendships?.filter((f) => f.status === 'friend').map((f) => f.id));
+  // 내 영상이거나 내가 태그된 영상은 내 지도에, 친구 영상은 친구 지도에, 모르는 사람의 동네 공개 영상은 동네 지도에 있다
+  const mapPath = isMine || taggedMe ? '/' : friendIds.has(capsule.userId) ? `/?user=${capsule.userId}` : '/?view=town';
+  // 같이 간 친구: 내가 이 영상에 나올 때(작성자·태그), 함께 나온 사람 중 지금 친구인 사람
   const companions =
     SOCIAL_ENABLED && (isMine || taggedMe)
       ? [capsule.author, ...capsule.tags].filter((p): p is Profile => !!p && p.id !== me && friendIds.has(p.id))
       : [];
+
+  const toggleVisibility = async () => {
+    const next = capsule.visibility === 'town' ? 'friends' : 'town';
+    setBusy(true);
+    try {
+      await setVisibility(capsule.id, next);
+      setCapsule({ ...capsule, visibility: next });
+    } catch (err) {
+      console.error(err);
+      alert('공개 범위를 바꾸지 못했어요. 잠시 후 다시 시도해 주세요.');
+    } finally {
+      setBusy(false);
+    }
+  };
 
   const handleDelete = async () => {
     if (!confirm('이 영상을 삭제할까요? 되돌릴 수 없어요.')) return;
@@ -88,7 +102,10 @@ export default function VideoDetail() {
           <Avatar profile={capsule.author} size={36} />
           <div className="min-w-0">
             <p className="text-label-lg text-on-surface font-bold truncate">{isMine ? '내가 남긴 영상' : capsule.author.displayName}</p>
-            <p className="text-label-sm text-on-surface-variant truncate">@{capsule.author.username}</p>
+            <p className="text-label-sm text-on-surface-variant truncate">
+              @{capsule.author.username}
+              {capsule.visibility === 'town' && ' · 동네 공개'}
+            </p>
           </div>
         </div>
       )}
@@ -146,6 +163,28 @@ export default function VideoDetail() {
             ))}
           </ul>
         </section>
+      )}
+
+      {SOCIAL_ENABLED && isMine && (
+        <button
+          onClick={toggleVisibility}
+          disabled={busy}
+          className="flex items-center gap-3 px-4 py-3.5 rounded-2xl bg-surface-container-low text-left pressable disabled:opacity-60"
+          type="button"
+          role="switch"
+          aria-checked={capsule.visibility === 'town'}
+        >
+          <span className="material-symbols-rounded text-[22px] text-gray-500">location_city</span>
+          <span className="flex-1 min-w-0">
+            <span className="block text-label-lg font-bold text-on-surface">동네에 공개</span>
+            <span className="block text-label-sm text-on-surface-variant">
+              {capsule.visibility === 'town' ? '동네 피드와 가게에 떠요. 태그된 친구는 친구에게만 보여요' : '지금은 친구와 태그된 사람만 봐요'}
+            </span>
+          </span>
+          <span className={`w-11 h-6 shrink-0 rounded-full p-0.5 transition-colors ${capsule.visibility === 'town' ? 'bg-primary' : 'bg-gray-300'}`}>
+            <span className={`block w-5 h-5 rounded-full bg-white shadow transition-transform ${capsule.visibility === 'town' ? 'translate-x-5' : ''}`} />
+          </span>
+        </button>
       )}
 
       <div className="grid grid-cols-2 gap-2.5">

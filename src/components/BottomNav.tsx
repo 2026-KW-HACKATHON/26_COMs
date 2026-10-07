@@ -4,21 +4,35 @@ interface BottomNavProps {
   currentPath: string;
 }
 
-export default function BottomNav({ currentPath }: BottomNavProps) {
-  const tab = (active: boolean) =>
-    `flex flex-col items-center justify-center gap-0.5 text-[11px] font-semibold transition-colors ${active ? 'text-on-surface' : 'text-gray-400'}`;
-  const icon = (active: boolean) => `material-symbols-rounded text-[26px] ${active ? 'icon-fill' : ''}`;
+const TABS_LEFT = [
+  { path: '/', key: 'home', icon: 'map', label: '지도' },
+  { path: '/feed', key: 'feed', icon: 'dynamic_feed', label: '피드' },
+];
+const TABS_RIGHT = [
+  { path: '/ranking', key: 'ranking', icon: 'leaderboard', label: '랭킹' },
+  { path: '/log', key: 'log', icon: 'video_library', label: '마이로그' },
+];
 
-  const home = currentPath === 'home';
-  const log = currentPath === 'log';
+export default function BottomNav({ currentPath }: BottomNavProps) {
+  const tab = (t: (typeof TABS_LEFT)[number]) => {
+    const active = currentPath === t.key;
+    return (
+      <Link
+        key={t.key}
+        to={t.path}
+        className={`flex flex-col items-center justify-center gap-0.5 text-[11px] font-semibold transition-colors ${active ? 'text-on-surface' : 'text-gray-400'}`}
+        aria-current={active ? 'page' : undefined}
+      >
+        <span className={`material-symbols-rounded text-[26px] ${active ? 'icon-fill' : ''}`}>{t.icon}</span>
+        {t.label}
+      </Link>
+    );
+  };
 
   return (
     <nav className="fixed bottom-0 inset-x-0 z-50 bg-surface border-t border-gray-100 pb-safe">
-      <div className="max-w-md mx-auto h-16 grid grid-cols-3">
-        <Link to="/" className={tab(home)} aria-current={home ? 'page' : undefined}>
-          <span className={icon(home)}>map</span>
-          지도
-        </Link>
+      <div className="max-w-md mx-auto h-16 grid grid-cols-5">
+        {TABS_LEFT.map(tab)}
 
         <Link to="/leave" className="flex flex-col items-center justify-center gap-0.5 text-[11px] font-semibold text-primary">
           <span className="w-12 h-8 rounded-full bg-primary text-on-primary flex items-center justify-center pressable">
@@ -27,10 +41,7 @@ export default function BottomNav({ currentPath }: BottomNavProps) {
           남기기
         </Link>
 
-        <Link to="/log" className={tab(log)} aria-current={log ? 'page' : undefined}>
-          <span className={icon(log)}>video_library</span>
-          마이로그
-        </Link>
+        {TABS_RIGHT.map(tab)}
       </div>
     </nav>
   );

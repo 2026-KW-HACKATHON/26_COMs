@@ -15,8 +15,8 @@ describe('schema loading', () => {
   test('schema.sql runs twice in a row without error', async () => {
     const h = await createDb({ runs: 2 });
     const policies = await h.q('admin', `select count(*)::int as n from pg_policies where schemaname in ('public', 'storage')`);
-    // 16 table policies + 6 "block anonymous" restrictive policies + 5 storage policies
-    assert.equal(policies[0].n, 27);
+    // 17 table policies + 6 "block anonymous" restrictive policies + 5 storage policies
+    assert.equal(policies[0].n, 28);
     await h.close();
   });
 
@@ -326,10 +326,13 @@ describe('R3 capsules', () => {
     await assert.rejects(h.visibleCapsules('anon'), DENIED);
   });
 
-  test('nobody can update a capsule, not even the owner', async () => {
+  test('nobody can update a capsule, not even the owner (only the owner changes its visibility)', async () => {
     await assert.rejects(h.q(A, `update public.capsules set place_name = 'x' where id = $1`, [cap.id]), DENIED);
     await assert.rejects(h.q(B, `update public.capsules set place_name = 'x' where id = $1`, [cap.id]), DENIED);
     await assert.rejects(h.q(A, `update public.capsules set video_path = $2 where id = $1`, [cap.id, bcap.video]), DENIED);
+    await assert.rejects(h.q(A, `update public.capsules set created_at = now() - interval '9 days' where id = $1`, [cap.id]), DENIED);
+    // B는 A의 친구라 기록을 볼 수 있지만 공개 범위는 못 바꾼다
+    assert.equal(await h.run(B, `update public.capsules set visibility = 'town' where id = $1`, [cap.id]), 0);
   });
 
   test('only the owner can delete', async () => {
@@ -989,5 +992,63 @@ describe('R9 place ranking', () => {
     );
     // 작성 시각을 빼면 그대로 저장된다
     assert.ok(await h.capsule(A, { place: 'p3' }));
+  });
+});
+
+// ---------------------------------------------------------------------------
+describe('R10 town visibility', () => {
+  let h, A, B, S, pub, priv;
+  const setVisibility = (who, id, v) => h.run(who, 'update public.capsules set visibility = $2 where id = $1', [id, v]);
+
+  before(async () => {
+    h = await createDb();
+    A = await h.signUp({ email: 'va.town@x.com' });
+    B = await h.signUp({ email: 'vb.town@x.com' });
+    S = await h.signUp({ email: 'vs.town@x.com' }); // A와 모르는 사이
+    await h.befriend(A, B);
+    pub = await h.capsule(A, { place: 'p1' });
+    priv = await h.capsule(A, { place: 'p2' });
+    await h.q(A, 'insert into public.capsule_tags (capsule_id, user_id) values ($1, $2)', [pub.id, B]);
+    for (const c of [pub, priv]) {
+      await h.upload(A, c.video);
+      await h.upload(A, c.thumbnail);
+    }
+  });
+  after(() => h.close());
+
+  test('new capsules are friends-only; only the owner switches them to town', async () => {
+    const rows = await h.q(A, 'select visibility from public.capsules where id = $1', [pub.id]);
+    assert.deepEqual(rows, [{ visibility: 'friends' }]);
+    assert.deepEqual(await h.visibleCapsules(S), []);
+    assert.equal(await setVisibility(S, pub.id, 'town'), 0);
+    assert.equal(await setVisibility(A, pub.id, 'town'), 1);
+    await assert.rejects(setVisibility(A, pub.id, 'everyone'), /check constraint/);
+  });
+
+  test('a stranger sees the town capsule, its files and its author, but not the tagged friend', async () => {
+    assert.deepEqual(await h.visibleCapsules(S), [pub.id]);
+    const files = (await h.q(S, `select name from storage.objects where bucket_id = 'capsules'`)).map((r) => r.name);
+    assert.deepEqual(sorted(files), sorted([pub.video, pub.thumbnail]));
+    assert.deepEqual((await h.q(S, 'select id from public.profiles where id = $1', [A])).length, 1);
+    assert.deepEqual(await h.q(S, 'select * from public.capsule_tags'), []);
+    assert.deepEqual(await h.q(S, 'select id from public.profiles where id = $1', [B]), []);
+    // 친구는 태그까지 그대로 본다
+    assert.equal((await h.q(B, 'select * from public.capsule_tags where capsule_id = $1', [pub.id])).length, 1);
+  });
+
+  test('anon still sees nothing', async () => {
+    await assert.rejects(h.q('anon', 'select id from public.capsules'), DENIED);
+  });
+
+  test('switching back to friends hides it again', async () => {
+    assert.equal(await setVisibility(A, pub.id, 'friends'), 1);
+    assert.deepEqual(await h.visibleCapsules(S), []);
+    assert.deepEqual(await h.q(S, 'select id from public.profiles where id = $1', [A]), []);
+  });
+
+  test('visibility can be chosen when inserting', async () => {
+    await h.q(A, `insert into public.capsules (place_id, place_name, lat, lng, video_path, clip_duration, visibility)
+                  values ('p3', 'x', 0, 0, $1, 5, 'town')`, [`${A}/town.webm`]);
+    assert.equal((await h.visibleCapsules(S)).length, 1);
   });
 });

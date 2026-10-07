@@ -193,6 +193,22 @@
   line-height: 18px;
   text-align: center;
 }
+.map-pill i {
+  margin-left: 4px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: theme('colors.gray.100');
+  color: theme('colors.gray.600');
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 700;
+  line-height: 16px;
+  display: inline-block;
+}
+.map-pill-selected i {
+  background: rgba(255, 255, 255, 0.18);
+  color: #fff;
+}
 .map-pill-plain {
   padding: 4px 10px;
 }

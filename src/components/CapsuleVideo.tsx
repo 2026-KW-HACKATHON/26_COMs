@@ -8,12 +8,15 @@ interface CapsuleVideoProps {
   /** 원본 영상에서 재생을 시작할 위치(초) */
   start?: number;
   duration?: number;
+  /** 불러오면 바로 재생. 재생 중에 false로 바뀌면 멈춘다 (피드에서 화면 밖으로 나갈 때) */
   autoPlay?: boolean;
+  /** 틀을 꽉 채우도록 잘라서 보여 준다 (피드). 기본은 영상 전체가 보이게 */
+  cover?: boolean;
   className?: string;
 }
 
 /** 원본 영상의 [start, start + duration] 구간만 반복 재생하는 플레이어 */
-export default function CapsuleVideo({ src, start = 0, duration = CLIP_SECONDS, autoPlay = true, className = '' }: CapsuleVideoProps) {
+export default function CapsuleVideo({ src, start = 0, duration = CLIP_SECONDS, autoPlay = true, cover = false, className = '' }: CapsuleVideoProps) {
   const ref = useRef<HTMLVideoElement>(null);
   const [playing, setPlaying] = useState(false);
   const [muted, setMuted] = useState(true);
@@ -65,8 +68,9 @@ export default function CapsuleVideo({ src, start = 0, duration = CLIP_SECONDS, 
     el.addEventListener('pause', onPause);
     el.addEventListener('loadedmetadata', onLoaded);
     el.addEventListener('timeupdate', clamp);
-    // 이미 로드된 상태에서 구간(start)이 바뀐 경우
-    if (el.readyState >= HTMLMediaElement.HAVE_METADATA) onLoaded();
+    // 이미 로드된 상태에서 구간(start)이나 autoPlay가 바뀐 경우
+    if (!autoPlay) el.pause();
+    else if (el.readyState >= HTMLMediaElement.HAVE_METADATA) onLoaded();
 
     return () => {
       cancelAnimationFrame(raf);
@@ -90,7 +94,7 @@ export default function CapsuleVideo({ src, start = 0, duration = CLIP_SECONDS, 
 
   return (
     <div className={`relative overflow-hidden bg-black ${className}`}>
-      <video ref={ref} muted playsInline loop className="w-full h-full object-contain" onClick={togglePlay} />
+      <video ref={ref} muted playsInline loop className={`w-full h-full ${cover ? 'object-cover' : 'object-contain'}`} onClick={togglePlay} />
 
       {!playing && (
         <button onClick={togglePlay} className="absolute inset-0 flex items-center justify-center" type="button" aria-label="재생">
