@@ -11,6 +11,7 @@
 - **친구**: 아이디·이름으로 검색해 친구 요청 → 상대가 수락하면 친구
 - **태그**: 영상을 남길 때 함께한 친구를 검색해서 태그(인스타그램처럼). 태그된 친구의 지도·마이로그에도 나타난다
 - **친구 지도**: 홈 상단에서 친구를 고르면 그 친구가 남긴(또는 태그된) 영상이 지도에 표시된다
+- **조르기**: 같이 간 친구(같은 영상에 함께 나온 친구)에게 영상 화면에서 "여기 또 가자"고 조른다. 받은 친구에게는 앱 위쪽 배너·벨 알림과 폰 알림으로 뜨고, 알림 목록에서 "나도 조르기"로 되조를 수 있다. 같은 친구·같은 가게는 10분에 한 번
 
 공개 범위: 영상은 **본인, 수락된 친구, 태그된 사람**만 볼 수 있다. 데이터베이스 행 보안 정책(RLS)이 서버에서 강제한다.
 
@@ -24,6 +25,7 @@
 | 영상 | MediaRecorder | 앱 안에서 최대 5초 촬영, 앨범 영상은 5초 구간 선택 |
 | 계정·저장 | Supabase (Auth · Postgres · Storage) | 카카오·Google 로그인 내장, RLS로 공개 범위 강제, 무료 요금제 |
 | 배포 | Vercel | 카메라는 HTTPS에서만 동작, PR마다 미리보기 주소 |
+| 알림 | Supabase Realtime · Web Push (VAPID) · Vercel 서버 함수 | 앱을 보고 있으면 실시간 배너, 닫아 두면 폰 알림. 별도 푸시 서비스 가입 없음 |
 
 ## 시작하기
 
@@ -82,6 +84,22 @@ Supabase를 설정하지 않으면 로그인·친구 기능 없이, 영상은 �
 5. 배포된 https 주소를 폰으로 열고 공유 메뉴에서 **홈 화면에 추가**하면 앱처럼 실행된다.
 
 로컬에서 바로 올릴 때: `npx vercel`(미리보기) / `npx vercel --prod`(실제 주소). `vercel.json`의 `framework: "vite"`가 없으면 빌드 결과(`dist`) 대신 `public` 폴더가 올라가니 지우지 않는다.
+
+## 폰 알림 (조르기)
+
+조르기는 기본으로 **앱 안 알림**(위쪽 배너·헤더 벨)으로 뜬다. 앱을 닫아 둬도 폰에 뜨게 하려면(웹 푸시) 한 번 설정한다.
+
+1. Supabase SQL Editor에서 [supabase/schema.sql](supabase/schema.sql)을 다시 실행한다 (조르기·알림 구독 테이블, 실시간 알림 등록).
+2. 알림 키를 만든다: `npx web-push generate-vapid-keys` → Public Key와 Private Key가 나온다.
+3. Vercel 프로젝트 Settings > Environment Variables에 Production·Preview 모두 체크해서 넣고 다시 배포한다.
+   - `VITE_VAPID_PUBLIC_KEY`: Public Key
+   - `VAPID_PRIVATE_KEY`: Private Key (Sensitive)
+   - `SUPABASE_SECRET_KEY`: Supabase Project Settings > API Keys의 Secret key `sb_secret_…` (Sensitive). 알림 서버([api/push.ts](api/push.ts))만 쓰며 앱에는 들어가지 않는다
+4. 받는 사람이 앱의 **알림** 화면(지도·마이로그 오른쪽 위 벨)에서 **폰 알림 켜기**를 누른다.
+
+- 안드로이드 크롬은 브라우저에서 바로 된다. 아이폰은 iOS 16.4 이상에서 **홈 화면에 추가한 앱**에서만 알림을 켤 수 있다.
+- 키를 넣지 않으면 폰 알림 켜기 버튼이 나오지 않고 앱 안 알림만 동작한다. `npm run dev`에는 서비스 워커와 `/api`가 없어서 폰 알림은 배포 주소에서 확인한다.
+- 로그아웃하면 그 기기로 오던 폰 알림도 끊긴다.
 
 ## 폰에서 테스트할 때
 

@@ -2,17 +2,21 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import Avatar from '../components/Avatar';
 import CapsuleVideo from '../components/CapsuleVideo';
+import NudgeButton from '../components/NudgeButton';
 import { getPlace, placeSubtitle } from '../data/places';
 import { useAuth } from '../hooks/useAuth';
+import { useFriendships } from '../hooks/useFriendships';
 import { SOCIAL_ENABLED, deleteCapsule, getCapsule } from '../lib/capsuleStore';
 import { formatDate } from '../lib/format';
 import { removeMyTag } from '../lib/social';
 import type { Capsule } from '../types/capsule';
+import type { Profile } from '../types/social';
 
 export default function VideoDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const me = useAuth().session?.user.id ?? '';
+  const { list: friendships } = useFriendships();
   // undefined: 불러오는 중, null: 없음
   const [capsule, setCapsule] = useState<Capsule | null | undefined>(undefined);
   const [busy, setBusy] = useState(false);
@@ -44,6 +48,12 @@ export default function VideoDetail() {
   const taggedMe = SOCIAL_ENABLED && capsule.tags.some((t) => t.id === me);
   // 내 영상이거나 내가 태그된 영상은 내 지도에, 친구 영상은 친구 지도에 있다
   const mapPath = isMine || taggedMe ? '/' : `/?user=${capsule.userId}`;
+  // 같이 간 친구: 내가 이 영상에 나올 때(작성자·태그), 함께 나온 사람 중 지금 친구인 사람
+  const friendIds = new Set(friendships?.filter((f) => f.status === 'friend').map((f) => f.id));
+  const companions =
+    SOCIAL_ENABLED && (isMine || taggedMe)
+      ? [capsule.author, ...capsule.tags].filter((p): p is Profile => !!p && p.id !== me && friendIds.has(p.id))
+      : [];
 
   const handleDelete = async () => {
     if (!confirm('이 영상을 삭제할까요? 되돌릴 수 없어요.')) return;
@@ -113,6 +123,30 @@ export default function VideoDetail() {
           </div>
         )}
       </div>
+
+      {companions.length > 0 && (
+        <section className="rounded-2xl bg-primary-fixed px-4 pt-3.5 pb-2">
+          <div className="flex items-center gap-2">
+            <span className="material-symbols-rounded icon-fill text-[22px] text-primary">waving_hand</span>
+            <div>
+              <h3 className="text-label-lg font-bold text-on-surface">여기 또 가자고 조르기</h3>
+              <p className="text-label-sm text-on-surface-variant">같이 간 친구에게 알림이 가요</p>
+            </div>
+          </div>
+          <ul className="mt-2 flex flex-col">
+            {companions.map((friend) => (
+              <li key={friend.id} className="flex items-center gap-2.5 py-1.5">
+                <Avatar profile={friend} size={36} />
+                <div className="flex-1 min-w-0">
+                  <p className="text-label-lg font-bold text-on-surface truncate">{friend.displayName}</p>
+                  <p className="text-label-sm text-on-surface-variant truncate">@{friend.username}</p>
+                </div>
+                <NudgeButton capsuleId={capsule.id} friend={friend} />
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <div className="grid grid-cols-2 gap-2.5">
         <button

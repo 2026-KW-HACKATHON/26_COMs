@@ -28,6 +28,8 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,ico}'],
+        // 조르기 폰 알림을 받아 띄우는 코드 (public/push-sw.js)
+        importScripts: ['push-sw.js'],
         // 폰트는 한 번 받으면 오프라인에서도 쓴다. 지도는 앱에 포함된 데이터로 그려서 따로 받을 것이 없다.
         // Supabase 요청은 캐시하지 않는다.
         runtimeCaching: [

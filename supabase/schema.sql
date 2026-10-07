@@ -7,6 +7,7 @@
 --   영상: 본인, 수락된 친구, 그 영상에 태그된 사람만 본다.
 --   프로필: 나와 관계가 있는 사람(친구·요청 주고받은 사람·같은 영상에 함께 나온 사람)만 조회.
 --           모르는 사람은 search_profiles로 20명까지만 검색된다(전체 목록을 긁어갈 수 없음).
+--   조르기: 같은 영상에 함께 나온 친구끼리만 보낼 수 있고, 보낸 사람·받은 사람만 본다.
 
 -- 1) 프로필: 로그인하면 자동으로 만들어진다
 create table if not exists public.profiles (
@@ -67,6 +68,36 @@ create table if not exists public.capsule_tags (
   primary key (capsule_id, user_id)
 );
 create index if not exists capsule_tags_user_idx on public.capsule_tags (user_id);
+
+-- 4b) 조르기: 같은 영상에 함께 나온(같이 간) 친구에게 "여기 또 가자" 알림. nudge_friend()로만 만든다
+create table if not exists public.nudges (
+  id uuid primary key default gen_random_uuid(),
+  sender_id uuid not null references public.profiles (id) on delete cascade,
+  receiver_id uuid not null references public.profiles (id) on delete cascade,
+  -- 영상이 지워져도 알림은 가게 이름과 함께 남는다
+  capsule_id uuid references public.capsules (id) on delete set null,
+  place_id text not null,
+  place_name text not null,
+  created_at timestamptz not null default now(),
+  -- 받은 사람이 알림 목록을 연 시각
+  read_at timestamptz,
+  -- 폰 알림을 보낸 시각. 알림 서버(api/push.ts)가 조르기 하나에 한 번만 보내도록 기록한다
+  pushed_at timestamptz,
+  check (sender_id <> receiver_id)
+);
+create index if not exists nudges_receiver_created_idx on public.nudges (receiver_id, created_at desc);
+create index if not exists nudges_sender_pair_idx on public.nudges (sender_id, receiver_id, place_id, created_at desc);
+
+-- 4c) 폰 알림(웹 푸시) 구독: 알림을 켠 기기(브라우저)마다 한 줄. save_push_subscription()으로 저장하고,
+--     남의 구독은 알림 서버(api/push.ts, secret key)만 읽는다
+create table if not exists public.push_subscriptions (
+  endpoint text primary key check (endpoint ~ '^https://'),
+  user_id uuid not null references public.profiles (id) on delete cascade,
+  p256dh text not null,
+  auth text not null,
+  created_at timestamptz not null default now()
+);
+create index if not exists push_subscriptions_user_idx on public.push_subscriptions (user_id);
 
 -- 5) 새 로그인 사용자의 프로필 생성. 아이디는 임시로 "user_<무작위>"를 주고, 앱이 첫 로그인 때 직접 정하게 한다.
 --    이메일 앞부분을 아이디·이름으로 쓰면 검색으로 남의 이메일 주소를 알아낼 수 있어서 이메일은 쓰지 않는다.
@@ -184,26 +215,32 @@ as $$
 $$;
 
 -- 7) 테이블 권한: 필요한 것만 (TRUNCATE 등 Supabase 기본 권한은 회수). 행 단위 허용은 아래 정책이 정한다
-revoke all on public.profiles, public.friendships, public.capsules, public.capsule_tags from anon, authenticated;
+revoke all on public.profiles, public.friendships, public.capsules, public.capsule_tags, public.nudges, public.push_subscriptions
+  from anon, authenticated;
 grant select on public.profiles to authenticated;
 grant update (username, display_name) on public.profiles to authenticated;
 grant select, insert, delete on public.friendships to authenticated;
 grant update (status) on public.friendships to authenticated;
 grant select, insert, delete on public.capsules to authenticated;
 grant select, insert, delete on public.capsule_tags to authenticated;
+grant select on public.nudges to authenticated;
+grant update (read_at) on public.nudges to authenticated;
+grant select, delete on public.push_subscriptions to authenticated;
 
 -- 8) 행 보안 정책
 alter table public.profiles enable row level security;
 alter table public.friendships enable row level security;
 alter table public.capsules enable row level security;
 alter table public.capsule_tags enable row level security;
+alter table public.nudges enable row level security;
+alter table public.push_subscriptions enable row level security;
 
 -- 익명 로그인 계정은 어떤 데이터에도 접근할 수 없다 (대시보드에서 실수로 켜도 안전하게)
 do $$
 declare
   t text;
 begin
-  foreach t in array array['profiles', 'friendships', 'capsules', 'capsule_tags'] loop
+  foreach t in array array['profiles', 'friendships', 'capsules', 'capsule_tags', 'nudges', 'push_subscriptions'] loop
     execute format('drop policy if exists %I on public.%I', t || ': 익명 계정 차단', t);
     execute format(
       'create policy %I on public.%I as restrictive for all to authenticated
@@ -285,10 +322,28 @@ create policy "capsule_tags: 작성자·태그된 본인 삭제" on public.capsu
     or exists (select 1 from public.capsules c where c.id = capsule_id and c.user_id = (select auth.uid()))
   );
 
+-- 조르기: 보낸 사람·받은 사람만 조회, 읽음 표시는 받은 사람만. 만들기는 nudge_friend()로만
+drop policy if exists "nudges: 당사자 조회" on public.nudges;
+create policy "nudges: 당사자 조회" on public.nudges
+  for select to authenticated
+  using (receiver_id = (select auth.uid()) or sender_id = (select auth.uid()));
+drop policy if exists "nudges: 받은 사람 읽음 표시" on public.nudges;
+create policy "nudges: 받은 사람 읽음 표시" on public.nudges
+  for update to authenticated
+  using (receiver_id = (select auth.uid())) with check (receiver_id = (select auth.uid()));
+
+-- 폰 알림 구독: 본인 기기만 조회·삭제(알림 끄기·로그아웃). 저장은 save_push_subscription()으로
+drop policy if exists "push_subscriptions: 본인 조회" on public.push_subscriptions;
+create policy "push_subscriptions: 본인 조회" on public.push_subscriptions
+  for select to authenticated using (user_id = (select auth.uid()));
+drop policy if exists "push_subscriptions: 본인 삭제" on public.push_subscriptions;
+create policy "push_subscriptions: 본인 삭제" on public.push_subscriptions
+  for delete to authenticated using (user_id = (select auth.uid()));
+
 -- 이전 버전의 정책 함수 (위 정책이 더 이상 쓰지 않음)
 drop function if exists public.can_view_capsule(uuid, uuid);
 
--- 9) 친구 기능 RPC
+-- 9) 친구·조르기 RPC
 
 -- 아이디 앞부분 또는 이름 일부로 사용자 검색 (나와의 관계 포함, 최대 20명).
 -- 모르는 사람도 찾아야 해서 security definer로 프로필 정책을 우회하되, 결과는 검색어에 맞는 사람만 돌려준다
@@ -393,6 +448,65 @@ as $$
      or (requester_id = target and addressee_id = auth.uid());
 $$;
 
+-- 같이 간 친구에게 "여기 또 가자" 조르기. 두 사람 모두 이 영상에 나와야(작성자 또는 태그) 하고 지금 친구여야 한다.
+-- 같은 친구에게 같은 가게로는 10분에 한 번. 만든 조르기 id를 돌려준다 (앱이 이 id로 폰 알림을 요청한다)
+create or replace function public.nudge_friend(capsule uuid, target uuid)
+returns uuid
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  me uuid := auth.uid();
+  c public.capsules;
+  new_id uuid;
+begin
+  if me is null or coalesce((auth.jwt() ->> 'is_anonymous')::boolean, false) then
+    raise exception 'not authenticated';
+  end if;
+  select * into c from public.capsules where id = capsule;
+  if not found
+    or target = me
+    or not (c.user_id = me or exists (select 1 from public.capsule_tags t where t.capsule_id = c.id and t.user_id = me))
+    or not (c.user_id = target or exists (select 1 from public.capsule_tags t where t.capsule_id = c.id and t.user_id = target))
+    or not public.is_friend(target)
+  then
+    raise exception 'cannot nudge this person' using errcode = '42501';
+  end if;
+  -- 여러 번 연달아 눌러도(동시 요청) 한 번만 들어가게
+  perform pg_advisory_xact_lock(hashtext(me::text || target::text || c.place_id));
+  if exists (
+    select 1 from public.nudges n
+    where n.sender_id = me and n.receiver_id = target and n.place_id = c.place_id
+      and n.created_at > now() - interval '10 minutes'
+  ) then
+    raise exception 'nudge cooldown';
+  end if;
+  insert into public.nudges (sender_id, receiver_id, capsule_id, place_id, place_name)
+  values (me, target, c.id, c.place_id, c.place_name)
+  returning id into new_id;
+  return new_id;
+end;
+$$;
+
+-- 이 기기의 폰 알림 구독 저장. 같은 기기에서 다른 계정으로 로그인해 알림을 켜면 그 계정으로 옮긴다
+create or replace function public.save_push_subscription(sub_endpoint text, sub_p256dh text, sub_auth text)
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  if auth.uid() is null or coalesce((auth.jwt() ->> 'is_anonymous')::boolean, false) then
+    raise exception 'not authenticated';
+  end if;
+  insert into public.push_subscriptions (endpoint, user_id, p256dh, auth)
+  values (sub_endpoint, auth.uid(), sub_p256dh, sub_auth)
+  on conflict (endpoint) do update
+    set user_id = excluded.user_id, p256dh = excluded.p256dh, auth = excluded.auth, created_at = now();
+end;
+$$;
+
 revoke execute on function public.handle_new_user() from public, anon, authenticated;
 revoke execute on function public.is_friend(uuid) from public, anon;
 revoke execute on function public.my_friend_ids() from public, anon;
@@ -402,6 +516,8 @@ revoke execute on function public.search_profiles(text) from public, anon;
 revoke execute on function public.list_friendships() from public, anon;
 revoke execute on function public.request_friend(uuid) from public, anon;
 revoke execute on function public.remove_friend(uuid) from public, anon;
+revoke execute on function public.nudge_friend(uuid, uuid) from public, anon;
+revoke execute on function public.save_push_subscription(text, text, text) from public, anon;
 grant execute on function public.is_friend(uuid) to authenticated;
 grant execute on function public.my_friend_ids() to authenticated;
 grant execute on function public.my_tagged_capsule_ids() to authenticated;
@@ -410,6 +526,8 @@ grant execute on function public.search_profiles(text) to authenticated;
 grant execute on function public.list_friendships() to authenticated;
 grant execute on function public.request_friend(uuid) to authenticated;
 grant execute on function public.remove_friend(uuid) to authenticated;
+grant execute on function public.nudge_friend(uuid, uuid) to authenticated;
+grant execute on function public.save_push_subscription(text, text, text) to authenticated;
 
 -- 10) 영상·썸네일 저장소: 비공개 버킷, 파일당 50MB(무료 요금제 한도)
 insert into storage.buckets (id, name, public, file_size_limit)
@@ -448,3 +566,18 @@ drop policy if exists "capsules: 본인 폴더 삭제" on storage.objects;
 create policy "capsules: 본인 폴더 삭제" on storage.objects
   for delete to authenticated
   using (bucket_id = 'capsules' and (storage.foldername(name))[1] = (select auth.uid())::text);
+
+-- 11) 실시간 알림: 새 조르기를 열려 있는 앱 화면에 바로 띄운다 (Supabase Realtime).
+--     받는 사람에게만 간다 (Realtime도 위 "nudges: 당사자 조회" 정책을 따른다)
+do $$
+begin
+  if exists (select 1 from pg_publication where pubname = 'supabase_realtime')
+    and not exists (
+      select 1 from pg_publication_tables
+      where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = 'nudges'
+    )
+  then
+    alter publication supabase_realtime add table public.nudges;
+  end if;
+end;
+$$;

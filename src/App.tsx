@@ -7,6 +7,7 @@ import Home from './pages/Home';
 import Leave from './pages/Leave';
 import Login from './pages/Login';
 import MyLog from './pages/MyLog';
+import Notifications from './pages/Notifications';
 import ProfileEdit from './pages/ProfileEdit';
 import VideoDetail from './pages/VideoDetail';
 
@@ -23,6 +24,7 @@ const router = createBrowserRouter([
       { path: '/video/:id', element: <RequireAuth><VideoDetail /></RequireAuth> },
       { path: '/friends', element: <RequireAuth accountOnly><Friends /></RequireAuth> },
       { path: '/profile', element: <RequireAuth accountOnly><ProfileEdit /></RequireAuth> },
+      { path: '/notifications', element: <RequireAuth accountOnly><Notifications /></RequireAuth> },
     ],
   },
 ]);

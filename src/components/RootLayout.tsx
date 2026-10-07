@@ -1,6 +1,7 @@
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import Header from './Header';
 import BottomNav from './BottomNav';
+import NudgeProvider from './NudgeProvider';
 
 export default function RootLayout() {
   const location = useLocation();
@@ -19,14 +20,16 @@ export default function RootLayout() {
   };
 
   return (
-    <div className="bg-surface text-on-surface flex flex-col min-h-screen">
-      <Header currentPath={currentPath} goBack={goBack} />
+    <NudgeProvider>
+      <div className="bg-surface text-on-surface flex flex-col min-h-screen">
+        <Header currentPath={currentPath} goBack={goBack} />
 
-      <main className={`flex-1 flex flex-col relative w-full max-w-md mx-auto pt-14 bg-surface ${isHome ? '' : 'px-5 pb-24'}`}>
-        <Outlet />
-      </main>
+        <main className={`flex-1 flex flex-col relative w-full max-w-md mx-auto pt-14 bg-surface ${isHome ? '' : 'px-5 pb-24'}`}>
+          <Outlet />
+        </main>
 
-      <BottomNav currentPath={currentPath} />
-    </div>
+        <BottomNav currentPath={currentPath} />
+      </div>
+    </NudgeProvider>
   );
 }

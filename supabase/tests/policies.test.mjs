@@ -15,8 +15,8 @@ describe('schema loading', () => {
   test('schema.sql runs twice in a row without error', async () => {
     const h = await createDb({ runs: 2 });
     const policies = await h.q('admin', `select count(*)::int as n from pg_policies where schemaname in ('public', 'storage')`);
-    // 12 table policies + 4 "block anonymous" restrictive policies + 5 storage policies
-    assert.equal(policies[0].n, 21);
+    // 16 table policies + 6 "block anonymous" restrictive policies + 5 storage policies
+    assert.equal(policies[0].n, 27);
     await h.close();
   });
 
@@ -38,6 +38,13 @@ describe('schema loading', () => {
     // foreign key from capsules to profiles was re-created
     const fk = await h.q('admin', `select confrelid::regclass::text as t from pg_constraint where conname = 'capsules_user_id_fkey'`);
     assert.deepEqual(fk, [{ t: 'profiles' }]);
+    await h.close();
+  });
+
+  test('nudges are added to the Supabase Realtime publication once (skipped when it does not exist)', async () => {
+    const h = await createDb({ runs: 2, beforeSchema: (db) => db.exec('create publication supabase_realtime') });
+    const rows = await h.q('admin', `select tablename from pg_publication_tables where pubname = 'supabase_realtime'`);
+    assert.deepEqual(rows, [{ tablename: 'nudges' }]);
     await h.close();
   });
 
@@ -535,6 +542,8 @@ describe('R6 RPCs', () => {
     await assert.rejects(h.q('anon', 'select public.can_see_profile($1)', [id]), DENIED);
     await assert.rejects(h.q('anon', 'select * from public.my_friend_ids()'), DENIED);
     await assert.rejects(h.q('anon', 'select * from public.my_tagged_capsule_ids()'), DENIED);
+    await assert.rejects(h.q('anon', 'select public.nudge_friend($1, $2)', [id, id]), DENIED);
+    await assert.rejects(h.q('anon', `select public.save_push_subscription('https://push.example/x', 'k', 'a')`), DENIED);
     // the old helper was removed
     assert.deepEqual(await h.q('admin', `select proname from pg_proc where proname = 'can_view_capsule'`), []);
   });
@@ -725,6 +734,8 @@ describe('hardening', () => {
     assert.deepEqual(await h.q(anonUser, 'select * from public.capsule_tags'), []);
     assert.deepEqual(await h.q(anonUser, 'select name from storage.objects'), []);
     assert.deepEqual(await h.q(anonUser, `select * from public.search_profiles('hard')`), []);
+    assert.deepEqual(await h.q(anonUser, 'select * from public.nudges'), []);
+    assert.deepEqual(await h.q(anonUser, 'select * from public.push_subscriptions'), []);
   });
 
   test('anonymous sign-ins cannot write: friend requests, capsules, uploads, profile edits', async () => {
@@ -736,6 +747,11 @@ describe('hardening', () => {
     );
     await assert.rejects(h.upload(anonUser, `${anonUser.id}/v.webm`), RLS);
     assert.equal(await h.run(anonUser, `update public.profiles set display_name = 'spam' where id = $1`, [anonUser.id]), 0);
+    await assert.rejects(h.q(anonUser, 'select public.nudge_friend($1, $2)', [cap.id, A]), /not authenticated/);
+    await assert.rejects(
+      h.q(anonUser, `select public.save_push_subscription('https://fcm.googleapis.com/fcm/send/x', 'k', 'a')`),
+      /not authenticated/,
+    );
   });
 
   test('a real account still works next to the restrictive policies', async () => {
@@ -744,7 +760,7 @@ describe('hardening', () => {
   });
 
   test('TRUNCATE and other bulk privileges are revoked from anon and authenticated', async () => {
-    for (const t of ['profiles', 'friendships', 'capsules', 'capsule_tags']) {
+    for (const t of ['profiles', 'friendships', 'capsules', 'capsule_tags', 'nudges', 'push_subscriptions']) {
       await assert.rejects(h.q(A, `truncate public.${t} cascade`), DENIED, `authenticated truncate ${t}`);
       await assert.rejects(h.q('anon', `truncate public.${t} cascade`), DENIED, `anon truncate ${t}`);
     }
@@ -757,5 +773,160 @@ describe('hardening', () => {
     assert.equal((await h.profile(first)).username, 'user_feedbeef');
     assert.match((await h.profile(second)).username, /^user_[0-9a-f]{8}$/);
     assert.notEqual((await h.profile(second)).username, 'user_feedbeef');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// R7 nudges ("여기 또 가자"):
+//   A left a capsule at p1 tagging B and C. A–B, A–C, A–D are friends; B and C are not friends.
+//   D is A's friend but was not on the capsule. S is a stranger.
+describe('R7 nudges', () => {
+  let h, A, B, C, D, S, cap;
+  const nudge = async (who, capsule, target) =>
+    (await h.q(who, 'select public.nudge_friend($1, $2) as id', [capsule, target]))[0].id;
+  const pairs = async (who) =>
+    (await h.q(who, 'select sender_id, receiver_id from public.nudges order by created_at, sender_id')).map((r) => [r.sender_id, r.receiver_id]);
+
+  before(async () => {
+    h = await createDb();
+    A = await h.signUp({ email: 'na.nudge@x.com' });
+    B = await h.signUp({ email: 'nb.nudge@x.com' });
+    C = await h.signUp({ email: 'nc.nudge@x.com' });
+    D = await h.signUp({ email: 'nd.nudge@x.com' });
+    S = await h.signUp({ email: 'ns.nudge@x.com' });
+    await h.befriend(A, B);
+    await h.befriend(A, C);
+    await h.befriend(A, D);
+    cap = await h.capsule(A);
+    await h.q(A, 'insert into public.capsule_tags (capsule_id, user_id) values ($1, $2), ($1, $3)', [cap.id, B, C]);
+  });
+  after(() => h.close());
+
+  test('the author nudges a tagged friend; place comes from the capsule', async () => {
+    const id = await nudge(A, cap.id, B);
+    const row = (await h.q('admin', 'select * from public.nudges where id = $1', [id]))[0];
+    assert.deepEqual(
+      [row.sender_id, row.receiver_id, row.capsule_id, row.place_id, row.place_name, row.read_at, row.pushed_at],
+      [A, B, cap.id, 'p1', '식당', null, null],
+    );
+  });
+
+  test('a tagged friend nudges the author back', async () => {
+    assert.ok(await nudge(B, cap.id, A));
+  });
+
+  test('only the sender and the receiver see a nudge', async () => {
+    const both = [[A, B], [B, A]];
+    assert.deepEqual(sorted((await pairs(A)).map(String)), sorted(both.map(String)));
+    assert.deepEqual(sorted((await pairs(B)).map(String)), sorted(both.map(String)));
+    assert.deepEqual(await pairs(C), []);
+    assert.deepEqual(await pairs(S), []);
+    await assert.rejects(h.q('anon', 'select * from public.nudges'), DENIED);
+  });
+
+  test('both people must be on the capsule and be friends now', async () => {
+    await assert.rejects(nudge(A, cap.id, D), /cannot nudge/); // D was not there
+    await assert.rejects(nudge(D, cap.id, A), /cannot nudge/); // D can see the capsule (A's friend) but was not there
+    await assert.rejects(nudge(B, cap.id, C), /cannot nudge/); // both tagged, but not friends
+    await assert.rejects(nudge(S, cap.id, A), /cannot nudge/);
+    await assert.rejects(nudge(A, cap.id, A), /cannot nudge/);
+    await assert.rejects(nudge(A, randomUUID(), B), /cannot nudge/);
+  });
+
+  test('same friend + same place only once per 10 minutes; another friend is separate', async () => {
+    await assert.rejects(nudge(A, cap.id, B), /nudge cooldown/);
+    assert.ok(await nudge(A, cap.id, C));
+    await h.q('admin', `update public.nudges set created_at = now() - interval '11 minutes' where sender_id = $1 and receiver_id = $2`, [A, B]);
+    assert.ok(await nudge(A, cap.id, B));
+  });
+
+  test('nobody can insert nudges directly (no forged sender or place)', async () => {
+    await assert.rejects(
+      h.q(A, `insert into public.nudges (sender_id, receiver_id, place_id, place_name) values ($1, $2, 'p9', '가짜')`, [A, B]),
+      DENIED,
+    );
+    await assert.rejects(
+      h.q(S, `insert into public.nudges (sender_id, receiver_id, place_id, place_name) values ($1, $2, 'p9', '가짜')`, [A, S]),
+      DENIED,
+    );
+  });
+
+  test('the receiver marks nudges read; the sender cannot; other columns stay fixed', async () => {
+    assert.equal(await h.run(A, 'update public.nudges set read_at = now() where receiver_id = $1', [B]), 0);
+    assert.equal(await h.run(B, 'update public.nudges set read_at = now() where receiver_id = $1 and read_at is null', [B]), 2);
+    await assert.rejects(h.q(B, 'update public.nudges set pushed_at = null where receiver_id = $1', [B]), DENIED);
+    await assert.rejects(h.q(B, `update public.nudges set place_name = 'x' where receiver_id = $1`, [B]), DENIED);
+    await assert.rejects(h.q(B, 'update public.nudges set sender_id = $2 where receiver_id = $1', [B, C]), DENIED);
+    await assert.rejects(h.q(B, 'delete from public.nudges'), DENIED);
+  });
+
+  test('after unfriending, nudging stops but old nudges stay', async () => {
+    await h.q(C, 'select public.remove_friend($1)', [A]);
+    await assert.rejects(nudge(A, cap.id, C), /cannot nudge/);
+    await assert.rejects(nudge(C, cap.id, A), /cannot nudge/);
+    assert.deepEqual(await pairs(C), [[A, C]]);
+  });
+
+  test('deleting the capsule keeps the nudge with its place name', async () => {
+    await h.q(A, 'delete from public.capsules where id = $1', [cap.id]);
+    const rows = await h.q(B, 'select capsule_id, place_name from public.nudges where receiver_id = $1', [B]);
+    assert.equal(rows.length, 2);
+    for (const r of rows) assert.deepEqual(r, { capsule_id: null, place_name: '식당' });
+  });
+
+  test('works on a friend’s capsule I am tagged on (tagged → author)', async () => {
+    const bcap = await h.capsule(B);
+    await h.q(B, 'insert into public.capsule_tags (capsule_id, user_id) values ($1, $2)', [bcap.id, A]);
+    await h.q('admin', `update public.nudges set created_at = now() - interval '1 hour'`);
+    assert.ok(await nudge(A, bcap.id, B));
+  });
+});
+
+// ---------------------------------------------------------------------------
+describe('R8 push subscriptions', () => {
+  let h, A, B;
+  const ENDPOINT = 'https://fcm.googleapis.com/fcm/send/device-1';
+  const save = (who, endpoint = ENDPOINT, key = 'p256') =>
+    h.q(who, 'select public.save_push_subscription($1, $2, $3)', [endpoint, key, 'auth-secret']);
+  const mine = async (who) =>
+    (await h.q(who, 'select endpoint, user_id, p256dh from public.push_subscriptions')).map((r) => [r.endpoint, r.user_id, r.p256dh]);
+
+  before(async () => {
+    h = await createDb();
+    A = await h.signUp({ email: 'push.a@x.com' });
+    B = await h.signUp({ email: 'push.b@x.com' });
+  });
+  after(() => h.close());
+
+  test('saving twice keeps one row per device and refreshes its keys', async () => {
+    await save(A);
+    await save(A, ENDPOINT, 'p256-new');
+    assert.deepEqual(await mine(A), [[ENDPOINT, A, 'p256-new']]);
+  });
+
+  test('other users cannot read my subscriptions; anon is denied', async () => {
+    assert.deepEqual(await mine(B), []);
+    await assert.rejects(h.q('anon', 'select * from public.push_subscriptions'), DENIED);
+  });
+
+  test('another account turning on alerts on the same device takes the subscription over', async () => {
+    await save(B);
+    assert.deepEqual(await mine(A), []);
+    assert.deepEqual(await mine(B), [[ENDPOINT, B, 'p256']]);
+  });
+
+  test('only the owner deletes; nobody inserts or updates directly', async () => {
+    assert.equal(await h.run(A, 'delete from public.push_subscriptions where endpoint = $1', [ENDPOINT]), 0);
+    await assert.rejects(
+      h.q(A, `insert into public.push_subscriptions (endpoint, user_id, p256dh, auth) values ('https://x.example/1', $1, 'k', 'a')`, [A]),
+      DENIED,
+    );
+    await assert.rejects(h.q(B, 'update public.push_subscriptions set user_id = $1', [A]), DENIED);
+    assert.equal(await h.run(B, 'delete from public.push_subscriptions where endpoint = $1', [ENDPOINT]), 1);
+    assert.deepEqual(await mine(B), []);
+  });
+
+  test('endpoints must be https', async () => {
+    await assert.rejects(save(A, 'http://insecure.example/x'), /check constraint/);
   });
 });
