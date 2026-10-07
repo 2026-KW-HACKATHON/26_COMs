@@ -2,6 +2,9 @@
 // 사용법: node scripts/fetch-map.mjs
 // 동 경계는 fetch-places.mjs가 만든 src/data/wolgye1.json을 쓴다.
 // OSM_FILE=받아둔.json 을 주면 Overpass 대신 그 파일(Overpass `out geom` 응답)을 읽는다.
+// BUILDINGS_FILE=건물.geojson 을 주면 건물 윤곽은 그 파일(Overture Maps 건물 등 GeoJSON)을 쓴다.
+//   OSM에 그려진 건물이 적은 동네라서, OSM과 Microsoft 위성 인식 건물을 합친 Overture 데이터가 더 촘촘하다.
+//   받는 법은 .github/workflows/map-data.yml 참고 (`node scripts/fetch-map.mjs --bbox`가 범위를 알려 준다)
 //
 // 앱은 지도 타일 이미지 대신 이 데이터를 직접 그린다 (src/components/PlaceMap.tsx).
 // 용량을 줄이려고 선을 단순화하고, 좌표는 origin 기준 Google polyline(정밀도 1e-6) 문자열로 저장한다.
@@ -28,7 +31,7 @@ const ROAD_CLASS = [
 ];
 const SKIP_SERVICE = new Set(['parking_aisle', 'driveway', 'drive-through', 'emergency_access']);
 
-const { boundary } = JSON.parse(await readFile(new URL('../src/data/wolgye1.json', import.meta.url), 'utf8'));
+const { boundary, places = [] } = JSON.parse(await readFile(new URL('../src/data/wolgye1.json', import.meta.url), 'utf8'));
 if (!Array.isArray(boundary) || boundary.length < 3) throw new Error('wolgye1.json에 동 경계가 없습니다. 먼저 node scripts/fetch-places.mjs');
 
 // ── 좌표계: 동 중심을 원점으로 하는 평면(m). 동 하나 크기라 왜곡은 무시할 만하다 ──
@@ -76,6 +79,14 @@ async function overpass(query) {
 const [south, west] = toLatLng([view.minX, view.minY]);
 const [north, east] = toLatLng([view.maxX, view.maxY]);
 const bb = [south, west, north, east].map((v) => v.toFixed(6)).join(',');
+
+// 건물 데이터를 따로 받을 범위 (동 경계 + 50m): 경도·위도 순서 west,south,east,north
+if (process.argv.includes('--bbox')) {
+  const [s, w] = toLatLng([Math.min(...xs) - 50, Math.min(...ys) - 50]);
+  const [n, e] = toLatLng([Math.max(...xs) + 50, Math.max(...ys) + 50]);
+  console.log([w, s, e, n].map((v) => v.toFixed(6)).join(','));
+  process.exit(0);
+}
 
 const query = `[out:json][timeout:180];
 (
@@ -370,6 +381,16 @@ const landmarks = [];
 const seenLandmark = new Set();
 
 const inView = ([x, y]) => x >= view.minX && x <= view.maxX && y >= view.minY && y <= view.maxY;
+const placePoints = places.map((p) => toXY([p.lat, p.lng]));
+
+/** 동 안의 건물만 그린다. 경계에 걸친 건물은 가게가 들어 있으면 남긴다 */
+function addBuilding(ring, list) {
+  const area = Math.abs(signedArea(ring));
+  if (area < MIN_BUILDING_AREA) return;
+  if (!insideRing(centroid(ring), ringXY) && !placePoints.some((p) => insideRing(p, ring))) return;
+  const simple = simplifyRing(ring, TOLERANCE.building);
+  if (simple.length >= 3) list.push({ area, pts: simple });
+}
 
 for (const el of osm.elements ?? []) {
   const t = el.tags ?? {};
@@ -378,21 +399,17 @@ for (const el of osm.elements ?? []) {
   if (t.railway === 'station' || /^(school|university|college)$/.test(t.amenity ?? '')) {
     const name = t['name:ko'] || t.name;
     const c = elementCenter(el);
-    if (name && c && inView(c) && !seenLandmark.has(name)) {
+    // 역은 동 밖이어도 길잡이가 되니 남기고, 학교는 동 안만
+    const station = t.railway === 'station';
+    if (name && c && (station ? inView(c) : insideRing(c, ringXY)) && !seenLandmark.has(name)) {
       seenLandmark.add(name);
-      landmarks.push({ name, kind: t.railway === 'station' ? 'station' : 'school', c });
+      landmarks.push({ name, kind: station ? 'station' : 'school', c });
     }
     if (el.type === 'node') continue;
   }
 
   if (t.building && t.building !== 'no') {
-    for (const ring of outerRings(el)) {
-      const area = Math.abs(signedArea(ring));
-      if (area < MIN_BUILDING_AREA) continue;
-      if (!insideRing(centroid(ring), ringXY)) continue;
-      const simple = simplifyRing(ring, TOLERANCE.building);
-      if (simple.length >= 3) buildings.push({ area, pts: simple });
-    }
+    for (const ring of outerRings(el)) addBuilding(ring, buildings);
     continue;
   }
 
@@ -404,7 +421,8 @@ for (const el of osm.elements ?? []) {
       const simple = simplify(part, TOLERANCE.road);
       roads[cls].push(simple);
       const name = t['name:ko'] || t.name;
-      if (name && cls !== 'lane') {
+      // 'OO길' 같은 골목 이름은 너무 많아서 'OO로'급 도로 이름만 쓴다
+      if (name && cls !== 'lane' && /(로|대로|도로)$/.test(name)) {
         const entry = roadNames.get(name) ?? { cls, pieces: [] };
         if (cls === 'major') entry.cls = 'major';
         entry.pieces.push(simple);
@@ -437,7 +455,7 @@ for (const el of osm.elements ?? []) {
     if (isGreen && t.leisure === 'park') {
       const name = t['name:ko'] || t.name;
       const c = elementCenter(el);
-      if (name && c && inView(c) && !seenLandmark.has(name)) {
+      if (name && c && insideRing(c, ringXY) && !seenLandmark.has(name)) {
         seenLandmark.add(name);
         landmarks.push({ name, kind: 'park', c });
       }
@@ -475,11 +493,44 @@ for (const { name, kind, c } of landmarks) {
   labels.push({ name, kind, lat: round6(lat), lng: round6(lng) });
 }
 
+// ── 건물: 따로 받은 파일(Overture 등)이 OSM보다 촘촘하면 그것을 쓴다 ──
+let buildingSource = 'OpenStreetMap';
+if (process.env.BUILDINGS_FILE) {
+  const extra = [];
+  try {
+    const text = await readFile(process.env.BUILDINGS_FILE, 'utf8');
+    // FeatureCollection 또는 한 줄에 하나씩(GeoJSONSeq)
+    let features;
+    try {
+      features = JSON.parse(text).features;
+    } catch {
+      features = text.split('\n').filter((line) => line.trim()).map((line) => JSON.parse(line.replace(/^\x1e/, '')));
+    }
+    for (const f of features) {
+      const g = f?.geometry;
+      if (!g) continue;
+      const polys = g.type === 'Polygon' ? [g.coordinates] : g.type === 'MultiPolygon' ? g.coordinates : [];
+      for (const poly of polys) {
+        const outer = poly[0]?.map(([lng, lat]) => toXY([lat, lng]));
+        if (outer?.length >= 4) addBuilding(outer, extra);
+      }
+    }
+    console.log(`BUILDINGS_FILE: ${extra.length} buildings (OSM: ${buildings.length})`);
+    if (extra.length > buildings.length) {
+      buildings.length = 0;
+      buildings.push(...extra);
+      buildingSource = 'Overture Maps';
+    }
+  } catch (err) {
+    console.warn('BUILDINGS_FILE를 읽지 못해 OSM 건물을 씁니다:', err.message);
+  }
+}
+
 // 큰 건물부터 그리면 겹친 작은 건물이 위에 보인다
 buildings.sort((a, b) => b.area - a.area);
 
 const result = {
-  source: '© OpenStreetMap contributors (ODbL)',
+  source: buildingSource === 'OpenStreetMap' ? '© OpenStreetMap contributors (ODbL)' : '© OpenStreetMap contributors, Overture Maps Foundation (ODbL)',
   fetchedAt: new Date().toISOString().slice(0, 10),
   origin,
   view: [toLatLng([view.minX, view.minY]).map(round6), toLatLng([view.maxX, view.maxY]).map(round6)],
@@ -495,6 +546,6 @@ const result = {
 const json = JSON.stringify(result);
 await writeFile(OUT, json);
 console.log(
-  `buildings: ${buildings.length}, roads: ${roads.major.length}/${roads.minor.length}/${roads.lane.length}, rail: ${rail.length}, ` +
+  `buildings: ${buildings.length} (${buildingSource}), roads: ${roads.major.length}/${roads.minor.length}/${roads.lane.length}, rail: ${rail.length}, ` +
     `water: ${water.length}+${waterways.length}, green: ${green.length}, labels: ${labels.length}, ${(json.length / 1024).toFixed(1)} KB`,
 );
