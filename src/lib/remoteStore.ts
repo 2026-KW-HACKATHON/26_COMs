@@ -31,6 +31,7 @@ interface CapsuleRow {
   clip_duration: number;
   created_at: string;
   visibility: Visibility;
+  verified: boolean;
   author: ProfileRow | null;
   capsule_tags: { profile: ProfileRow | null }[];
 }
@@ -85,6 +86,7 @@ async function toCapsules(rows: CapsuleRow[]): Promise<Capsule[]> {
     thumbnail: (r.thumbnail_path && urls.get(r.thumbnail_path)) || null,
     createdAt: Date.parse(r.created_at),
     visibility: r.visibility ?? 'friends',
+    verified: !!r.verified,
   }));
 }
 
@@ -112,6 +114,7 @@ export async function addCapsule(data: NewCapsule): Promise<Capsule> {
       clip_start: data.clipStart,
       clip_duration: data.clipDuration,
       visibility: data.visibility,
+      verified: data.verified,
     });
     if (error) throw error;
   } catch (err) {
@@ -135,6 +138,7 @@ export async function addCapsule(data: NewCapsule): Promise<Capsule> {
     thumbnail: data.thumbnail,
     createdAt: Date.now(),
     visibility: data.visibility,
+    verified: data.verified,
   };
 }
 
@@ -225,11 +229,13 @@ export async function deleteCapsule(id: string): Promise<void> {
 export async function listPlaceStats(days: RankingDays): Promise<PlaceStat[]> {
   const { data, error } = await client().rpc('place_ranking', days === null ? {} : { days });
   if (error) throw error;
-  return (data as { place_id: string; visits: number; people: number; regulars: number; videos: number }[]).map((r) => ({
+  type Row = { place_id: string; visits: number; people: number; regulars: number; videos: number; verified_visits?: number };
+  return (data as Row[]).map((r) => ({
     placeId: r.place_id,
     visits: r.visits,
     people: r.people,
     regulars: r.regulars,
     videos: r.videos,
+    verifiedVisits: r.verified_visits ?? 0,
   }));
 }

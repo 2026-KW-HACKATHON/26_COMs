@@ -964,15 +964,15 @@ describe('R9 place ranking', () => {
   test('counts visits per person per day; tagged friends count; same-day videos count once', async () => {
     const rows = await ranking(S);
     assert.deepEqual(rows, [
-      { place_id: 'p1', visits: 3, people: 2, regulars: 1, videos: 4 },
-      { place_id: 'p2', visits: 2, people: 1, regulars: 1, videos: 2 },
+      { place_id: 'p1', visits: 3, people: 2, regulars: 1, videos: 4, verified_visits: 0 },
+      { place_id: 'p2', visits: 2, people: 1, regulars: 1, videos: 2, verified_visits: 0 },
     ]);
   });
 
   test('days limits the window to the last N days (Korean date)', async () => {
     assert.deepEqual(await ranking(S, 30), [
-      { place_id: 'p1', visits: 3, people: 2, regulars: 1, videos: 4 },
-      { place_id: 'p2', visits: 1, people: 1, regulars: 0, videos: 1 },
+      { place_id: 'p1', visits: 3, people: 2, regulars: 1, videos: 4, verified_visits: 0 },
+      { place_id: 'p2', visits: 1, people: 1, regulars: 0, videos: 1, verified_visits: 0 },
     ]);
     assert.deepEqual((await ranking(S, 1)).map((r) => [r.place_id, r.visits]), [['p1', 2], ['p2', 1]]);
   });
@@ -981,7 +981,17 @@ describe('R9 place ranking', () => {
     const all = await ranking(A);
     assert.deepEqual(await ranking('anon'), all);
     assert.deepEqual(await ranking({ id: S, anonymous: true }), all);
-    assert.deepEqual(Object.keys(all[0]).sort(), ['people', 'place_id', 'regulars', 'videos', 'visits']);
+    assert.deepEqual(Object.keys(all[0]).sort(), ['people', 'place_id', 'regulars', 'verified_visits', 'videos', 'visits']);
+  });
+
+  test('verified capsules count as on-site visits; the flag is set only when inserting', async () => {
+    const id = randomUUID();
+    await h.q(A, `insert into public.capsules (id, place_id, place_name, lat, lng, video_path, clip_duration, verified)
+                  values ($1, 'p4', 'x', 0, 0, $2, 5, true)`, [id, `${A}/${id}.webm`]);
+    await h.capsule(A, { place: 'p4' }); // 같은 날 인증 안 된 영상이 더 있어도 방문은 한 번
+    const p4 = (await ranking(S)).find((r) => r.place_id === 'p4');
+    assert.deepEqual([p4.visits, p4.verified_visits], [1, 1]);
+    await assert.rejects(h.q(A, 'update public.capsules set verified = true where id = $1', [id]), DENIED);
   });
 
   test('clients cannot backdate a capsule to inflate visits', async () => {

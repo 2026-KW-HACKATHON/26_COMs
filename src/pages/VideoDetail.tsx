@@ -127,6 +127,12 @@ export default function VideoDetail() {
         <p className="text-label-md text-on-surface-variant flex items-center gap-1">
           <span className="material-symbols-rounded text-[16px]">event</span>
           {formatDate(capsule.createdAt)}에 남김
+          {capsule.verified && (
+            <span className="ml-1.5 flex items-center gap-0.5 font-semibold text-primary">
+              <span className="material-symbols-rounded icon-fill text-[16px]">verified</span>
+              현장 인증
+            </span>
+          )}
         </p>
         {capsule.tags.length > 0 && (
           <div className="mt-2 flex flex-wrap items-center gap-1.5">
