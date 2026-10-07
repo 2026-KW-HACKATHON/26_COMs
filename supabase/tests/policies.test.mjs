@@ -1052,3 +1052,39 @@ describe('R10 town visibility', () => {
     assert.equal((await h.visibleCapsules(S)).length, 1);
   });
 });
+
+// ---------------------------------------------------------------------------
+describe('R11 notification server (service_role)', () => {
+  // 최근 Supabase 프로젝트처럼 새 테이블에 service_role 기본 권한이 없는 상태에서도 schema.sql만으로 동작해야 한다
+  let h, A, B, cap, nudgeId;
+  before(async () => {
+    h = await createDb({
+      beforeSchema: (db) => db.exec('alter default privileges in schema public revoke all on tables from service_role'),
+    });
+    await h.q('admin', 'alter role service_role bypassrls');
+    A = await h.signUp({ email: 'sa.svc@x.com' });
+    B = await h.signUp({ email: 'sb.svc@x.com' });
+    await h.befriend(A, B);
+    cap = await h.capsule(A);
+    await h.q(A, 'insert into public.capsule_tags (capsule_id, user_id) values ($1, $2)', [cap.id, B]);
+    nudgeId = (await h.q(A, 'select public.nudge_friend($1, $2) as id', [cap.id, B]))[0].id;
+    await h.q(B, `select public.save_push_subscription('https://fcm.googleapis.com/fcm/send/b', 'k', 'a')`);
+  });
+  after(() => h.close());
+
+  test('api/recall.ts: reads capsules with author and tags', async () => {
+    const rows = await h.q(
+      'service',
+      `select c.id, p.display_name, array(select t.user_id from public.capsule_tags t where t.capsule_id = c.id) as tags
+       from public.capsules c join public.profiles p on p.id = c.user_id`,
+    );
+    assert.equal(rows.length, 1);
+    assert.deepEqual(rows[0].tags, [B]);
+  });
+
+  test('api/push.ts: marks a nudge pushed, reads subscriptions and removes dead ones', async () => {
+    assert.equal(await h.run('service', 'update public.nudges set pushed_at = now() where id = $1 and pushed_at is null', [nudgeId]), 1);
+    assert.equal((await h.q('service', 'select endpoint from public.push_subscriptions where user_id = $1', [B])).length, 1);
+    assert.equal(await h.run('service', 'delete from public.push_subscriptions where user_id = $1', [B]), 1);
+  });
+});
