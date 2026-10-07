@@ -39,6 +39,63 @@
   .pressable:active {
     transform: scale(0.97);
   }
+  /* 조르기: 알림 배너가 위에서 내려오며 살짝 흔들리고, 벨·손 아이콘도 흔들린다 */
+  .nudge-drop {
+    animation: nudge-drop 0.35s cubic-bezier(0.2, 0.9, 0.3, 1.15) both, nudge-shake 0.4s 0.35s ease-in-out;
+  }
+  .nudge-wiggle {
+    animation: nudge-wiggle 0.5s ease-in-out;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .nudge-drop,
+    .nudge-wiggle {
+      animation: none;
+    }
+  }
+}
+
+@keyframes nudge-drop {
+  from {
+    transform: translateY(-120%);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+@keyframes nudge-shake {
+  0%,
+  100% {
+    transform: none;
+  }
+  25% {
+    transform: translateX(-5px);
+  }
+  50% {
+    transform: translateX(4px);
+  }
+  75% {
+    transform: translateX(-2px);
+  }
+}
+@keyframes nudge-wiggle {
+  0%,
+  100% {
+    transform: rotate(0);
+  }
+  20% {
+    transform: rotate(-12deg);
+  }
+  40% {
+    transform: rotate(10deg);
+  }
+  60% {
+    transform: rotate(-6deg);
+  }
+  80% {
+    transform: rotate(3deg);
+  }
 }
 
 ::-webkit-scrollbar {

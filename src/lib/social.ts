@@ -1,4 +1,5 @@
 import type { FriendStatus, Profile, ProfileWithStatus } from '../types/social';
+import { disablePush } from './push';
 import { isUuid, supabase } from './supabase';
 
 // 계정·친구 기능 (Supabase 설정이 있을 때만). 정책은 supabase/schema.sql 참고.
@@ -69,6 +70,8 @@ export async function signInWith(provider: LoginProvider, next: string) {
 
 /** 이 기기에서만 로그아웃 (다른 기기의 로그인은 유지) */
 export async function signOut() {
+  // 이 기기로 오던 폰 알림도 끊는다 (로그인한 상태여야 구독을 지울 수 있다)
+  await disablePush().catch((err) => console.warn(err));
   const { error } = await client().auth.signOut({ scope: 'local' });
   if (error) throw error;
 }
