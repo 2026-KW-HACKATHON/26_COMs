@@ -12,12 +12,13 @@ export const MAP_COLORS = {
   rail: '#C2C8D0',
   water: '#D6E6F5',
   green: '#E4EEE6',
-  /** 가게가 없는 건물 */
-  building: '#E1E4E9',
-  buildingStroke: '#D3D8DE',
-  /** 가게가 있는 건물 */
-  store: '#D0D5DC',
-  storeStroke: '#B3BAC4',
+  /** 가게가 없는 건물 (누를 수 없음): 바탕에 묻히게 옅은 회색 */
+  building: '#E6E8EC',
+  buildingStroke: '#DCDFE4',
+  /** 가게가 있는 건물 (누를 수 있음): 옅은 건물·흰 길과 확실히 구별되게 진한 회색 (테두리도 같은 색) */
+  store: '#A7B0BB',
+  /** 고른 가게 (아직 안 간 곳) */
+  storeSelected: '#8B95A1',
   /**
    * 영상이 있는 건물: 영상(방문) 수에 따라 5단계. 단계마다 [왼쪽 위, 오른쪽 아래] 두 색의 그라데이션으로 칠한다
    * (왼쪽 위는 하늘색으로 밝게, 오른쪽 아래는 파랑으로 진하게 → 빛을 받은 듯 입체적으로)
@@ -29,10 +30,8 @@ export const MAP_COLORS = {
     ['#6CC4FF', BRAND],
     ['#38A6F5', '#1953C0'],
   ] as [string, string][],
-  heatStroke: '#164AA6',
   /** 영상이 있는 건물 아래로 번지는 빛 (rgb만, 투명도는 단계별로) */
   glow: '49, 130, 246',
-  selected: '#191F28',
 };
 
 /** 그룹 지도에서 한 그룹원의 땅을 칠하는 색 */
