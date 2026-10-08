@@ -48,12 +48,7 @@ export default function MyLog() {
       {SOCIAL_ENABLED ? (
         <>
           <section className="flex items-center gap-4 px-1">
-            {/* 프로필 사진에 강조 그라데이션 테두리 */}
-            <span className="shrink-0 p-[2.5px] rounded-full brand-gradient">
-              <span className="block p-[2.5px] rounded-full bg-white">
-                <Avatar profile={profile} size={60} />
-              </span>
-            </span>
+            <Avatar profile={profile} size={64} />
             <div className="flex-1 min-w-0">
               <h2 className="text-headline-md text-on-surface truncate">{profile?.displayName ?? '나'}</h2>
               {profile && <p className="text-label-md text-on-surface-variant truncate">@{profile.username}</p>}
@@ -117,7 +112,7 @@ export default function MyLog() {
           </div>
           <p className="mt-3 text-body-md">{tab === 'mine' ? '아직 남긴 영상이 없어요.' : '친구가 나를 태그한 영상이 여기에 모여요.'}</p>
           {tab === 'mine' && (
-            <button onClick={() => navigate('/leave')} className="mt-5 h-12 px-6 rounded-2xl brand-gradient shadow-brand text-label-lg font-bold pressable" type="button">
+            <button onClick={() => navigate('/leave')} className="mt-5 h-12 px-6 rounded-2xl bg-primary text-on-primary text-label-lg font-bold pressable" type="button">
               첫 5초 남기기
             </button>
           )}

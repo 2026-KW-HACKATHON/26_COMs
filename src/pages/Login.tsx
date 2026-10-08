@@ -88,8 +88,8 @@ export default function Login() {
 
   return (
     <div className="flex flex-col items-center w-full pt-8 pb-6 gap-8">
-      <div className="flex flex-col items-center text-center gap-4 w-full app-card px-6 py-8">
-        <img src="/pwa-192x192.png" alt="" className="w-20 h-20 rounded-[24px] shadow-brand" />
+      <div className="flex flex-col items-center text-center gap-4 w-full px-6 py-6">
+        <img src="/pwa-192x192.png" alt="" className="w-20 h-20 rounded-[24px]" />
         <div className="flex flex-col items-center gap-1">
           <p className="text-[11px] font-semibold tracking-[0.22em] uppercase text-gray-500">Welcome back</p>
           <h2 className="text-headline-lg text-on-surface">왔다감</h2>

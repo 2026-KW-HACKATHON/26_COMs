@@ -118,7 +118,7 @@ export default function VideoDetail() {
         start={capsule.clipStart}
         duration={capsule.clipDuration}
         onLike={like.like}
-        className="w-full aspect-[3/4] rounded-3xl shadow-card"
+        className="w-full aspect-[3/4] rounded-3xl"
       />
 
       <div className="flex items-center -my-2.5">

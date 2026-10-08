@@ -19,7 +19,7 @@ function PersonRow({ person, children }: { person: ProfileWithStatus; children: 
   );
 }
 
-const primaryButton = 'h-9 px-3.5 rounded-full brand-gradient text-label-md font-bold pressable disabled:opacity-50';
+const primaryButton = 'h-9 px-3.5 rounded-full bg-primary text-on-primary text-label-md font-bold pressable disabled:opacity-50';
 const secondaryButton = 'h-9 px-3.5 rounded-full bg-gray-100 text-gray-700 text-label-md font-semibold pressable disabled:opacity-50';
 
 export default function Friends() {

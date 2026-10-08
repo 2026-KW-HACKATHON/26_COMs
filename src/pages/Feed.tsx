@@ -231,7 +231,7 @@ function EmptyFeed({ scope, noFriends, onTown }: { scope: Scope; noFriends: bool
       <p className="mt-1 text-label-md">{hint}</p>
       <button
         onClick={() => navigate(findFriends ? '/friends' : '/leave')}
-        className="mt-5 h-12 px-6 rounded-2xl brand-gradient shadow-brand text-label-lg font-bold pressable"
+        className="mt-5 h-12 px-6 rounded-2xl bg-primary text-on-primary text-label-lg font-bold pressable"
         type="button"
       >
         {findFriends ? '친구 찾기' : '5초 남기기'}

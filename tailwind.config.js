@@ -1,7 +1,7 @@
 /** @type {import('tailwindcss').Config} */
 
 // 토스처럼 흰 바탕 + 무채색 회색 단계 + 강조색 하나. 강조색을 바꾸려면 BRAND만 고치면 된다.
-// (지도 색은 src/lib/theme.ts, 강조 그라데이션(.brand-gradient)은 src/index.css에서 같은 계열을 쓴다)
+// (지도 색은 src/lib/theme.ts에서 같은 값을 쓴다)
 const GRAY = {
   50: '#F9FAFB',
   100: '#F2F4F6',
@@ -105,12 +105,9 @@ module.exports = {
         '4xl': '2rem',
       },
       boxShadow: {
-        // 떠 있는 요소(지도 위 요소·아래 탭·강조 카드)만 그림자를 쓰고, 나머지는 평평하게 둔다
+        // 지도 위에 뜨는 요소만 은은한 그림자를 쓴다 (나머지 화면은 평평하게)
         float: '0 2px 12px rgba(0, 0, 0, 0.08)',
         sheet: '0 -2px 20px rgba(0, 0, 0, 0.06), 0 8px 24px rgba(0, 0, 0, 0.08)',
-        card: '0 2px 6px rgba(25, 31, 40, 0.04), 0 12px 32px rgba(25, 31, 40, 0.08)',
-        // 강조 그라데이션 버튼 아래로 번지는 초록 빛
-        brand: '0 8px 20px -6px rgba(12, 154, 107, 0.5)',
       },
     },
   },

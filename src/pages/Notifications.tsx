@@ -145,7 +145,7 @@ function PushCard() {
   const { title, body } = copy[state];
 
   return (
-    <div className="flex items-center gap-3 p-4 app-card">
+    <div className="flex items-center gap-3 p-4 flat-card">
       <span className="material-symbols-rounded icon-fill text-[28px] text-primary shrink-0">
         {state === 'off' ? 'notifications_active' : state === 'denied' ? 'notifications_off' : 'add_to_home_screen'}
       </span>
@@ -154,7 +154,7 @@ function PushCard() {
         <p className="text-label-sm text-on-surface-variant">{body}</p>
       </div>
       {state === 'off' && (
-        <button onClick={() => toggle(true)} disabled={busy} className="h-9 px-3.5 shrink-0 rounded-full brand-gradient shadow-brand text-label-md font-bold pressable disabled:opacity-50" type="button">
+        <button onClick={() => toggle(true)} disabled={busy} className="h-9 px-3.5 shrink-0 rounded-full bg-primary text-on-primary text-label-md font-bold pressable disabled:opacity-50" type="button">
           켜기
         </button>
       )}

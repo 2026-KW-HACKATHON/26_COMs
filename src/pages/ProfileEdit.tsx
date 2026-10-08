@@ -118,7 +118,7 @@ function ProfileForm({ profile }: { profile: Profile }) {
 
       <button
         disabled={!canSave}
-        className="h-14 rounded-2xl brand-gradient shadow-brand text-[17px] font-bold pressable"
+        className="h-14 rounded-2xl bg-primary text-on-primary text-[17px] font-bold pressable disabled:bg-gray-200 disabled:text-gray-400"
         type="submit"
       >
         {saving ? '저장 중…' : setup ? '시작하기' : '저장'}

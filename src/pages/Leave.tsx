@@ -136,7 +136,7 @@ export default function Leave() {
 
         {video ? (
           <>
-            <CapsuleVideo src={video.blob} duration={Math.min(CLIP_SECONDS, video.duration)} className="w-full aspect-[3/4] rounded-3xl shadow-card" />
+            <CapsuleVideo src={video.blob} duration={Math.min(CLIP_SECONDS, video.duration)} className="w-full aspect-[3/4] rounded-3xl" />
             <button onClick={() => setRecorderOpen(true)} className="h-12 rounded-2xl bg-gray-100 text-gray-700 text-label-lg flex items-center justify-center gap-1 pressable" type="button">
               <span className="material-symbols-rounded text-[20px]">replay</span> 다시 찍기
             </button>
@@ -144,7 +144,7 @@ export default function Leave() {
         ) : (
           <button
             onClick={() => setRecorderOpen(true)}
-            className="h-40 rounded-3xl brand-gradient shadow-brand flex flex-col items-center justify-center gap-2 pressable"
+            className="h-40 rounded-3xl bg-primary text-on-primary flex flex-col items-center justify-center gap-2 pressable"
             type="button"
           >
             <span className="w-14 h-14 rounded-full bg-white/20 text-white flex items-center justify-center">
@@ -196,7 +196,7 @@ export default function Leave() {
         <button
           onClick={handleLeave}
           disabled={!!missing || saving}
-          className="w-full h-14 rounded-2xl brand-gradient shadow-brand text-[17px] font-bold flex items-center justify-center pressable"
+          className="w-full h-14 rounded-2xl bg-primary text-on-primary text-[17px] font-bold flex items-center justify-center pressable disabled:bg-gray-200 disabled:text-gray-400"
           type="button"
         >
           {saving ? '남기는 중…' : '남기기'}
@@ -230,7 +230,7 @@ function PickPlace({ pickId, onPick, onChoose }: { pickId: string | null; onPick
       </div>
 
       {picked ? (
-        <div className="absolute above-nav inset-x-3 z-10 bg-surface rounded-3xl p-5 shadow-sheet flex flex-col gap-4">
+        <div className="absolute bottom-3 inset-x-3 z-10 bg-surface rounded-3xl p-5 shadow-sheet flex flex-col gap-4">
           <div className="flex items-start gap-3">
             <span className="w-11 h-11 shrink-0 rounded-full bg-surface-container flex items-center justify-center text-[22px]">
               {CATEGORY_EMOJI[picked.category] ?? '📍'}
@@ -265,7 +265,7 @@ function PickPlace({ pickId, onPick, onChoose }: { pickId: string | null; onPick
 
           <button
             onClick={() => onChoose(picked)}
-            className="h-14 rounded-2xl brand-gradient shadow-brand text-[16px] font-bold flex items-center justify-center gap-1 pressable"
+            className="h-14 rounded-2xl bg-primary text-on-primary text-[16px] font-bold flex items-center justify-center gap-1 pressable"
             type="button"
           >
             이 가게에서 남기기
@@ -273,7 +273,7 @@ function PickPlace({ pickId, onPick, onChoose }: { pickId: string | null; onPick
           </button>
         </div>
       ) : (
-        <div className="absolute above-nav inset-x-3 z-10 flex justify-center pointer-events-none">
+        <div className="absolute bottom-4 inset-x-3 z-10 flex justify-center pointer-events-none">
           <span className="px-4 py-2 rounded-full bg-inverse-surface/90 text-inverse-on-surface text-label-md font-semibold">어느 가게에서 남길까요? 지도에서 누르거나 검색해 주세요</span>
         </div>
       )}

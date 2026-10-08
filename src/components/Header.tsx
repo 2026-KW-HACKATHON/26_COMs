@@ -39,7 +39,7 @@ export default function Header({ currentPath, goBack }: HeaderProps) {
         ) : (
           <>
             <div className="flex items-center gap-2 pl-2">
-              <span className="w-8 h-8 rounded-[10px] brand-gradient flex items-center justify-center">
+              <span className="w-8 h-8 rounded-[10px] bg-primary text-on-primary flex items-center justify-center">
                 <span className="material-symbols-rounded icon-fill text-[19px]">location_on</span>
               </span>
               <span className="text-[20px] font-extrabold tracking-tight text-on-surface">왔다감</span>

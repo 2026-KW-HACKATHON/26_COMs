@@ -30,21 +30,18 @@ export default function BottomNav({ currentPath }: BottomNavProps) {
   };
 
   return (
-    // 화면 아래에 떠 있는 탭 막대 (지도 화면에서는 지도 위에 뜬다)
-    <nav className="fixed bottom-0 inset-x-0 z-50 pb-safe pointer-events-none">
-      <div className="max-w-[430px] mx-auto px-3 pb-3">
-        <div className="h-16 grid grid-cols-5 rounded-[26px] app-surface pointer-events-auto">
-          {TABS_LEFT.map(tab)}
+    <nav className="fixed bottom-0 inset-x-0 z-50 bg-white/95 backdrop-blur-xl border-t border-gray-100 pb-safe">
+      <div className="max-w-[430px] mx-auto h-16 grid grid-cols-5">
+        {TABS_LEFT.map(tab)}
 
-          {/* 남기기: 가운데 강조 그라데이션 버튼 */}
-          <Link to="/leave" className="flex items-center justify-center" aria-label="남기기" aria-current={currentPath === 'leave' ? 'page' : undefined}>
-            <span className="w-11 h-11 rounded-2xl brand-gradient shadow-brand flex items-center justify-center pressable">
-              <span className="material-symbols-rounded text-[26px]">add</span>
-            </span>
-          </Link>
+        <Link to="/leave" className="flex flex-col items-center justify-center gap-0.5 text-[11px] font-semibold text-primary" aria-current={currentPath === 'leave' ? 'page' : undefined}>
+          <span className="w-12 h-8 rounded-full bg-primary text-on-primary flex items-center justify-center pressable">
+            <span className="material-symbols-rounded text-[24px]">add</span>
+          </span>
+          남기기
+        </Link>
 
-          {TABS_RIGHT.map(tab)}
-        </div>
+        {TABS_RIGHT.map(tab)}
       </div>
     </nav>
   );

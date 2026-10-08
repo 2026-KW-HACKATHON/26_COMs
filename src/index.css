@@ -20,8 +20,8 @@
     -webkit-tap-highlight-color: transparent;
   }
   :root {
-    /* 화면 아래에 떠 있는 탭 막대(BottomNav)가 차지하는 높이: 막대 4rem + 아래 여백 0.75rem */
-    --nav-space: calc(4.75rem + env(safe-area-inset-bottom, 0px));
+    /* 아래 탭 막대(BottomNav) 높이 */
+    --nav-space: calc(4rem + env(safe-area-inset-bottom, 0px));
   }
 }
 
@@ -29,45 +29,13 @@
   .app-shell {
     @apply relative w-full min-h-screen bg-surface text-on-surface;
   }
-  /* 떠 있는 막대 (아래 탭): 반투명 흰색 + 흐림 + 그림자 */
-  .app-surface {
-    @apply bg-white/90 backdrop-blur-xl border border-gray-100 shadow-card;
-  }
-  /* 떠 있는 카드: 강조할 것(회상·내 동네 지도·랭킹 1~3위·영상)만. 목록·피드는 평평하게 둔다 */
-  .app-card {
-    @apply bg-white rounded-3xl border border-gray-100 shadow-card;
-  }
-  /* 평평한 면: 회색 바탕, 그림자 없음 */
+  /* 평평한 면: 회색 바탕, 그림자 없음. 그림자(떠 있는 요소)는 지도 위에 뜨는 것에만 쓴다 */
   .flat-card {
     @apply bg-gray-50 rounded-2xl;
   }
-  .app-chip {
-    @apply inline-flex items-center gap-1 rounded-full bg-gray-100 px-3 py-1.5 text-[12px] font-semibold text-gray-700;
-  }
-  /* 강조 그라데이션: 푸른 민트 → 에메랄드 (주요 버튼·남기기·프로필 테두리 등 포인트에만) */
-  .brand-gradient {
-    color: #fff;
-    background: linear-gradient(120deg, #14b8a0 0%, #0c9a6b 55%, #0a8a5f 100%);
-  }
-  .brand-gradient:disabled {
-    background: theme('colors.gray.200');
-    color: theme('colors.gray.400');
-    box-shadow: none;
-  }
-  /* 글자에 강조 그라데이션 (숫자 포인트) */
-  .brand-text {
-    background: linear-gradient(120deg, #14b8a0 0%, #0c9a6b 60%);
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
-  }
-  /* 지도 화면: 머리줄 아래부터 화면 끝까지 (아래 탭은 지도 위에 떠 있다) */
+  /* 지도 화면: 머리줄과 아래 탭 사이를 꽉 채운다 */
   .map-screen {
-    height: calc(100dvh - 3.5rem - env(safe-area-inset-top, 0px));
-  }
-  /* 지도 위 아래쪽 요소(가게 시트·랭킹 카드)는 떠 있는 아래 탭 바로 위에 */
-  .above-nav {
-    bottom: calc(var(--nav-space) + 0.75rem);
+    height: calc(100dvh - 3.5rem - env(safe-area-inset-top, 0px) - var(--nav-space));
   }
 }
 
@@ -237,10 +205,6 @@
 .leaflet-container {
   font-family: inherit;
 }
-/* 지도는 떠 있는 아래 탭 밑까지 깔리므로 출처 표시는 탭 위로 올린다 */
-.leaflet-container .leaflet-bottom {
-  bottom: var(--nav-space);
-}
 .leaflet-container .leaflet-control-attribution {
   background: transparent;
   color: theme('colors.gray.500');
@@ -298,7 +262,7 @@
   height: 18px;
   padding: 0 5px;
   border-radius: 999px;
-  background: linear-gradient(120deg, #14b8a0 0%, #0c9a6b 60%);
+  background: theme('colors.primary');
   color: #fff;
   font-size: 11px;
   line-height: 18px;

@@ -131,5 +131,5 @@ curl -H "Authorization: Bearer <CRON_SECRET>" "https://26-coms.vercel.app/api/re
 
 - 월계1동 가게 목록: `node scripts/fetch-places.mjs` (OpenStreetMap)
 - 월계1동 지도(건물 윤곽·도로·철도·물·공원·지명): `node scripts/fetch-map.mjs` → `src/data/wolgye1-map.json`. OSM에 그려진 건물이 적어서 Overture Maps 건물(OSM + Microsoft 위성 인식)을 함께 쓰는데, 이건 Python 도구가 필요해서 GitHub Actions의 **지도 데이터 갱신** 워크플로로 돌리는 게 편하다 (Actions 탭 → Run workflow, 결과를 같은 브랜치에 자동 커밋). 가게 목록을 갱신한 뒤에도 한 번 돌린다
-- 화면 색: 토스처럼 흰 바탕 + 회색 단계 + 강조색(에메랄드 초록) 하나. 강조색은 [tailwind.config.js](tailwind.config.js)의 `BRAND`, [src/lib/theme.ts](src/lib/theme.ts)(캔버스로 그리는 지도용), [src/index.css](src/index.css)의 `.brand-gradient`(주요 버튼 그라데이션)를 같이 바꾼다. 앱 아이콘은 [public/favicon.svg](public/favicon.svg)를 고친 뒤 [pwa-assets.config.mjs](pwa-assets.config.mjs)의 명령으로 다시 만든다. 떠 있는 카드(그림자)는 아래 탭·지도 위 요소·회상·내 동네 지도·랭킹 1~3위·영상에만 쓰고 피드·목록은 평평하게 둔다. 글꼴은 Pretendard(앱에 포함)
+- 화면 색: 토스처럼 흰 바탕 + 회색 단계 + 강조색(에메랄드 초록) 하나. 강조색은 [tailwind.config.js](tailwind.config.js)의 `BRAND`, [src/lib/theme.ts](src/lib/theme.ts)(캔버스로 그리는 지도용), 앱 아이콘([public/favicon.svg](public/favicon.svg), 고친 뒤 [pwa-assets.config.mjs](pwa-assets.config.mjs)의 명령으로 다시 만든다)를 같이 바꾼다. 버튼은 단색, 그라데이션은 지도에서 영상이 있는 건물을 칠할 때만 쓴다. 그림자(떠 있는 요소)는 지도 위에 뜨는 검색창·가게 시트·랭킹 카드에만 쓰고 나머지는 회색 면이나 얇은 선으로 평평하게 둔다. 글꼴은 Pretendard(앱에 포함)
 - 앱 아이콘: [public/favicon.svg](public/favicon.svg)를 고친 뒤 `npx @vite-pwa/assets-generator@1`

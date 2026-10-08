@@ -29,7 +29,7 @@ export default function Avatar({ profile, size = 36, className = '' }: AvatarPro
   return (
     <span
       style={{ ...style, fontSize: Math.round(size * 0.42) }}
-      className={`shrink-0 rounded-full brand-gradient font-bold flex items-center justify-center ${className}`}
+      className={`shrink-0 rounded-full bg-primary-fixed-dim text-on-primary-fixed font-bold flex items-center justify-center ${className}`}
     >
       {profile?.displayName.trim().charAt(0) || '?'}
     </span>

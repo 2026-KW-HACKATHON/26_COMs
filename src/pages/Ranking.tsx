@@ -87,18 +87,10 @@ export default function Ranking() {
           </p>
         </div>
       ) : (
-        // 1~3위는 떠 있는 카드, 4위부터는 평평한 목록
-        <ol className="flex flex-col">
-          {ranking.map((r, i) => (
-            <li
-              key={r.placeId}
-              className={
-                r.rank <= 3
-                  ? 'app-card mb-2.5 overflow-hidden'
-                  : `border-gray-100 ${i > 0 && ranking[i - 1].rank > 3 ? 'border-t' : 'mt-2'}`
-              }
-            >
-              <button onClick={() => openOnMap(r)} className={`w-full flex items-center gap-3 text-left pressable ${r.rank <= 3 ? 'p-4' : 'px-4 py-3'}`} type="button">
+        <ol className="flex flex-col divide-y divide-gray-100">
+          {ranking.map((r) => (
+            <li key={r.placeId}>
+              <button onClick={() => openOnMap(r)} className="w-full flex items-center gap-3 px-1 py-3.5 text-left pressable" type="button">
                 <span className={`w-7 shrink-0 text-center ${r.rank <= 3 ? 'text-[24px] leading-none' : 'text-label-lg font-bold text-gray-500'}`}>
                   {MEDALS[r.rank - 1] ?? r.rank}
                 </span>
@@ -112,7 +104,7 @@ export default function Ranking() {
                   </span>
                 </span>
                 <span className="shrink-0 flex flex-col items-end">
-                  <span className={`leading-tight ${r.rank <= 3 ? 'brand-text text-[20px] font-extrabold' : 'text-[17px] font-bold text-primary'}`}>
+                  <span className="text-[17px] font-bold leading-tight text-primary">
                     {r.visits}
                     <span className="text-label-sm font-semibold"> 번</span>
                   </span>
@@ -136,7 +128,7 @@ export default function Ranking() {
           <span className="material-symbols-rounded text-[20px] text-gray-500">ios_share</span>
           랭킹 공유하기
         </button>
-        <button onClick={() => navigate('/leave')} className="h-12 rounded-2xl brand-gradient shadow-brand text-label-lg font-bold flex items-center justify-center gap-1.5 pressable" type="button">
+        <button onClick={() => navigate('/leave')} className="h-12 rounded-2xl bg-primary text-on-primary text-label-lg font-bold flex items-center justify-center gap-1.5 pressable" type="button">
           <span className="material-symbols-rounded text-[20px]">videocam</span>
           5초 남기기
         </button>
