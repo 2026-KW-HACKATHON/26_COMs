@@ -14,8 +14,9 @@ export default defineConfig({
         short_name: '왔다감',
         description: '동네 가게에 남기는 5초. 월계1동 가게에서 그 자리에서 찍은 5초 영상을 지도에 남겨요',
         lang: 'ko',
-        theme_color: '#ffffff',
-        background_color: '#ffffff',
+        // 바탕 종이색 (tailwind.config.js의 PAPER)
+        theme_color: '#FAF6F1',
+        background_color: '#FAF6F1',
         display: 'standalone',
         orientation: 'portrait',
         // 아이콘은 pwa-assets.config.mjs로 생성

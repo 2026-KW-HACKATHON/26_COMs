@@ -148,13 +148,13 @@ export default function Home() {
       </div>
 
       {selected ? (
-        <div className="absolute bottom-3 inset-x-3 z-10 bg-surface rounded-3xl p-5 shadow-sheet flex flex-col gap-4">
+        <div className="absolute bottom-3 inset-x-3 z-10 bg-surface rounded-[28px] p-5 shadow-sheet flex flex-col gap-4">
           <div className="flex items-start gap-3">
-            <span className="w-11 h-11 shrink-0 rounded-full bg-surface-container flex items-center justify-center text-[22px]">
+            <span className="w-11 h-11 shrink-0 rounded-full bg-primary-fixed flex items-center justify-center text-[22px]">
               {CATEGORY_EMOJI[selected.category] ?? '📍'}
             </span>
             <div className="flex-1 min-w-0 pt-0.5">
-              <h2 className="text-headline-sm text-on-surface truncate">{selected.name}</h2>
+              <h2 className="font-serif text-[20px] font-bold leading-snug text-on-surface truncate">{selected.name}</h2>
               <p className="text-label-md text-on-surface-variant truncate">
                 {[placeSubtitle(selected), selected.address].filter(Boolean).join(' · ')}
               </p>
@@ -215,7 +215,7 @@ export default function Home() {
           {selectedVideos.length > 0 && (
             <div className="flex gap-2 overflow-x-auto no-scrollbar -mx-5 px-5">
               {selectedVideos.map((c) => (
-                <button key={c.id} onClick={() => navigate(`/video/${c.id}`)} className="relative w-[72px] h-24 shrink-0 rounded-xl overflow-hidden bg-surface-container pressable" type="button">
+                <button key={c.id} onClick={() => navigate(`/video/${c.id}`)} className="relative w-[72px] h-24 shrink-0 rounded-xl overflow-hidden bg-surface-container shadow-card pressable" type="button">
                   <CapsuleThumb thumbnail={c.thumbnail} />
                   <span className="absolute inset-0 flex items-center justify-center bg-black/15 text-white">
                     <span className="material-symbols-rounded text-[24px] icon-fill">play_arrow</span>
@@ -231,7 +231,7 @@ export default function Home() {
 
           <button
             onClick={() => navigate(`/leave?place=${encodeURIComponent(selected.id)}`)}
-            className="h-14 rounded-2xl bg-primary text-on-primary text-[16px] font-bold flex items-center justify-center gap-1.5 pressable"
+            className="h-14 rounded-2xl bg-sunset shadow-glow text-[16px] font-bold flex items-center justify-center gap-1.5 pressable"
             type="button"
           >
             <span className="material-symbols-rounded text-[22px]">videocam</span>
@@ -240,7 +240,7 @@ export default function Home() {
         </div>
       ) : (
         <div className="absolute bottom-3 inset-x-3 z-10 flex flex-col items-center gap-2 pointer-events-none">
-          <span className="px-4 py-2 rounded-full bg-inverse-surface/90 text-inverse-on-surface text-label-md font-semibold">{hint}</span>
+          <span className="px-4 py-2 rounded-full bg-inverse-surface/90 backdrop-blur text-inverse-on-surface text-label-md font-semibold shadow-float">{hint}</span>
           {/* 동네 랭킹 1~3위를 돌아가며 보여 주고, 누르면 전체 랭킹 */}
           {featured && (
             <button
@@ -248,7 +248,7 @@ export default function Home() {
               className="pointer-events-auto w-full h-16 pl-3 pr-2 rounded-2xl bg-surface shadow-sheet flex items-center gap-3 text-left pressable"
               type="button"
             >
-              <span className="w-10 h-10 shrink-0 rounded-full bg-primary-fixed flex items-center justify-center text-[20px]">🏆</span>
+              <span className="w-10 h-10 shrink-0 rounded-full bg-memory flex items-center justify-center text-[20px]">🏆</span>
               <span className="flex-1 min-w-0">
                 <span className="block text-label-sm text-on-surface-variant">동네 랭킹 · {PERIOD_LABEL}</span>
                 <span key={featured.placeId} className="block text-label-lg font-bold text-on-surface truncate ticker-in">

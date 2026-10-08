@@ -8,7 +8,7 @@ import type { FriendStatus, ProfileWithStatus } from '../types/social';
 
 function PersonRow({ person, children }: { person: ProfileWithStatus; children: ReactNode }) {
   return (
-    <li className="flex items-center gap-3 py-3">
+    <li className="flex items-center gap-3 py-3 px-4">
       <Avatar profile={person} size={44} />
       <div className="flex-1 min-w-0">
         <p className="text-label-lg text-on-surface font-bold truncate">{person.displayName}</p>
@@ -19,8 +19,8 @@ function PersonRow({ person, children }: { person: ProfileWithStatus; children: 
   );
 }
 
-const primaryButton = 'h-9 px-3.5 rounded-full instagram-gradient text-white text-label-md font-bold pressable disabled:opacity-50 shadow-[0_10px_20px_rgba(225,48,108,0.18)]';
-const secondaryButton = 'h-9 px-3.5 rounded-full bg-white border border-gray-200 text-gray-700 text-label-md font-semibold pressable disabled:opacity-50';
+const primaryButton = 'h-9 px-3.5 rounded-full bg-sunset text-label-md font-bold pressable disabled:opacity-50';
+const secondaryButton = 'h-9 px-3.5 rounded-full btn-paper text-label-md font-semibold pressable disabled:opacity-50';
 
 export default function Friends() {
   const navigate = useNavigate();
@@ -130,7 +130,7 @@ export default function Friends() {
             <button
               onClick={() => act(person, 'remove')}
               disabled={busy}
-              className="w-9 h-9 rounded-lg bg-surface-container text-gray-500 flex items-center justify-center pressable disabled:opacity-50"
+              className="w-9 h-9 rounded-full bg-surface-container text-gray-500 flex items-center justify-center pressable disabled:opacity-50"
               type="button"
               aria-label={`${person.displayName}님과 친구 끊기`}
             >
@@ -149,8 +149,10 @@ export default function Friends() {
   return (
     <div className="flex flex-col w-full pb-8 pt-3 gap-5">
       {profile && (
-        <div className="flex items-center gap-3 px-4 py-3 rounded-[28px] app-card">
-          <span className="material-symbols-rounded text-gray-500 text-[22px]">badge</span>
+        <div className="flex items-center gap-3 px-4 py-3.5 app-card">
+          <span className="w-10 h-10 shrink-0 rounded-full bg-primary-fixed text-primary flex items-center justify-center">
+            <span className="material-symbols-rounded text-[22px]">badge</span>
+          </span>
           <div className="flex-1 min-w-0">
             <p className="text-label-sm text-on-surface-variant">내 아이디 (친구에게 알려 주세요)</p>
             {/* 복사가 안 되는 환경에서도 길게 눌러 직접 선택할 수 있게 버튼 밖에 둔다 */}
@@ -167,7 +169,7 @@ export default function Friends() {
       )}
 
       <section className="flex flex-col gap-2">
-        <div className="flex items-center gap-2 px-4 h-12 rounded-full bg-white border border-gray-100 shadow-[0_10px_22px_rgba(15,23,42,0.05)]">
+        <div className="flex items-center gap-2 px-4 h-12 rounded-2xl bg-surface border border-gray-200 focus-within:border-primary transition-colors">
           <span className="material-symbols-rounded text-[22px] text-gray-400">search</span>
           <input
             value={query}
@@ -188,7 +190,7 @@ export default function Friends() {
           ) : shownResults.length === 0 ? (
             <p className="px-1 text-label-md text-on-surface-variant">찾는 사람이 없어요. 아이디를 다시 확인해 주세요.</p>
           ) : (
-            <ul className="px-1 divide-y divide-gray-100 bg-white border border-gray-100 rounded-[28px] overflow-hidden">
+            <ul className="divide-y divide-gray-100 app-card overflow-hidden">
               {shownResults.map((p) => (
                 <PersonRow key={p.id} person={p}>{actions(p)}</PersonRow>
               ))}
@@ -206,8 +208,8 @@ export default function Friends() {
         <>
           {incoming.length > 0 && (
             <section>
-              <h2 className="text-headline-sm text-on-surface">받은 요청 {incoming.length}</h2>
-              <ul className="divide-y divide-gray-100 bg-white border border-gray-100 rounded-[28px] overflow-hidden">
+              <h2 className="px-1 font-serif text-[18px] font-bold text-on-surface">받은 요청 {incoming.length}</h2>
+              <ul className="mt-2 divide-y divide-gray-100 app-card overflow-hidden">
                 {incoming.map((p) => (
                   <PersonRow key={p.id} person={p}>{actions(p)}</PersonRow>
                 ))}
@@ -216,11 +218,11 @@ export default function Friends() {
           )}
 
           <section>
-            <h2 className="text-headline-sm text-on-surface">친구 {friends.length}</h2>
+            <h2 className="px-1 font-serif text-[18px] font-bold text-on-surface">친구 {friends.length}</h2>
             {friends.length === 0 ? (
               <p className="mt-2 text-label-md text-on-surface-variant">친구를 추가하면 서로의 지도를 보고, 영상에 태그할 수 있어요.</p>
             ) : (
-              <ul className="divide-y divide-gray-100 bg-white border border-gray-100 rounded-[28px] overflow-hidden">
+              <ul className="mt-2 divide-y divide-gray-100 app-card overflow-hidden">
                 {friends.map((p) => (
                   <PersonRow key={p.id} person={p}>{actions(p)}</PersonRow>
                 ))}
@@ -230,8 +232,8 @@ export default function Friends() {
 
           {outgoing.length > 0 && (
             <section>
-              <h2 className="text-headline-sm text-on-surface">보낸 요청 {outgoing.length}</h2>
-              <ul className="divide-y divide-gray-100 bg-white border border-gray-100 rounded-[28px] overflow-hidden">
+              <h2 className="px-1 font-serif text-[18px] font-bold text-on-surface">보낸 요청 {outgoing.length}</h2>
+              <ul className="mt-2 divide-y divide-gray-100 app-card overflow-hidden">
                 {outgoing.map((p) => (
                   <PersonRow key={p.id} person={p}>{actions(p)}</PersonRow>
                 ))}

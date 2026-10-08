@@ -59,7 +59,7 @@ function storeStyle(count: number, selected: boolean): L.PathOptions {
   const base: L.PathOptions = count
     ? { fillColor: MAP_COLORS.heat[heatLevel(count)], fillOpacity: 1, color: MAP_COLORS.heatStroke, opacity: 0.3, weight: 0.6 }
     : { fillColor: MAP_COLORS.store, fillOpacity: 1, color: MAP_COLORS.storeStroke, opacity: 1, weight: 0.6 };
-  return selected ? { ...base, color: MAP_COLORS.selected, opacity: 1, weight: 2, ...(count ? {} : { fillColor: '#B0B8C1' }) } : base;
+  return selected ? { ...base, color: MAP_COLORS.selected, opacity: 1, weight: 2, ...(count ? {} : { fillColor: '#B9AC9C' }) } : base;
 }
 
 interface GlowOptions extends L.PathOptions {

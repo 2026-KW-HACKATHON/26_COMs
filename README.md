@@ -131,5 +131,5 @@ curl -H "Authorization: Bearer <CRON_SECRET>" "https://26-coms.vercel.app/api/re
 
 - 월계1동 가게 목록: `node scripts/fetch-places.mjs` (OpenStreetMap)
 - 월계1동 지도(건물 윤곽·도로·철도·물·공원·지명): `node scripts/fetch-map.mjs` → `src/data/wolgye1-map.json`. OSM에 그려진 건물이 적어서 Overture Maps 건물(OSM + Microsoft 위성 인식)을 함께 쓰는데, 이건 Python 도구가 필요해서 GitHub Actions의 **지도 데이터 갱신** 워크플로로 돌리는 게 편하다 (Actions 탭 → Run workflow, 결과를 같은 브랜치에 자동 커밋). 가게 목록을 갱신한 뒤에도 한 번 돌린다
-- 화면 색: 토스처럼 회색 단계 + 강조색 하나. 강조색은 [tailwind.config.js](tailwind.config.js)의 `BRAND`와 [src/lib/theme.ts](src/lib/theme.ts)(캔버스로 그리는 지도용)를 같이 바꾼다. 글꼴은 Pretendard(앱에 포함)
+- 화면 색: 오래된 동네 앨범처럼 따뜻한 종이색 바탕 + 먹색 글씨 + 노을빛 주황 강조색 하나. 강조색은 [tailwind.config.js](tailwind.config.js)의 `BRAND`와 [src/lib/theme.ts](src/lib/theme.ts)(캔버스로 그리는 지도용)를 같이 바꾼다. 노을 그라데이션·폴라로이드·필름 날짜('26 10 08) 같은 공통 모양은 [src/index.css](src/index.css)에 있다. 글꼴은 본문 Pretendard(앱에 포함), 제목 고운바탕, 앱 이름·폴라로이드 글씨 나눔손글씨 펜(구글 폰트)
 - 앱 아이콘: [public/favicon.svg](public/favicon.svg)를 고친 뒤 `npx @vite-pwa/assets-generator@1`

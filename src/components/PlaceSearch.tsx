@@ -11,7 +11,7 @@ export default function PlaceSearch({ onPick }: PlaceSearchProps) {
   const results = q ? PLACES.filter((p) => p.name.includes(q) || placeSubtitle(p).includes(q)).slice(0, 6) : [];
 
   return (
-    <div className="bg-surface rounded-2xl shadow-float overflow-hidden">
+    <div className="bg-surface rounded-[22px] shadow-float overflow-hidden border border-gray-900/[0.05]">
       <div className="flex items-center gap-2 px-4 h-12">
         <span className="material-symbols-rounded text-[22px] text-gray-400">search</span>
         <input
@@ -38,7 +38,7 @@ export default function PlaceSearch({ onPick }: PlaceSearchProps) {
                 className="w-full px-4 py-2.5 flex items-center gap-3 text-left active:bg-surface-container-low"
                 type="button"
               >
-                <span className="w-9 h-9 shrink-0 rounded-full bg-surface-container flex items-center justify-center text-[18px]">{CATEGORY_EMOJI[p.category] ?? '📍'}</span>
+                <span className="w-9 h-9 shrink-0 rounded-full bg-primary-fixed flex items-center justify-center text-[18px]">{CATEGORY_EMOJI[p.category] ?? '📍'}</span>
                 <span className="flex flex-col min-w-0">
                   <span className="text-label-lg text-on-surface truncate">{p.name}</span>
                   <span className="text-label-sm text-on-surface-variant truncate">{placeSubtitle(p)}</span>

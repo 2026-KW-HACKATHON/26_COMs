@@ -30,20 +30,19 @@ export default function BottomNav({ currentPath }: BottomNavProps) {
   };
 
   return (
-    <nav className="fixed bottom-0 inset-x-0 z-50 pb-safe">
-      <div className="max-w-[430px] mx-auto px-3 pb-3">
-        <div className="h-18 grid grid-cols-5 items-end rounded-[28px] app-surface px-2 py-2">
+    <nav className="fixed bottom-0 inset-x-0 z-50 app-surface border-t border-gray-900/[0.06] pb-safe">
+      <div className="max-w-[430px] mx-auto h-16 grid grid-cols-5">
         {TABS_LEFT.map(tab)}
 
-        <Link to="/leave" className="flex flex-col items-center justify-center gap-0.5 text-[11px] font-semibold text-primary">
-          <span className="w-12 h-12 rounded-full instagram-gradient text-white flex items-center justify-center shadow-[0_12px_26px_rgba(225,48,108,0.3)] pressable">
-            <span className="material-symbols-rounded text-[24px] icon-fill">add</span>
+        {/* 남기기: 탭 막대 위로 살짝 떠오른 노을빛 버튼 (종이색 테두리로 막대와 떼어 놓는다) */}
+        <Link to="/leave" className="flex flex-col items-center justify-end pb-[7px] gap-0.5 text-[11px] font-bold text-primary">
+          <span className="w-[52px] h-[52px] -mt-5 rounded-full bg-sunset shadow-glow ring-4 ring-paper flex items-center justify-center pressable">
+            <span className="material-symbols-rounded icon-fill text-[26px]">videocam</span>
           </span>
           남기기
         </Link>
 
         {TABS_RIGHT.map(tab)}
-        </div>
       </div>
     </nav>
   );

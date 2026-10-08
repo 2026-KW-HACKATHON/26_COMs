@@ -39,20 +39,23 @@ export default function Ranking() {
   const openOnMap = (r: RankedPlace) => navigate('/?view=town', { state: { placeId: r.placeId } });
 
   return (
-    <div className="flex flex-col w-full pt-4 pb-8 gap-4">
-      <section className="app-card p-5">
-        <p className="text-label-md font-bold text-primary">노원구 월계1동</p>
-        <h2 className="text-headline-md text-on-surface">동네 사람들이 다시 찾는 가게</h2>
-        <p className="mt-1 text-body-sm text-on-surface-variant">5초를 남긴 방문이 많은 순서예요. 다시 찾아갈수록 순위가 올라가요.</p>
+    <div className="flex flex-col w-full pt-6 pb-8 gap-5">
+      <section className="px-1">
+        <p className="eyebrow flex items-center gap-1">
+          <span className="material-symbols-rounded icon-fill text-[15px]">location_on</span>
+          노원구 월계1동
+        </p>
+        <h2 className="mt-1 font-serif text-[26px] font-bold leading-snug text-on-surface">동네 사람들이<br />다시 찾는 가게</h2>
+        <p className="mt-2 text-body-sm text-on-surface-variant">5초를 남긴 방문이 많은 순서예요. 다시 찾아갈수록 순위가 올라가요.</p>
       </section>
 
-      <div className="flex p-1 rounded-full bg-white border border-gray-100 shadow-[0_10px_24px_rgba(15,23,42,0.06)]" role="tablist" aria-label="기간">
+      <div className="flex p-1 rounded-full bg-surface-container" role="tablist" aria-label="기간">
         {RANKING_PERIODS.map((p) => (
           <button
             key={p.label}
             onClick={() => setDays(p.days)}
-            className={`flex-1 h-10 rounded-full text-label-md font-semibold transition-all ${
-              days === p.days ? 'bg-white text-on-surface shadow-[0_8px_22px_rgba(15,23,42,0.08)]' : 'text-gray-500'
+            className={`flex-1 h-9 rounded-full text-label-md font-semibold transition-all ${
+              days === p.days ? 'bg-surface text-on-surface shadow-float' : 'text-gray-500'
             }`}
             type="button"
             role="tab"
@@ -64,37 +67,37 @@ export default function Ranking() {
       </div>
 
       {ranking === null ? (
-        <ul className="flex flex-col app-card p-4" aria-label="불러오는 중">
+        <ul className="flex flex-col app-card px-4 py-1" aria-label="불러오는 중">
           {[0, 1, 2, 3, 4].map((i) => (
             <li key={i} className="flex items-center gap-3 py-3 animate-pulse">
-              <span className="w-7 h-5 rounded-full bg-gray-100" />
-              <span className="w-11 h-11 rounded-full bg-gray-100" />
+              <span className="w-7 h-5 rounded-full bg-surface-container" />
+              <span className="w-11 h-11 rounded-full bg-surface-container" />
               <span className="flex-1 flex flex-col gap-1.5">
-                <span className="w-2/3 h-4 rounded-full bg-gray-100" />
-                <span className="w-1/3 h-3 rounded-full bg-gray-100" />
+                <span className="w-2/3 h-4 rounded-full bg-surface-container" />
+                <span className="w-1/3 h-3 rounded-full bg-surface-container" />
               </span>
             </li>
           ))}
         </ul>
       ) : ranking.length === 0 ? (
-        <div className="mt-2 flex flex-col items-center text-center py-14 px-6 app-card text-on-surface-variant">
-          <div className="w-16 h-16 rounded-full instagram-gradient flex items-center justify-center text-white shadow-[0_16px_30px_rgba(225,48,108,0.24)]">
+        <div className="flex flex-col items-center text-center py-12 px-6 app-card text-on-surface-variant">
+          <div className="w-16 h-16 rounded-full bg-primary-fixed flex items-center justify-center">
             <span className="text-[30px]">🏆</span>
           </div>
-          <p className="mt-2 text-body-md">
+          <p className="mt-4 text-body-md">
             {days === null ? '아직 다녀간 사람이 없어요.' : `${RANKING_PERIODS.find((p) => p.days === days)?.label} 동안 다녀간 사람이 없어요.`}
             <br />첫 번째 단골이 되어 보세요!
           </p>
         </div>
       ) : (
-        <ol className="flex flex-col">
+        <ol className="flex flex-col app-card px-2 py-1 divide-y divide-gray-100">
           {ranking.map((r) => (
-            <li key={r.placeId} className="app-card mb-3 overflow-hidden">
-              <button onClick={() => openOnMap(r)} className="w-full flex items-center gap-3 p-4 text-left pressable" type="button">
-                <span className={`w-7 shrink-0 text-center ${r.rank <= 3 ? 'text-[24px] leading-none' : 'text-label-lg font-bold text-gray-500'}`}>
+            <li key={r.placeId}>
+              <button onClick={() => openOnMap(r)} className="w-full flex items-center gap-3 px-2 py-3.5 text-left pressable" type="button">
+                <span className={`w-7 shrink-0 text-center ${r.rank <= 3 ? 'text-[24px] leading-none' : 'font-serif text-[17px] font-bold text-gray-400'}`}>
                   {MEDALS[r.rank - 1] ?? r.rank}
                 </span>
-                <span className="w-11 h-11 shrink-0 rounded-full bg-gray-100 border border-gray-100 flex items-center justify-center text-[22px]">
+                <span className="w-11 h-11 shrink-0 rounded-full bg-surface-container-low flex items-center justify-center text-[22px]">
                   {CATEGORY_EMOJI[r.place.category] ?? '📍'}
                 </span>
                 <span className="flex-1 min-w-0">
@@ -104,12 +107,12 @@ export default function Ranking() {
                   </span>
                 </span>
                 <span className="shrink-0 flex flex-col items-end">
-                  <span className="text-[17px] font-bold leading-tight text-primary">
+                  <span className="font-serif text-[20px] font-bold leading-tight text-primary">
                     {r.visits}
-                    <span className="text-label-sm font-semibold"> 번</span>
+                    <span className="font-sans text-label-sm font-semibold"> 번</span>
                   </span>
                   {r.regulars > 0 && (
-                    <span className="mt-0.5 px-1.5 rounded-full instagram-gradient text-white text-[11px] font-bold leading-[18px]">단골 {r.regulars}명</span>
+                    <span className="mt-0.5 px-1.5 rounded-full bg-primary-fixed text-on-primary-fixed text-[11px] font-bold leading-[18px]">단골 {r.regulars}명</span>
                   )}
                 </span>
               </button>
@@ -118,22 +121,22 @@ export default function Ranking() {
         </ol>
       )}
 
-      <p className="mt-4 text-label-sm text-on-surface-variant">
+      <p className="px-1 text-label-sm text-on-surface-variant">
         영상에 나온 사람(태그된 친구 포함)이 그날 다녀간 것을 방문 한 번으로 세요. 같은 날 여러 개를 남겨도 한 번이고, 단골은 다른 날 두 번 이상 온
         사람이에요. 영상과 누가 남겼는지는 공개되지 않아요.
       </p>
 
-      <div className="mt-2 grid grid-cols-2 gap-2">
-        <button onClick={share} className="h-12 rounded-full bg-white border border-gray-100 text-gray-700 text-label-lg flex items-center justify-center gap-1.5 pressable shadow-[0_10px_22px_rgba(15,23,42,0.05)]" type="button">
+      <div className="grid grid-cols-2 gap-2">
+        <button onClick={share} className="h-12 rounded-2xl btn-paper text-label-lg flex items-center justify-center gap-1.5 pressable" type="button">
           <span className="material-symbols-rounded text-[20px] text-gray-500">ios_share</span>
           랭킹 공유하기
         </button>
-        <button onClick={() => navigate('/leave')} className="h-12 rounded-full instagram-gradient text-white text-label-lg font-bold flex items-center justify-center gap-1.5 pressable shadow-[0_12px_24px_rgba(225,48,108,0.26)]" type="button">
+        <button onClick={() => navigate('/leave')} className="h-12 rounded-2xl bg-sunset shadow-glow text-label-lg font-bold flex items-center justify-center gap-1.5 pressable" type="button">
           <span className="material-symbols-rounded text-[20px]">videocam</span>
           5초 남기기
         </button>
       </div>
-      {note && <p className="mt-3 text-center text-label-md text-on-surface-variant" role="status">{note}</p>}
+      {note && <p className="text-center text-label-md text-on-surface-variant" role="status">{note}</p>}
     </div>
   );
 }
