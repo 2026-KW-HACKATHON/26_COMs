@@ -14,13 +14,13 @@ const GRAY = {
   800: '#333D4B',
   900: '#191F28',
 };
-// 강조 = 에메랄드 초록 (흰 글씨 대비 3.6:1, 굵은 버튼 글씨용). 연한 강조 = 아주 옅은 민트
+// 강조 = 파랑 (흰 글씨 대비 3.7:1, 굵은 버튼 글씨용). 연한 강조 = 아주 옅은 하늘색
 const BRAND = {
-  main: '#0C9A6B',
-  strong: '#087A55',
-  weak: '#E8F7F1',
-  weaker: '#CCEEDF',
-  onWeak: '#067049',
+  main: '#3182F6',
+  strong: '#1B64DA',
+  weak: '#E8F3FF',
+  weaker: '#C9E2FF',
+  onWeak: '#1B64DA',
 };
 
 module.exports = {

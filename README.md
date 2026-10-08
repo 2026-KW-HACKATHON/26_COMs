@@ -6,7 +6,7 @@
 
 ## 주요 기능
 
-- **지도**: 월계1동 건물 윤곽을 직접 그린 지도. 가게가 있는 건물을 누르면 그 가게가 선택되고, 영상을 남긴 건물은 민트 → 초록 그라데이션으로 채워지고 아래로 빛이 번진다(많이 남길수록 연한 민트 → 진한 초록 5단계). 말풍선 숫자는 그 건물에 남긴 영상 수. 지도를 열면 내 위치(동네 안일 때)를 가게 이름이 보이는 만큼 확대해서 보여 주고 파란 점으로 표시한다. 위치를 허용하지 않았거나 동네 밖이면 가게가 모여 있는 곳을 보여 준다
+- **지도**: 월계1동 건물 윤곽을 직접 그린 지도. 가게가 있는 건물을 누르면 그 가게가 선택되고, 영상을 남긴 건물은 하늘색 → 파랑 그라데이션으로 채워지고 아래로 빛이 번진다(많이 남길수록 연한 하늘색 → 진한 파랑 5단계). 말풍선 숫자는 그 건물에 남긴 영상 수. 지도를 열면 내 위치(동네 안일 때)를 가게 이름이 보이는 만큼 확대해서 보여 주고 파란 점으로 표시한다. 위치를 허용하지 않았거나 동네 밖이면 가게가 모여 있는 곳을 보여 준다
 - **5초 촬영**: 영상은 가게에서 그 자리에서 앱으로 찍은 것만 남긴다(앨범에서 올리기 없음). 버튼을 누르면 촬영, 다시 누르면 멈춘다(최소 1초). 멈추지 않으면 5초에 자동 종료
 - **로그인**: 카카오·Google 계정. 영상은 계정에 저장되어 다른 기기에서도 보인다
 - **친구**: 아이디·이름으로 검색해 친구 요청 → 상대가 수락하면 친구
@@ -131,5 +131,5 @@ curl -H "Authorization: Bearer <CRON_SECRET>" "https://26-coms.vercel.app/api/re
 
 - 월계1동 가게 목록: `node scripts/fetch-places.mjs` (OpenStreetMap)
 - 월계1동 지도(건물 윤곽·도로·철도·물·공원·지명): `node scripts/fetch-map.mjs` → `src/data/wolgye1-map.json`. OSM에 그려진 건물이 적어서 Overture Maps 건물(OSM + Microsoft 위성 인식)을 함께 쓰는데, 이건 Python 도구가 필요해서 GitHub Actions의 **지도 데이터 갱신** 워크플로로 돌리는 게 편하다 (Actions 탭 → Run workflow, 결과를 같은 브랜치에 자동 커밋). 가게 목록을 갱신한 뒤에도 한 번 돌린다
-- 화면 색: 토스처럼 흰 바탕 + 회색 단계 + 강조색(에메랄드 초록) 하나. 강조색은 [tailwind.config.js](tailwind.config.js)의 `BRAND`, [src/lib/theme.ts](src/lib/theme.ts)(캔버스로 그리는 지도용), 앱 아이콘([public/favicon.svg](public/favicon.svg), 고친 뒤 [pwa-assets.config.mjs](pwa-assets.config.mjs)의 명령으로 다시 만든다)를 같이 바꾼다. 버튼은 단색, 그라데이션은 지도에서 영상이 있는 건물을 칠할 때만 쓴다. 그림자(떠 있는 요소)는 지도 위에 뜨는 검색창·가게 시트·랭킹 카드에만 쓰고 나머지는 회색 면이나 얇은 선으로 평평하게 둔다. 글꼴은 Pretendard(앱에 포함)
+- 화면 색: 토스처럼 흰 바탕 + 회색 단계 + 강조색(파랑) 하나. 강조색은 [tailwind.config.js](tailwind.config.js)의 `BRAND`, [src/lib/theme.ts](src/lib/theme.ts)(캔버스로 그리는 지도용), 앱 아이콘([public/favicon.svg](public/favicon.svg), 고친 뒤 [pwa-assets.config.mjs](pwa-assets.config.mjs)의 명령으로 다시 만든다)를 같이 바꾼다. 버튼은 단색, 그라데이션은 지도에서 영상이 있는 건물을 칠할 때만 쓴다. 그림자(떠 있는 요소)는 지도 위에 뜨는 검색창·가게 시트·랭킹 카드에만 쓰고 나머지는 회색 면이나 얇은 선으로 평평하게 둔다. 글꼴은 Pretendard(앱에 포함)
 - 앱 아이콘: [public/favicon.svg](public/favicon.svg)를 고친 뒤 `npx @vite-pwa/assets-generator@1`
