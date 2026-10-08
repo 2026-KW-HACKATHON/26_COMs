@@ -74,23 +74,21 @@ interface GlowOptions extends L.PathOptions {
 }
 
 /**
- * 건물 테두리 두께(px): 가게 없는 건물 < 가게(누를 수 있음) < 다녀간 가게 < 고른 가게.
- * 가게 없는 건물은 바탕 레이어에서 BUILDING_STROKE로 그린다
+ * 가게 건물의 테두리 두께(px): 가게 < 다녀간 가게 < 고른 가게.
+ * 테두리는 칠한 색과 같은 색이라 다른 선처럼 보이지 않고 건물이 그만큼 조금 넓어진 것처럼 보인다
  */
-const BUILDING_STROKE = 0.5;
-const STROKE = { store: 1, visited: 2.2, selected: 3 };
+const STROKE = { store: 1.5, visited: 3, selected: 4 };
 
-/** 가게는 진한 회색 면에 진한 테두리, 다녀간 가게는 단계별 그라데이션(땅 주인이 있으면 주인 색)에 두꺼운 테두리 */
+/** 가게는 진한 회색, 다녀간 가게는 단계별 그라데이션(땅 주인이 있으면 주인 색). 테두리도 같은 색(그라데이션이면 같은 그라데이션) */
 function storeStyle(count: number, selected: boolean, owner?: TerritoryColor): GlowOptions {
   const heat = MAP_COLORS.heat[heatLevel(count)];
-  const base: GlowOptions = owner
-    ? { fillColor: owner.main, gradient: owner.fill, fillOpacity: 1, color: owner.stroke, opacity: 1, weight: STROKE.visited }
+  const fill: Pick<GlowOptions, 'fillColor' | 'gradient'> = owner
+    ? { fillColor: owner.main, gradient: owner.fill }
     : count
-      ? { fillColor: heat[1], gradient: heat, fillOpacity: 1, color: MAP_COLORS.heatStroke, opacity: 0.9, weight: STROKE.visited }
-      : { fillColor: MAP_COLORS.store, fillOpacity: 1, color: MAP_COLORS.storeStroke, opacity: 1, weight: STROKE.store };
-  return selected
-    ? { ...base, color: MAP_COLORS.selected, opacity: 1, weight: STROKE.selected, ...(count || owner ? {} : { fillColor: MAP_COLORS.storeSelected }) }
-    : base;
+      ? { fillColor: heat[1], gradient: heat }
+      : { fillColor: selected ? MAP_COLORS.storeSelected : MAP_COLORS.store };
+  const weight = selected ? STROKE.selected : owner || count ? STROKE.visited : STROKE.store;
+  return { ...fill, color: fill.fillColor, fillOpacity: 1, opacity: 1, weight };
 }
 
 function glowStyle(count: number, owner?: TerritoryColor): GlowOptions {
@@ -125,12 +123,15 @@ const GlowCanvas = L.Canvas.extend({
       const fill = ctx.createLinearGradient(px.min.x, px.min.y, px.max.x, px.max.y);
       fill.addColorStop(0, gradient[0]);
       fill.addColorStop(1, gradient[1]);
-      // Leaflet은 fillColor를 그대로 ctx.fillStyle에 넣으므로 그리는 동안만 그라데이션으로 바꿔 끼운다
-      const options = layer.options as { fillColor?: string | CanvasGradient };
-      const color = options.fillColor;
+      // Leaflet은 fillColor·color를 그대로 ctx.fillStyle·strokeStyle에 넣으므로 그리는 동안만 그라데이션으로 바꿔 끼운다
+      // (테두리도 같은 그라데이션이라 건물이 조금 넓어진 것처럼 보인다)
+      const options = layer.options as { fillColor?: string | CanvasGradient; color?: string | CanvasGradient };
+      const { fillColor, color } = options;
       options.fillColor = fill;
+      options.color = fill;
       canvasBase._fillStroke.call(this, ctx, layer);
-      options.fillColor = color;
+      options.fillColor = fillColor;
+      options.color = color;
       return;
     }
     if (!glow) return canvasBase._fillStroke.call(this, ctx, layer);
@@ -221,7 +222,7 @@ export default function PlaceMap({ selectedId, onSelect, videoCount, marks, owne
     // 가게가 없는 건물은 전부 한 레이어 (가게가 있는 건물은 아래 effect에서 따로)
     L.polygon(
       data.buildings.filter((b) => !b.places.length).map((b) => [b.ring]),
-      { renderer, interactive: false, fillColor: MAP_COLORS.building, fillOpacity: 1, color: MAP_COLORS.buildingStroke, weight: BUILDING_STROKE, fillRule: 'nonzero' },
+      { renderer, interactive: false, fillColor: MAP_COLORS.building, fillOpacity: 1, color: MAP_COLORS.buildingStroke, weight: 0.5, fillRule: 'nonzero' },
     ).addTo(map);
     L.polygon(data.boundary, { renderer, interactive: false, fill: false, color: MAP_COLORS.boundary, weight: 1.5 }).addTo(map);
 
