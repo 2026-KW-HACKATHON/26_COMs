@@ -178,15 +178,6 @@ function FeedItem({ capsule: c, me, stat, onOpen, onMap }: FeedItemProps) {
                 동네 공개
               </>
             )}
-            {c.verified && (
-              <>
-                <span aria-hidden>·</span>
-                <span className="flex items-center gap-0.5 font-semibold text-primary">
-                  <span className="material-symbols-rounded icon-fill text-[14px]">verified</span>
-                  현장 인증
-                </span>
-              </>
-            )}
           </span>
         </span>
         <span className="material-symbols-rounded text-[20px] text-gray-400">more_horiz</span>
