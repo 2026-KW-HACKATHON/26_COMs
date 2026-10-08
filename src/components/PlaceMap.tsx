@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import L from 'leaflet';
 import { getMapData, type Building, type LatLng } from '../data/mapData';
 import { getPlace, type Place } from '../data/places';
+import { getFix } from '../lib/location';
 import { MAP_COLORS } from '../lib/theme';
 
 /** 가게 이름표에 붙이는 표시: 앞에 이모지(메달·단골 별), 뒤에 짧은 글(오랜만) */
@@ -25,6 +26,8 @@ const ROAD_METERS = { major: 15, minor: 7, lane: 4 };
 /** 이 줌 이상에서 가게 이름을 보여 준다 */
 const NAME_ZOOM = 18;
 const FOCUS_ZOOM = 17;
+/** 내 위치가 이 시간(ms) 안에 잡히면 움직이는 효과 없이 바로 그 자리에서 시작한다 */
+const INSTANT_FIX_MS = 400;
 
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 
@@ -121,9 +124,11 @@ export default function PlaceMap({ selectedId, onSelect, videoCount, marks, clas
   const rendererRef = useRef<L.Canvas | null>(null);
   const dynamicRef = useRef<L.LayerGroup | null>(null);
   const onSelectRef = useRef(onSelect);
+  const selectedIdRef = useRef(selectedId);
 
   useEffect(() => {
     onSelectRef.current = onSelect;
+    selectedIdRef.current = selectedId;
   });
 
   // 바탕 지도: 한 번만 그린다. 종류별로 하나의 레이어로 묶어 캔버스에 그려서 가볍다
@@ -202,8 +207,37 @@ export default function PlaceMap({ selectedId, onSelect, videoCount, marks, clas
     const resize = new ResizeObserver(() => map.invalidateSize());
     resize.observe(el);
 
+    // 내 위치가 동네 안이면 그곳을 가게 이름이 보이는 만큼 확대해서 보여 준다 (위치는 기기 안에서만 쓴다).
+    // 위치를 잡기 전에 지도를 움직였거나 가게를 골랐으면 그대로 둔다
+    let alive = true;
+    let touched = false;
+    const touch = () => {
+      touched = true;
+    };
+    map.on('dragstart', touch);
+    el.addEventListener('wheel', touch, { passive: true });
+    el.addEventListener('touchstart', touch, { passive: true });
+    const askedAt = performance.now();
+    void getFix({ timeoutMs: 8000, highAccuracy: false, maxAgeMs: 120_000 }).then((fix) => {
+      if (!alive || !fix) return;
+      const here = L.latLng(fix.lat, fix.lng);
+      if (!view.contains(here)) return;
+      L.marker(here, {
+        icon: L.divIcon({ className: '', html: '<div class="map-me"></div>', iconSize: [0, 0] }),
+        interactive: false,
+        keyboard: false,
+        zIndexOffset: 900,
+      }).addTo(map);
+      if (touched || selectedIdRef.current) return;
+      if (performance.now() - askedAt < INSTANT_FIX_MS) map.setView(here, NAME_ZOOM, { animate: false });
+      else map.flyTo(here, NAME_ZOOM, { duration: 0.8 });
+    });
+
     mapRef.current = map;
     return () => {
+      alive = false;
+      el.removeEventListener('wheel', touch);
+      el.removeEventListener('touchstart', touch);
       resize.disconnect();
       map.remove();
       mapRef.current = null;
