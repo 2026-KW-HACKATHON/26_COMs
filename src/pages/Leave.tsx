@@ -107,16 +107,16 @@ export default function Leave() {
   }
 
   return (
-    <div className="flex flex-col w-full pb-8">
+    <div className="flex flex-col w-full pb-8 pt-2 gap-4">
       {/* 고른 가게 (누르면 지도로 돌아가 바꾼다) */}
-      <section className="py-3">
-        <div className="flex items-center gap-3">
-          <span className="w-6 shrink-0 text-center text-[20px]">{CATEGORY_EMOJI[place.category] ?? '📍'}</span>
+      <section className="pb-5">
+        <div className="app-card rounded-[28px] pl-4 pr-2 py-3 flex items-center gap-3">
+          <span className="w-10 h-10 shrink-0 rounded-full bg-gray-100 flex items-center justify-center text-[20px] border border-gray-100">{CATEGORY_EMOJI[place.category] ?? '📍'}</span>
           <div className="flex-1 flex flex-col min-w-0">
             <span className="text-label-lg text-on-surface font-bold truncate">{place.name}</span>
             <span className="text-label-sm text-on-surface-variant truncate">{[placeSubtitle(place), place.address].filter(Boolean).join(' · ')}</span>
           </div>
-          <button onClick={changePlace} className="h-10 shrink-0 px-3.5 rounded-lg fill-neutral text-gray-700 text-label-md font-semibold pressable" type="button">
+          <button onClick={changePlace} className="h-9 shrink-0 px-3 rounded-full bg-white border border-gray-100 text-gray-700 text-label-md font-semibold pressable" type="button">
             바꾸기
           </button>
         </div>
@@ -128,7 +128,7 @@ export default function Leave() {
         <div className="flex items-center justify-between">
           <StepTitle step={1} title="그 자리에서 5초를 찍어 주세요" />
           {video && (
-            <span className="text-label-md text-primary font-bold px-2.5 py-1 bg-primary-fixed rounded-md">
+            <span className="text-label-md text-primary font-bold px-2.5 py-1 bg-primary-fixed rounded-full">
               {Math.min(CLIP_SECONDS, video.duration).toFixed(1)}초
             </span>
           )}
@@ -136,22 +136,22 @@ export default function Leave() {
 
         {video ? (
           <>
-            <CapsuleVideo src={video.blob} duration={Math.min(CLIP_SECONDS, video.duration)} className="w-full aspect-[3/4] rounded-xl" />
-            <button onClick={() => setRecorderOpen(true)} className="h-12 rounded-lg fill-neutral border border-gray-200 text-gray-700 text-label-lg flex items-center justify-center gap-1 pressable" type="button">
+            <CapsuleVideo src={video.blob} duration={Math.min(CLIP_SECONDS, video.duration)} className="w-full aspect-[3/4] rounded-[28px] shadow-[0_18px_40px_rgba(15,23,42,0.12)]" />
+            <button onClick={() => setRecorderOpen(true)} className="h-12 rounded-full bg-white border border-gray-100 text-gray-700 text-label-lg flex items-center justify-center gap-1 pressable shadow-[0_10px_22px_rgba(15,23,42,0.05)]" type="button">
               <span className="material-symbols-rounded text-[20px]">replay</span> 다시 찍기
             </button>
           </>
         ) : (
           <button
             onClick={() => setRecorderOpen(true)}
-            className="h-40 rounded-lg fill-accent flex flex-col items-center justify-center gap-2 pressable text-white"
+            className="h-40 rounded-[28px] instagram-gradient flex flex-col items-center justify-center gap-2 pressable text-white shadow-[0_16px_32px_rgba(225,48,108,0.18)]"
             type="button"
           >
-            <span className="w-14 h-14 rounded-full bg-white text-primary flex items-center justify-center">
+            <span className="w-14 h-14 rounded-full bg-white/20 text-white flex items-center justify-center">
               <span className="material-symbols-rounded text-[30px] icon-fill">videocam</span>
             </span>
             <span className="text-label-lg font-bold">지금 이 가게에서 5초 찍기</span>
-            <span className="text-label-sm text-white/90">최대 5초 · 중간에 멈출 수 있어요</span>
+            <span className="text-label-sm text-white/80">최대 5초 · 중간에 멈출 수 있어요</span>
           </button>
         )}
       </section>
@@ -175,8 +175,8 @@ export default function Leave() {
                 <button
                   key={o.value}
                   onClick={() => setVisibility(o.value)}
-                  className={`p-3.5 rounded-xl border-2 text-left flex flex-col gap-1 pressable transition-colors ${
-                    visibility === o.value ? 'border-primary bg-primary-fixed' : 'border-gray-200 surface'
+                  className={`p-3.5 rounded-[24px] border-2 text-left flex flex-col gap-1 pressable transition-colors ${
+                    visibility === o.value ? 'border-primary bg-primary-fixed/60' : 'border-gray-100 bg-white'
                   }`}
                   type="button"
                   role="radio"
@@ -196,7 +196,7 @@ export default function Leave() {
         <button
           onClick={handleLeave}
           disabled={!!missing || saving}
-          className="w-full h-12 rounded-lg fill-accent text-white text-[16px] font-bold flex items-center justify-center pressable disabled:bg-gray-200 disabled:text-gray-400"
+          className="w-full h-14 rounded-full instagram-gradient text-white text-[17px] font-bold flex items-center justify-center pressable disabled:bg-gray-200 disabled:text-gray-400 shadow-[0_12px_24px_rgba(225,48,108,0.26)]"
           type="button"
         >
           {saving ? '남기는 중…' : '남기기'}
@@ -222,15 +222,15 @@ function PickPlace({ pickId, onPick, onChoose }: { pickId: string | null; onPick
   const neighbors = picked ? placesInSameBuilding(picked) : [];
 
   return (
-    <div className="map-stage">
-      <PlaceMap selectedId={pickId} onSelect={(p) => onPick(p.id)} videoCount={videoCount} className="map-canvas" />
+    <div className="relative w-full h-[calc(100dvh-7.5rem)]">
+      <PlaceMap selectedId={pickId} onSelect={(p) => onPick(p.id)} videoCount={videoCount} className="absolute inset-0" />
 
       <div className="absolute top-3 inset-x-3 z-10">
         <PlaceSearch onPick={(p) => onPick(p.id)} />
       </div>
 
       {picked ? (
-        <div className="absolute bottom-0 inset-x-0 z-10 bg-white border-t border-gray-200 rounded-t-xl p-5 flex flex-col gap-4">
+        <div className="absolute bottom-3 inset-x-3 z-10 bg-surface rounded-3xl p-5 shadow-sheet flex flex-col gap-4">
           <div className="flex items-start gap-3">
             <span className="w-11 h-11 shrink-0 rounded-full bg-surface-container flex items-center justify-center text-[22px]">
               {CATEGORY_EMOJI[picked.category] ?? '📍'}
@@ -251,7 +251,7 @@ function PickPlace({ pickId, onPick, onChoose }: { pickId: string | null; onPick
                 <button
                   key={p.id}
                   onClick={() => onPick(p.id)}
-                  className={`h-8 shrink-0 px-3 rounded-md text-label-md font-semibold pressable ${
+                  className={`h-8 shrink-0 px-3 rounded-full text-label-md font-semibold pressable ${
                     p.id === picked.id ? 'bg-inverse-surface text-inverse-on-surface' : 'bg-surface-container text-gray-700'
                   }`}
                   type="button"
@@ -265,7 +265,7 @@ function PickPlace({ pickId, onPick, onChoose }: { pickId: string | null; onPick
 
           <button
             onClick={() => onChoose(picked)}
-            className="h-12 rounded-lg fill-accent text-white text-[16px] font-bold flex items-center justify-center gap-1 pressable"
+            className="h-14 rounded-2xl bg-primary text-on-primary text-[16px] font-bold flex items-center justify-center gap-1 pressable"
             type="button"
           >
             이 가게에서 남기기
@@ -273,8 +273,8 @@ function PickPlace({ pickId, onPick, onChoose }: { pickId: string | null; onPick
           </button>
         </div>
       ) : (
-        <div className="absolute bottom-7 inset-x-3 z-10 flex justify-center pointer-events-none">
-          <span className="px-4 py-2 rounded-lg surface-float text-gray-800 text-label-md font-semibold">어느 가게에서 남길까요? 지도에서 누르거나 검색해 주세요</span>
+        <div className="absolute bottom-4 inset-x-0 z-10 flex justify-center pointer-events-none">
+          <span className="px-4 py-2 rounded-full bg-inverse-surface/90 text-inverse-on-surface text-label-md font-semibold">어느 가게에서 남길까요? 지도에서 누르거나 검색해 주세요</span>
         </div>
       )}
     </div>
@@ -297,5 +297,5 @@ function StepTitle({ step, title }: { step: number; title: string }) {
 
 /** 토스식 굵은 구분선 (화면 끝까지) */
 function Divider() {
-  return <div className="bleed border-t border-gray-200" />;
+  return <div className="h-2 -mx-5 bg-surface-container" />;
 }

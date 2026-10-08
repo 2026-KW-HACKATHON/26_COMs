@@ -1,26 +1,25 @@
 /** @type {import('tailwindcss').Config} */
 
-// 플랫 디자인: 단색 면 + 얇은 테두리. 뉴트럴 회색 단계 + 차분한 블루 강조색 하나.
+// 토스처럼 무채색 회색 단계 + 강조색 하나. 강조색을 바꾸려면 BRAND만 고치면 된다.
 // (지도 색은 src/lib/theme.ts에서 같은 값을 쓴다)
 const GRAY = {
-  50: '#FAFAFB',
-  100: '#F3F4F6',
-  200: '#E6E8EC',
-  300: '#D5D8DE',
-  400: '#A4AAB3',
-  500: '#626A75',
-  600: '#4F5661',
-  700: '#3A404A',
-  800: '#2A2F37',
-  900: '#1F2329',
+  50: '#F9FAFB',
+  100: '#F2F4F6',
+  200: '#E5E8EB',
+  300: '#D1D6DB',
+  400: '#B0B8C1',
+  500: '#8B95A1',
+  600: '#6B7684',
+  700: '#4E5968',
+  800: '#333D4B',
+  900: '#191F28',
 };
-// 강조 = 차분한 블루(흰 글씨 대비 4.8:1). 연한 강조 = 아주 옅은 블루
 const BRAND = {
-  main: '#3B6FD4',
-  strong: '#2F5DB8',
-  weak: '#EEF3FC',
-  weaker: '#DDE7FA',
-  onWeak: '#2F5DB8',
+  main: '#F2552C',
+  strong: '#D9430F',
+  weak: '#FFF1EC',
+  weaker: '#FFE2D7',
+  onWeak: '#C2400F',
 };
 
 module.exports = {
@@ -38,10 +37,10 @@ module.exports = {
         'primary-fixed': BRAND.weak,
         'primary-fixed-dim': BRAND.weaker,
         'on-primary-fixed': BRAND.onWeak,
-        secondary: BRAND.strong,
+        secondary: GRAY[600],
         'secondary-container': BRAND.weak,
 
-        background: '#F7F8FA',
+        background: '#FFFFFF',
         surface: '#FFFFFF',
         'surface-bright': '#FFFFFF',
         'surface-container-lowest': '#FFFFFF',
@@ -56,14 +55,13 @@ module.exports = {
         'on-surface-variant': GRAY[600],
         outline: GRAY[500],
         'outline-variant': GRAY[200],
-        // 선택된 칩·단계 번호 등
-        'inverse-surface': BRAND.main,
+        'inverse-surface': GRAY[800],
         'inverse-on-surface': '#FFFFFF',
 
-        error: '#C9484F',
+        error: '#F04452',
         'on-error': '#FFFFFF',
-        'error-container': '#FCEFF0',
-        'on-error-container': '#A63A41',
+        'error-container': '#FFEEEF',
+        'on-error-container': '#C9303D',
       },
       spacing: {
         'space-xs': '0.25rem',
@@ -106,9 +104,9 @@ module.exports = {
         '4xl': '2rem',
       },
       boxShadow: {
-        // 플랫: 지도 위에 뜨는 요소만 아주 얇은 그림자 한 겹 (테두리와 함께 쓴다)
-        float: '0 1px 2px rgba(16, 24, 40, 0.06)',
-        sheet: '0 1px 3px rgba(16, 24, 40, 0.08)',
+        // 지도 위에 뜨는 요소만 은은한 그림자를 쓴다
+        float: '0 2px 12px rgba(0, 0, 0, 0.08)',
+        sheet: '0 -2px 20px rgba(0, 0, 0, 0.06), 0 8px 24px rgba(0, 0, 0, 0.08)',
       },
     },
   },

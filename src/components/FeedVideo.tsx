@@ -45,8 +45,8 @@ export default function FeedVideo({ capsule, onLike, className = '' }: { capsule
       ) : (
         <>
           <CapsuleThumb thumbnail={capsule.thumbnail} />
-          <span className="absolute inset-0 flex items-center justify-center">
-            <span className="media-play material-symbols-rounded icon-fill text-[40px]">play_arrow</span>
+          <span className="absolute inset-0 flex items-center justify-center bg-black/10 text-white">
+            <span className="material-symbols-rounded icon-fill text-[40px] drop-shadow">play_arrow</span>
           </span>
         </>
       )}

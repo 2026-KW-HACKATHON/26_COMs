@@ -12,38 +12,39 @@ export default function MyTownCard({ capsules }: { capsules: Capsule[] }) {
   const openOnMap = (placeId?: string) => navigate('/', placeId ? { state: { placeId } } : undefined);
 
   return (
-    <div className="flex flex-col border-y border-gray-200 divide-y divide-gray-200">
-      <button onClick={() => openOnMap()} className="row-x w-full py-3.5 text-left active:bg-gray-50" type="button">
+    <div className="flex flex-col gap-3 mb-4">
+      <button onClick={() => openOnMap()} className="w-full p-4 rounded-[28px] app-card text-left pressable" type="button">
         <span className="flex items-baseline justify-between">
-          <span className="text-label-lg font-bold text-on-surface">월계1동에서 가 본 가게</span>
+          <span className="text-label-lg font-bold text-on-surface">내 동네 지도</span>
           <span className="text-label-md text-on-surface-variant">
-            <b className="text-[16px] text-on-surface">{summary.visited}</b> / {summary.total}곳
+            <b className="text-[17px] text-primary">{summary.visited}</b> / {summary.total}곳
           </span>
         </span>
-        <span className="block mt-2 h-1.5 rounded-full bg-gray-100 overflow-hidden">
+        <span className="block mt-2 h-2 rounded-full bg-surface-container-high overflow-hidden">
           <span className="block h-full rounded-full bg-primary transition-[width]" style={{ width: `${summary.visited ? Math.max(2, ratio * 100) : 0}%` }} />
         </span>
-        <span className="mt-2 flex items-center gap-1 text-label-sm text-on-surface-variant">
-          <span className="material-symbols-rounded icon-fill text-[14px] text-primary">star</span>
-          단골 {summary.regulars}곳
-          {summary.due.length > 0 && <> · 오랜만 {summary.due.length}곳</>}
-          <span className="ml-auto text-gray-400">다른 날 {REGULAR_DAYS}번 가면 단골</span>
+        <span className="mt-2.5 flex flex-wrap items-center gap-1.5 text-label-sm font-semibold">
+          <span className="h-6 px-2 rounded-full bg-surface flex items-center gap-0.5 text-gray-700">
+            <span className="material-symbols-rounded icon-fill text-[14px] text-primary">star</span>단골 {summary.regulars}곳
+          </span>
+          {summary.due.length > 0 && <span className="h-6 px-2 rounded-full bg-surface flex items-center text-gray-700">오랜만 {summary.due.length}곳</span>}
+          <span className="ml-auto text-gray-400 font-medium">다른 날 {REGULAR_DAYS}번 가면 단골</span>
         </span>
       </button>
 
       {summary.due.length > 0 && (
-        <section className="py-3">
-          <h3 className="row-x text-label-lg font-bold text-on-surface">다시 갈 때 됐어요</h3>
-          <p className="row-x text-label-sm text-on-surface-variant">{DUE_DAYS}일 넘게 안 간 곳이에요</p>
-          <ul className="mt-1 flex flex-col">
+        <section className="p-4 rounded-[28px] bg-primary-fixed/60 border border-white/60 shadow-[0_14px_30px_rgba(225,48,108,0.08)]">
+          <h3 className="text-label-lg font-bold text-on-surface">다시 갈 때 됐어요</h3>
+          <p className="text-label-sm text-on-surface-variant">{DUE_DAYS}일 넘게 안 간 곳이에요</p>
+          <ul className="mt-2 flex flex-col">
             {summary.due.slice(0, 3).map((v) => {
               const place = getPlace(v.placeId)!;
               return (
                 <li key={v.placeId}>
-                  <button onClick={() => openOnMap(v.placeId)} className="row-x w-full flex items-center gap-2.5 py-2 text-left active:bg-gray-50" type="button">
-                    <span className="w-6 shrink-0 text-center text-[18px]">{CATEGORY_EMOJI[place.category] ?? '📍'}</span>
+                  <button onClick={() => openOnMap(v.placeId)} className="w-full flex items-center gap-2.5 py-1.5 text-left pressable" type="button">
+                    <span className="w-9 h-9 shrink-0 rounded-full bg-white flex items-center justify-center text-[18px] border border-white/80 shadow-[0_8px_16px_rgba(15,23,42,0.08)]">{CATEGORY_EMOJI[place.category] ?? '📍'}</span>
                     <span className="flex-1 min-w-0">
-                      <span className="block text-label-lg font-semibold text-on-surface truncate">{place.name}</span>
+                      <span className="block text-label-lg font-bold text-on-surface truncate">{place.name}</span>
                       <span className="block text-label-sm text-on-surface-variant">
                         마지막 {daysAgo(v.daysSince)} · {v.days}번 갔어요
                       </span>

@@ -127,23 +127,23 @@ function NudgeToast({ nudge, onOpen, onClose }: { nudge: Nudge; onOpen: () => vo
   return (
     <div className="fixed inset-x-0 top-0 z-[60] pt-safe pointer-events-none" role="status" aria-live="polite">
       <div className="max-w-md mx-auto px-3 pt-2">
-        <div className="nudge-drop pointer-events-auto flex items-center rounded-lg surface-float text-gray-900 shadow-float">
+        <div className="nudge-drop pointer-events-auto flex items-center rounded-2xl bg-gray-900 text-white shadow-float">
           <button onClick={onOpen} className="flex-1 min-w-0 flex items-center gap-3 py-3 pl-3 text-left" type="button">
             <span className="relative shrink-0">
               <Avatar profile={nudge.sender} size={40} />
-              <span className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full fill-accent text-white ring-2 ring-white flex items-center justify-center">
+              <span className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-primary ring-2 ring-gray-900 flex items-center justify-center">
                 <span className="material-symbols-rounded icon-fill text-[12px]">waving_hand</span>
               </span>
             </span>
             <span className="flex-1 min-w-0">
               <span className="block text-label-lg font-bold truncate">{nudge.sender?.displayName ?? '친구'}님이 또 가자고 졸라요</span>
-              <span className="block text-label-md text-gray-600 truncate">
+              <span className="block text-label-md text-gray-300 truncate">
                 {nudge.placeName}
                 {nudge.capsuleId ? ' · 같이 남긴 영상 보기' : ''}
               </span>
             </span>
           </button>
-          <button onClick={onClose} className="w-11 h-11 mr-1 shrink-0 flex items-center justify-center text-gray-500" type="button" aria-label="알림 닫기">
+          <button onClick={onClose} className="w-11 h-11 mr-1 shrink-0 flex items-center justify-center text-gray-400" type="button" aria-label="알림 닫기">
             <span className="material-symbols-rounded text-[20px]">close</span>
           </button>
         </div>

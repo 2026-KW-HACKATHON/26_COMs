@@ -126,7 +126,7 @@ export default function CapsuleVideo({ src, start = 0, duration = CLIP_SECONDS, 
 
       {!playing && (
         <button onClick={handleTap} className="absolute inset-0 flex items-center justify-center" type="button" aria-label="재생">
-          <span className="w-14 h-14 rounded-full bg-white text-gray-800 flex items-center justify-center">
+          <span className="w-14 h-14 rounded-full bg-black/45 backdrop-blur text-white flex items-center justify-center">
             <span className="material-symbols-rounded text-[34px] icon-fill">play_arrow</span>
           </span>
         </button>
@@ -134,7 +134,7 @@ export default function CapsuleVideo({ src, start = 0, duration = CLIP_SECONDS, 
 
       <button
         onClick={() => setMuted((m) => !m)}
-        className="absolute top-2.5 right-2.5 w-9 h-9 rounded-full bg-white text-gray-800 flex items-center justify-center"
+        className="absolute top-2.5 right-2.5 w-9 h-9 rounded-full bg-black/45 backdrop-blur text-white flex items-center justify-center"
         type="button"
         aria-label={muted ? '소리 켜기' : '소리 끄기'}
       >
