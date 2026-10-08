@@ -142,7 +142,7 @@ export default function CapsuleVideo({ src, start = 0, duration = CLIP_SECONDS, 
       </button>
 
       <div className="absolute bottom-0 inset-x-0 h-1 bg-white/25">
-        <div className="h-full bg-primary" style={{ width: `${progress * 100}%` }} />
+        <div className="h-full brand-gradient" style={{ width: `${progress * 100}%` }} />
       </div>
 
       {burst > 0 && (

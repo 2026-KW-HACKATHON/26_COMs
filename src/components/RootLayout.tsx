@@ -29,7 +29,7 @@ export default function RootLayout() {
 
         <main
           className={`flex-1 flex flex-col relative w-full max-w-[430px] mx-auto pt-14 ${
-            fullBleed ? '' : 'px-4 sm:px-5 pb-24'
+            fullBleed ? '' : 'px-4 sm:px-5 pb-[calc(var(--nav-space)+1.5rem)]'
           }`}
         >
           <Outlet />

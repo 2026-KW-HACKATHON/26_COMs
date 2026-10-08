@@ -5,10 +5,7 @@
 @layer base {
   html {
     -webkit-text-size-adjust: 100%;
-    background:
-      radial-gradient(circle at top left, rgba(225, 48, 108, 0.14), transparent 34%),
-      radial-gradient(circle at top right, rgba(245, 133, 41, 0.12), transparent 28%),
-      linear-gradient(180deg, #fff7fb 0%, #f7f8fc 22%, #f8fafc 100%);
+    background: #fff;
   }
   body {
     @apply bg-surface text-on-surface antialiased;
@@ -22,26 +19,55 @@
   button {
     -webkit-tap-highlight-color: transparent;
   }
+  :root {
+    /* 화면 아래에 떠 있는 탭 막대(BottomNav)가 차지하는 높이: 막대 4rem + 아래 여백 0.75rem */
+    --nav-space: calc(4.75rem + env(safe-area-inset-bottom, 0px));
+  }
 }
 
 @layer components {
   .app-shell {
-    @apply relative w-full min-h-screen text-on-surface;
-    background:
-      radial-gradient(circle at top, rgba(225, 48, 108, 0.08), transparent 24%),
-      linear-gradient(180deg, rgba(255, 255, 255, 0.76), rgba(255, 255, 255, 0.94));
+    @apply relative w-full min-h-screen bg-surface text-on-surface;
   }
+  /* 떠 있는 막대 (아래 탭): 반투명 흰색 + 흐림 + 그림자 */
   .app-surface {
-    @apply bg-white/90 backdrop-blur-xl border border-white/70 shadow-[0_20px_50px_rgba(15,23,42,0.06)];
+    @apply bg-white/90 backdrop-blur-xl border border-gray-100 shadow-card;
   }
+  /* 떠 있는 카드: 강조할 것(회상·내 동네 지도·랭킹 1~3위·영상)만. 목록·피드는 평평하게 둔다 */
   .app-card {
-    @apply bg-white rounded-[28px] border border-gray-100 shadow-[0_18px_45px_rgba(15,23,42,0.08)];
+    @apply bg-white rounded-3xl border border-gray-100 shadow-card;
+  }
+  /* 평평한 면: 회색 바탕, 그림자 없음 */
+  .flat-card {
+    @apply bg-gray-50 rounded-2xl;
   }
   .app-chip {
-    @apply inline-flex items-center gap-1 rounded-full border border-gray-200 bg-white px-3 py-1.5 text-[12px] font-semibold text-gray-700;
+    @apply inline-flex items-center gap-1 rounded-full bg-gray-100 px-3 py-1.5 text-[12px] font-semibold text-gray-700;
   }
-  .instagram-gradient {
-    background: linear-gradient(135deg, #f58529 0%, #dd2a7b 48%, #8134af 100%);
+  /* 강조 그라데이션: 푸른 민트 → 에메랄드 (주요 버튼·남기기·프로필 테두리 등 포인트에만) */
+  .brand-gradient {
+    color: #fff;
+    background: linear-gradient(120deg, #14b8a0 0%, #0c9a6b 55%, #0a8a5f 100%);
+  }
+  .brand-gradient:disabled {
+    background: theme('colors.gray.200');
+    color: theme('colors.gray.400');
+    box-shadow: none;
+  }
+  /* 글자에 강조 그라데이션 (숫자 포인트) */
+  .brand-text {
+    background: linear-gradient(120deg, #14b8a0 0%, #0c9a6b 60%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  /* 지도 화면: 머리줄 아래부터 화면 끝까지 (아래 탭은 지도 위에 떠 있다) */
+  .map-screen {
+    height: calc(100dvh - 3.5rem - env(safe-area-inset-top, 0px));
+  }
+  /* 지도 위 아래쪽 요소(가게 시트·랭킹 카드)는 떠 있는 아래 탭 바로 위에 */
+  .above-nav {
+    bottom: calc(var(--nav-space) + 0.75rem);
   }
 }
 
@@ -211,6 +237,10 @@
 .leaflet-container {
   font-family: inherit;
 }
+/* 지도는 떠 있는 아래 탭 밑까지 깔리므로 출처 표시는 탭 위로 올린다 */
+.leaflet-container .leaflet-bottom {
+  bottom: var(--nav-space);
+}
 .leaflet-container .leaflet-control-attribution {
   background: transparent;
   color: theme('colors.gray.500');
@@ -268,7 +298,7 @@
   height: 18px;
   padding: 0 5px;
   border-radius: 999px;
-  background: theme('colors.primary');
+  background: linear-gradient(120deg, #14b8a0 0%, #0c9a6b 60%);
   color: #fff;
   font-size: 11px;
   line-height: 18px;

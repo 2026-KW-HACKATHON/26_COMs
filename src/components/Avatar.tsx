@@ -21,7 +21,7 @@ export default function Avatar({ profile, size = 36, className = '' }: AvatarPro
         referrerPolicy="no-referrer"
         onError={() => setFailedUrl(url)}
         style={style}
-        className={`shrink-0 rounded-full object-cover bg-gray-100 border border-white/80 shadow-[0_8px_18px_rgba(15,23,42,0.08)] ${className}`}
+        className={`shrink-0 rounded-full object-cover bg-gray-100 border border-gray-100 ${className}`}
       />
     );
   }
@@ -29,7 +29,7 @@ export default function Avatar({ profile, size = 36, className = '' }: AvatarPro
   return (
     <span
       style={{ ...style, fontSize: Math.round(size * 0.42) }}
-      className={`shrink-0 rounded-full instagram-gradient text-white font-bold flex items-center justify-center shadow-[0_10px_22px_rgba(225,48,108,0.22)] ${className}`}
+      className={`shrink-0 rounded-full brand-gradient font-bold flex items-center justify-center ${className}`}
     >
       {profile?.displayName.trim().charAt(0) || '?'}
     </span>
