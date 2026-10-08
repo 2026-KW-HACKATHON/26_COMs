@@ -24,10 +24,14 @@ export default function RootLayout() {
 
   return (
     <NudgeProvider>
-      <div className="bg-surface text-on-surface flex flex-col min-h-screen">
+      <div className="app-shell flex flex-col min-h-screen">
         <Header currentPath={currentPath} goBack={goBack} />
 
-        <main className={`flex-1 flex flex-col relative w-full max-w-md mx-auto pt-14 bg-surface ${fullBleed ? '' : 'px-5 pb-24'}`}>
+        <main
+          className={`flex-1 flex flex-col relative w-full max-w-[430px] mx-auto pt-14 ${
+            fullBleed ? '' : 'px-4 sm:px-5 pb-24'
+          }`}
+        >
           <Outlet />
         </main>
 

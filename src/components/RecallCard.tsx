@@ -41,8 +41,8 @@ export default function RecallCard() {
   };
 
   return (
-    <section className="relative mb-5 p-3 rounded-2xl bg-primary-fixed flex gap-3">
-      <button onClick={() => navigate(`/video/${c.id}`)} className="relative w-20 h-[6.5rem] shrink-0 rounded-xl overflow-hidden bg-surface-container pressable" type="button" aria-label="영상 보기">
+    <section className="relative mb-5 p-3 rounded-[28px] bg-white border border-gray-100 shadow-[0_18px_40px_rgba(15,23,42,0.08)] flex gap-3">
+      <button onClick={() => navigate(`/video/${c.id}`)} className="relative w-20 h-[6.5rem] shrink-0 rounded-[20px] overflow-hidden bg-gray-100 pressable" type="button" aria-label="영상 보기">
         <CapsuleThumb thumbnail={c.thumbnail} />
         <span className="absolute inset-0 flex items-center justify-center bg-black/15 text-white">
           <span className="material-symbols-rounded icon-fill text-[28px]">play_arrow</span>
@@ -53,19 +53,19 @@ export default function RecallCard() {
         <p className="text-label-lg font-bold text-on-surface truncate pr-6">{c.placeName}</p>
         <p className="text-label-sm text-on-surface-variant truncate">{withText}</p>
         <div className="mt-auto pt-2 flex gap-1.5">
-          <button onClick={() => navigate(`/video/${c.id}`)} className="h-9 px-3 rounded-lg bg-surface text-gray-700 text-label-md font-semibold pressable" type="button">
+          <button onClick={() => navigate(`/video/${c.id}`)} className="h-9 px-3 rounded-full bg-gray-100 text-gray-700 text-label-md font-semibold pressable" type="button">
             다시 보기
           </button>
           <button
             onClick={() => navigate(`/leave?place=${encodeURIComponent(c.placeId)}`)}
-            className="h-9 px-3 rounded-lg bg-primary text-on-primary text-label-md font-bold pressable"
+            className="h-9 px-3 rounded-full instagram-gradient text-white text-label-md font-bold pressable"
             type="button"
           >
             또 가서 남기기
           </button>
         </div>
       </div>
-      <button onClick={dismiss} className="absolute top-2 right-2 w-7 h-7 rounded-full text-gray-500 flex items-center justify-center" type="button" aria-label="닫기">
+      <button onClick={dismiss} className="absolute top-2 right-2 w-7 h-7 rounded-full bg-gray-100 text-gray-500 flex items-center justify-center" type="button" aria-label="닫기">
         <span className="material-symbols-rounded text-[18px]">close</span>
       </button>
     </section>

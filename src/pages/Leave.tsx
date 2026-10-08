@@ -170,16 +170,16 @@ export default function Leave() {
   }
 
   return (
-    <div className="flex flex-col w-full pb-6 pt-2">
+    <div className="flex flex-col w-full pb-8 pt-2 gap-4">
       {/* 고른 가게 (누르면 지도로 돌아가 바꾼다) */}
       <section className="pb-5">
-        <div className="bg-surface-container-low rounded-2xl pl-4 pr-2 py-3 flex items-center gap-3">
-          <span className="w-10 h-10 shrink-0 rounded-full bg-surface flex items-center justify-center text-[20px]">{CATEGORY_EMOJI[place.category] ?? '📍'}</span>
+        <div className="app-card rounded-[28px] pl-4 pr-2 py-3 flex items-center gap-3">
+          <span className="w-10 h-10 shrink-0 rounded-full bg-gray-100 flex items-center justify-center text-[20px] border border-gray-100">{CATEGORY_EMOJI[place.category] ?? '📍'}</span>
           <div className="flex-1 flex flex-col min-w-0">
             <span className="text-label-lg text-on-surface font-bold truncate">{place.name}</span>
             <span className="text-label-sm text-on-surface-variant truncate">{[placeSubtitle(place), place.address].filter(Boolean).join(' · ')}</span>
           </div>
-          <button onClick={changePlace} className="h-9 shrink-0 px-3 rounded-lg bg-surface text-gray-700 text-label-md font-semibold pressable" type="button">
+          <button onClick={changePlace} className="h-9 shrink-0 px-3 rounded-full bg-white border border-gray-100 text-gray-700 text-label-md font-semibold pressable" type="button">
             바꾸기
           </button>
         </div>
@@ -199,12 +199,7 @@ export default function Leave() {
 
         {video ? (
           <>
-            <CapsuleVideo
-              src={video.blob}
-              start={video.clipStart}
-              duration={Math.min(CLIP_SECONDS, video.duration)}
-              className="w-full aspect-[3/4] rounded-2xl"
-            />
+            <CapsuleVideo src={video.blob} start={video.clipStart} duration={Math.min(CLIP_SECONDS, video.duration)} className="w-full aspect-[3/4] rounded-[28px] shadow-[0_18px_40px_rgba(15,23,42,0.12)]" />
             {canTrim && (
               <div className="flex flex-col gap-1.5">
                 <div className="flex items-center justify-between text-label-sm text-on-surface-variant">
@@ -225,10 +220,10 @@ export default function Leave() {
               </div>
             )}
             <div className="grid grid-cols-2 gap-2">
-              <button onClick={() => setRecorderOpen(true)} className="h-12 rounded-xl bg-surface-container text-gray-700 text-label-lg flex items-center justify-center gap-1 pressable" type="button">
+              <button onClick={() => setRecorderOpen(true)} className="h-12 rounded-full bg-white border border-gray-100 text-gray-700 text-label-lg flex items-center justify-center gap-1 pressable shadow-[0_10px_22px_rgba(15,23,42,0.05)]" type="button">
                 <span className="material-symbols-rounded text-[20px]">replay</span> 다시 촬영
               </button>
-              <button onClick={() => fileInputRef.current?.click()} className="h-12 rounded-xl bg-surface-container text-gray-700 text-label-lg flex items-center justify-center gap-1 pressable" type="button">
+              <button onClick={() => fileInputRef.current?.click()} className="h-12 rounded-full bg-white border border-gray-100 text-gray-700 text-label-lg flex items-center justify-center gap-1 pressable shadow-[0_10px_22px_rgba(15,23,42,0.05)]" type="button">
                 <span className="material-symbols-rounded text-[20px]">video_library</span> 다른 영상
               </button>
             </div>
@@ -237,21 +232,21 @@ export default function Leave() {
           <div className="grid grid-cols-2 gap-2.5">
             <button
               onClick={() => setRecorderOpen(true)}
-              className="h-36 rounded-2xl bg-primary-fixed flex flex-col items-center justify-center gap-2 pressable"
+              className="h-36 rounded-[28px] instagram-gradient flex flex-col items-center justify-center gap-2 pressable text-white shadow-[0_16px_32px_rgba(225,48,108,0.18)]"
               type="button"
             >
-              <span className="w-12 h-12 rounded-full bg-primary text-on-primary flex items-center justify-center">
+              <span className="w-12 h-12 rounded-full bg-white/20 text-white flex items-center justify-center">
                 <span className="material-symbols-rounded text-[26px] icon-fill">videocam</span>
               </span>
-              <span className="text-label-lg font-bold text-on-primary-fixed">지금 5초 촬영</span>
+              <span className="text-label-lg font-bold">지금 5초 촬영</span>
             </button>
             <button
               onClick={() => fileInputRef.current?.click()}
               disabled={processing}
-              className="h-36 rounded-2xl bg-surface-container flex flex-col items-center justify-center gap-2 pressable disabled:opacity-60"
+              className="h-36 rounded-[28px] bg-white border border-gray-100 flex flex-col items-center justify-center gap-2 pressable disabled:opacity-60 shadow-[0_14px_28px_rgba(15,23,42,0.06)]"
               type="button"
             >
-              <span className="w-12 h-12 rounded-full bg-surface text-gray-600 flex items-center justify-center">
+              <span className="w-12 h-12 rounded-full bg-gray-100 text-gray-600 flex items-center justify-center">
                 <span className="material-symbols-rounded text-[26px]">{processing ? 'hourglass_top' : 'photo_library'}</span>
               </span>
               <span className="text-label-lg font-bold text-gray-700">{processing ? '영상 확인 중…' : '앨범에서 선택'}</span>
@@ -283,8 +278,8 @@ export default function Leave() {
                 <button
                   key={o.value}
                   onClick={() => setVisibility(o.value)}
-                  className={`p-3.5 rounded-2xl border-2 text-left flex flex-col gap-1 pressable transition-colors ${
-                    visibility === o.value ? 'border-primary bg-primary-fixed' : 'border-transparent bg-surface-container'
+                  className={`p-3.5 rounded-[24px] border-2 text-left flex flex-col gap-1 pressable transition-colors ${
+                    visibility === o.value ? 'border-primary bg-primary-fixed/60' : 'border-gray-100 bg-white'
                   }`}
                   type="button"
                   role="radio"
@@ -304,7 +299,7 @@ export default function Leave() {
         <button
           onClick={handleLeave}
           disabled={!!missing || !!saving}
-          className="w-full h-14 rounded-2xl bg-primary text-on-primary text-[17px] font-bold flex items-center justify-center pressable disabled:bg-gray-200 disabled:text-gray-400"
+          className="w-full h-14 rounded-full instagram-gradient text-white text-[17px] font-bold flex items-center justify-center pressable disabled:bg-gray-200 disabled:text-gray-400 shadow-[0_12px_24px_rgba(225,48,108,0.26)]"
           type="button"
         >
           {saving === 'trim' ? '5초로 줄이는 중…' : saving ? '남기는 중…' : '남기기'}

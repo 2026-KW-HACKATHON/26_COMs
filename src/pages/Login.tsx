@@ -87,10 +87,15 @@ export default function Login() {
   const busy = loading || pending !== null;
 
   return (
-    <div className="flex flex-col items-center w-full pt-10 pb-6 gap-8">
-      <div className="flex flex-col items-center text-center gap-3">
-        <img src="/pwa-192x192.png" alt="" className="w-20 h-20 rounded-[22px]" />
-        <h2 className="text-headline-md text-on-surface">동네의 5초를 함께 남겨요</h2>
+    <div className="flex flex-col items-center w-full pt-8 pb-6 gap-8">
+      <div className="flex flex-col items-center text-center gap-4 w-full app-card px-6 py-8">
+        <div className="w-20 h-20 rounded-[24px] instagram-gradient flex items-center justify-center shadow-[0_16px_34px_rgba(225,48,108,0.28)]">
+          <img src="/pwa-192x192.png" alt="" className="w-14 h-14 rounded-[18px]" />
+        </div>
+        <div>
+          <p className="text-[11px] font-semibold tracking-[0.22em] uppercase text-gray-500">Welcome back</p>
+          <h2 className="mt-1 text-headline-md text-on-surface">동네의 5초를 함께 남겨요</h2>
+        </div>
         <p className="text-body-md text-on-surface-variant leading-relaxed">
           로그인하면 영상이 내 계정에 저장되고,
           <br />
@@ -98,11 +103,11 @@ export default function Login() {
         </p>
       </div>
 
-      <div className="w-full flex flex-col gap-2.5">
+      <div className="w-full flex flex-col gap-3">
         <button
           onClick={() => login('kakao')}
           disabled={busy}
-          className="relative h-14 rounded-2xl bg-[#FEE500] text-black/85 text-[16px] font-bold flex items-center justify-center gap-2 disabled:opacity-60 pressable"
+          className="relative h-14 rounded-full bg-[#FEE500] text-black/85 text-[16px] font-bold flex items-center justify-center gap-2 disabled:opacity-60 pressable shadow-[0_12px_24px_rgba(254,229,0,0.2)]"
           type="button"
         >
           <span className="absolute left-4">
@@ -113,7 +118,7 @@ export default function Login() {
         <button
           onClick={() => login('google')}
           disabled={busy || inKakaoTalk}
-          className="relative h-14 rounded-2xl bg-surface border border-gray-200 text-on-surface text-[16px] font-bold flex items-center justify-center gap-2 disabled:opacity-60 pressable"
+          className="relative h-14 rounded-full bg-white border border-gray-200 text-on-surface text-[16px] font-bold flex items-center justify-center gap-2 disabled:opacity-60 pressable shadow-[0_12px_24px_rgba(15,23,42,0.06)]"
           type="button"
         >
           <span className="absolute left-4">
@@ -122,7 +127,7 @@ export default function Login() {
           {pending === 'google' ? 'Google로 이동 중…' : 'Google로 시작하기'}
         </button>
         {inKakaoTalk && (
-          <p className="text-label-sm text-on-surface-variant text-center">
+          <p className="text-label-sm text-on-surface-variant text-center px-4">
             카카오톡 안에서는 Google 로그인이 막혀 있어요. 오른쪽 아래 ⋯ 메뉴에서 &lsquo;다른 브라우저로 열기&rsquo;를 눌러 주세요.
           </p>
         )}

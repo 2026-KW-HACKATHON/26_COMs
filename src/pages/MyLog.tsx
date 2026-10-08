@@ -44,10 +44,10 @@ export default function MyLog() {
   );
 
   return (
-    <div className="flex flex-col w-full pb-6 pt-4">
+    <div className="flex flex-col w-full pb-8 pt-4 gap-4">
       {SOCIAL_ENABLED ? (
         <>
-          <section className="flex items-center gap-4 mb-5">
+          <section className="flex items-center gap-4 p-4 app-card">
             <Avatar profile={profile} size={64} />
             <div className="flex-1 min-w-0">
               <h2 className="text-headline-md text-on-surface truncate">{profile?.displayName ?? '나'}</h2>
@@ -65,10 +65,10 @@ export default function MyLog() {
               <span className="material-symbols-rounded text-[18px]">chevron_right</span>
             </button>
           )}
-          <div className="grid grid-cols-2 gap-2 mb-2">
+          <div className="grid grid-cols-2 gap-2">
             <button
               onClick={() => navigate('/friends')}
-              className="relative h-12 rounded-xl bg-surface-container text-gray-700 text-label-lg flex items-center justify-center gap-1.5 pressable"
+              className="relative h-12 rounded-full bg-white text-gray-700 text-label-lg flex items-center justify-center gap-1.5 pressable border border-gray-100 shadow-[0_10px_22px_rgba(15,23,42,0.05)]"
               type="button"
             >
               <span className="material-symbols-rounded text-[20px] text-gray-500">group</span>
@@ -81,17 +81,17 @@ export default function MyLog() {
             </button>
             <button
               onClick={() => navigate('/profile')}
-              className="h-12 rounded-xl bg-surface-container text-gray-700 text-label-lg flex items-center justify-center gap-1.5 pressable"
+              className="h-12 rounded-full bg-white text-gray-700 text-label-lg flex items-center justify-center gap-1.5 pressable border border-gray-100 shadow-[0_10px_22px_rgba(15,23,42,0.05)]"
               type="button"
             >
               <span className="material-symbols-rounded text-[20px] text-gray-500">edit</span>
               프로필 편집
             </button>
           </div>
-          <div className="mt-2">
+          <div>
             <MyTownCard capsules={capsules} />
           </div>
-          <div className="flex mb-4 border-b border-gray-100">
+          <div className="flex rounded-full bg-white p-1 border border-gray-100 shadow-[0_10px_22px_rgba(15,23,42,0.05)]">
             {tabButton('mine', '내 영상', mine.length)}
             {tabButton('tagged', '태그된 영상', tagged.length)}
           </div>
@@ -108,11 +108,13 @@ export default function MyLog() {
       )}
 
       {shown.length === 0 ? (
-        <div className="flex flex-col items-center text-center py-14 px-6 rounded-2xl bg-surface-container-low text-on-surface-variant">
-          <span className="material-symbols-rounded text-[40px] text-gray-300">{tab === 'mine' ? 'videocam' : 'sell'}</span>
+        <div className="flex flex-col items-center text-center py-14 px-6 app-card text-on-surface-variant">
+          <div className="w-16 h-16 rounded-full instagram-gradient flex items-center justify-center text-white shadow-[0_16px_30px_rgba(225,48,108,0.24)]">
+            <span className="material-symbols-rounded text-[34px] icon-fill">{tab === 'mine' ? 'videocam' : 'sell'}</span>
+          </div>
           <p className="mt-2 text-body-md">{tab === 'mine' ? '아직 남긴 영상이 없어요.' : '친구가 나를 태그한 영상이 여기에 모여요.'}</p>
           {tab === 'mine' && (
-            <button onClick={() => navigate('/leave')} className="mt-5 h-12 px-6 rounded-xl bg-primary text-on-primary text-label-lg font-bold pressable" type="button">
+            <button onClick={() => navigate('/leave')} className="mt-5 h-12 px-6 rounded-full instagram-gradient text-white text-label-lg font-bold pressable shadow-[0_12px_24px_rgba(225,48,108,0.26)]" type="button">
               첫 영상 남기기
             </button>
           )}
@@ -135,7 +137,7 @@ export default function MyLog() {
 function CapsuleCard({ capsule: c, showAuthor, onOpen }: { capsule: Capsule; showAuthor: boolean; onOpen: () => void }) {
   return (
     <button onClick={onOpen} className="flex flex-col text-left pressable" type="button">
-      <div className="relative w-full aspect-[3/4] rounded-2xl overflow-hidden bg-surface-container">
+      <div className="relative w-full aspect-[3/4] rounded-[24px] overflow-hidden bg-white shadow-[0_12px_30px_rgba(15,23,42,0.08)] border border-gray-100">
         <CapsuleThumb thumbnail={c.thumbnail} />
         <span className="absolute bottom-2 right-2 px-1.5 py-0.5 rounded-full bg-black/50 text-white text-[11px] flex items-center gap-0.5">
           <span className="material-symbols-rounded text-[12px]">play_arrow</span>
