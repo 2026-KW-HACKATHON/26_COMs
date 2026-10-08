@@ -7,6 +7,7 @@ import RecallCard from '../components/RecallCard';
 import { CATEGORY_EMOJI, getPlace, placeSubtitle } from '../data/places';
 import { useAuth } from '../hooks/useAuth';
 import { useFriendships } from '../hooks/useFriendships';
+import { useLike } from '../hooks/useLike';
 import { usePlaceRanking } from '../hooks/usePlaceRanking';
 import { SOCIAL_ENABLED, listFeed } from '../lib/capsuleStore';
 import { formatRelative } from '../lib/format';
@@ -149,6 +150,7 @@ interface FeedItemProps {
 
 function FeedItem({ capsule: c, me, stat, onOpen, onMap }: FeedItemProps) {
   const place = getPlace(c.placeId);
+  const like = useLike(c);
   const mine = !SOCIAL_ENABLED || c.userId === me;
   const name = mine ? '나' : (c.author?.displayName ?? '친구');
   const others = c.tags.filter((t) => t.id !== c.userId);
@@ -184,10 +186,10 @@ function FeedItem({ capsule: c, me, stat, onOpen, onMap }: FeedItemProps) {
         <span className="material-symbols-rounded text-[20px] text-gray-400">more_horiz</span>
       </button>
 
-      <FeedVideo capsule={c} className="w-full aspect-[4/5] rounded-2xl" />
+      <FeedVideo capsule={c} onLike={like.like} className="w-full aspect-[4/5] rounded-2xl" />
 
       <div className="flex items-center -my-1">
-        <LikeButton capsule={c} />
+        <LikeButton like={like} />
       </div>
 
       <button onClick={onMap} className="flex items-center gap-3 p-2.5 pr-3 rounded-2xl bg-surface-container-low text-left pressable" type="button">
