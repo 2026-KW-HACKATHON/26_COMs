@@ -296,9 +296,7 @@
 .map-z-mid .map-label-place {
   display: none;
 }
-.map-z-low .map-pill:not(.map-pill-selected) span {
-  display: none;
-}
+/* 가게 이름이 안 보일 만큼 축소하면 말풍선(영상·방문 수, 땅 주인 표시)도 통째로 숨긴다. 고른 가게는 그대로 */
 .map-z-low .map-pill:not(.map-pill-selected) {
-  padding: 3px;
+  display: none;
 }
