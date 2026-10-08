@@ -92,7 +92,7 @@ export default function Login() {
         <img src="/pwa-192x192.png" alt="" className="w-20 h-20 rounded-[24px]" />
         <div className="flex flex-col items-center gap-1">
           <p className="text-[11px] font-semibold tracking-[0.22em] uppercase text-gray-500">Welcome back</p>
-          <h2 className="text-headline-lg text-on-surface">왔다감</h2>
+          <h2 className="text-headline-lg text-on-surface">또갈래</h2>
           <p className="text-label-lg font-bold text-primary">동네 가게에 남기는 5초</p>
         </div>
         <p className="text-body-md text-on-surface-variant leading-relaxed">

@@ -12,7 +12,7 @@ export default function Privacy() {
       <header>
         <p className="text-label-md text-on-surface-variant">시행일 {UPDATED}</p>
         <p className="mt-3">
-          왔다감(이하 &lsquo;서비스&rsquo;)은 2026 광운대학교 해커톤 팀이 만든 동네 가게 방문 기록 서비스입니다. 서비스는 필요한 정보만 모으고,
+          또갈래(이하 &lsquo;서비스&rsquo;)는 2026 광운대학교 해커톤 팀이 만든 동네 가게 방문 기록 서비스입니다. 서비스는 필요한 정보만 모으고,
           아래 목적 밖으로 쓰거나 다른 곳에 팔지 않습니다.
         </p>
       </header>

@@ -10,8 +10,8 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       manifest: {
-        name: '왔다감',
-        short_name: '왔다감',
+        name: '또갈래',
+        short_name: '또갈래',
         description: '동네 가게에 남기는 5초. 월계1동 가게에서 그 자리에서 찍은 5초 영상을 지도에 남겨요',
         lang: 'ko',
         theme_color: '#ffffff',
