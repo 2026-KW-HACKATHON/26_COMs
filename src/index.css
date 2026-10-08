@@ -204,6 +204,10 @@
 /* ── 지도 (src/components/PlaceMap.tsx) ── */
 .leaflet-container {
   font-family: inherit;
+  /* 지도를 누르거나 길게 눌러도 이름표 글자가 선택되거나 복사 메뉴가 뜨지 않게 */
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
 }
 .leaflet-container .leaflet-control-attribution {
   background: transparent;
@@ -304,15 +308,12 @@
   box-shadow: 0 0 0 7px rgba(49, 130, 246, 0.18), 0 1px 4px rgba(0, 0, 0, 0.25);
   pointer-events: none;
 }
-/* 줌 단계별로 보이는 이름 (PlaceMap이 컨테이너에 map-z-* 클래스를 붙인다) */
-.map-z-low .map-label-place,
+/* 줌 단계별로 보이는 이름 (PlaceMap이 줌에 따라 컨테이너에 map-z-low·map-hide-pills·map-hide-names 클래스를 붙인다).
+   가게 이름은 많이 확대해야 보인다: 말풍선(영상·방문 수, 땅 주인 표시)은 17.25, 나머지 가게 이름은 18.5부터. 고른 가게는 늘 보인다 */
 .map-z-low .map-label-road:not(.map-label-major),
 .map-z-low .map-label-school,
 .map-z-low .map-label-park,
-.map-z-mid .map-label-place {
-  display: none;
-}
-/* 가게 이름이 안 보일 만큼 축소하면 말풍선(영상·방문 수, 땅 주인 표시)도 통째로 숨긴다. 고른 가게는 그대로 */
-.map-z-low .map-pill:not(.map-pill-selected) {
+.map-hide-names .map-label-place,
+.map-hide-pills .map-pill:not(.map-pill-selected) {
   display: none;
 }

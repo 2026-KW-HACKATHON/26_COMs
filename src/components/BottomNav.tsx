@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { useGroups } from '../hooks/useGroups';
+import { useTyping } from '../hooks/useTyping';
 
 interface BottomNavProps {
   currentPath: string;
@@ -25,6 +26,8 @@ export default function BottomNav({ currentPath }: BottomNavProps) {
   // 받은 그룹 초대 수를 그룹 탭에 표시
   const invites = useGroups().list?.filter((g) => g.myStatus === 'invited').length ?? 0;
   const section = currentPath.split('/')[0];
+  // 글자를 입력하는 동안은 숨긴다 (화면 키보드 위에 떠서 입력칸을 가리지 않게)
+  const typing = useTyping();
 
   const tab = (t: Tab) => {
     const active = section === t.key;
@@ -49,6 +52,8 @@ export default function BottomNav({ currentPath }: BottomNavProps) {
       </Link>
     );
   };
+
+  if (typing) return null;
 
   return (
     <nav className="fixed bottom-0 inset-x-0 z-50 bg-white/95 backdrop-blur-xl border-t border-gray-100 pb-safe">
