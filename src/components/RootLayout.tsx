@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { getPlace } from '../data/places';
 import Header from './Header';
@@ -13,6 +14,20 @@ export default function RootLayout() {
   const isHome = currentPath === 'home';
   const isLeaveMap = currentPath === 'leave' && !getPlace(new URLSearchParams(location.search).get('place'));
   const fullBleed = isHome || isLeaveMap;
+
+  // 지도 화면은 페이지가 위아래로 스크롤되지 않고 지도만 움직인다
+  // (휴대폰의 100vh가 실제 보이는 높이보다 커서 페이지가 조금씩 밀리던 것을 막는다)
+  useEffect(() => {
+    if (!fullBleed) return;
+    const { documentElement: html, body } = document;
+    const prev = [html.style.overflow, body.style.overflow];
+    html.style.overflow = 'hidden';
+    body.style.overflow = 'hidden';
+    window.scrollTo(0, 0);
+    return () => {
+      [html.style.overflow, body.style.overflow] = prev;
+    };
+  }, [fullBleed]);
 
   // 앱 안에서 이동해 온 기록이 있을 때만 뒤로 간다. 로그인(카카오·구글)에서 돌아왔거나 공유 링크로 바로 열면
   // 이전 기록이 로그인 페이지·다른 사이트라서 홈으로 보낸다 (React Router가 첫 화면에 idx 0을 기록한다)

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import Avatar from '../components/Avatar';
 import CapsuleThumb from '../components/CapsuleThumb';
@@ -94,6 +94,25 @@ export default function Home() {
   const selectMap = (friendId: string | null) => setSearchParams(friendId ? { user: friendId } : {}, { replace: true });
   const selectTown = () => setSearchParams({ view: 'town' }, { replace: true });
 
+  // 지도를 위로 밀면 검색창·지도 칩도 손가락을 따라 위로 밀려 올라가 숨고, 아래로 끌면 다시 내려온다.
+  // 손을 떼면 반 넘게 올라갔으면 끝까지 숨기고 아니면 제자리로 (끄는 동안은 화면을 다시 그리지 않도록 직접 옮긴다)
+  const overlayRef = useRef<HTMLDivElement>(null);
+  const overlayShift = useRef(0);
+  const shiftOverlay = useCallback((shift: number, animate: boolean) => {
+    const el = overlayRef.current;
+    if (!el) return;
+    // 위 여백(top-3)까지 올려야 완전히 가려진다
+    const max = el.offsetHeight + 12;
+    overlayShift.current = Math.min(max, Math.max(0, shift));
+    el.style.transition = animate ? 'transform 0.2s ease-out' : 'none';
+    el.style.transform = `translateY(${-overlayShift.current}px)`;
+  }, []);
+  const onMapPan = useCallback((dy: number) => shiftOverlay(overlayShift.current + dy, false), [shiftOverlay]);
+  const onMapPanEnd = useCallback(() => {
+    const el = overlayRef.current;
+    if (el) shiftOverlay(overlayShift.current > (el.offsetHeight + 12) / 2 ? Infinity : 0, true);
+  }, [shiftOverlay]);
+
   const hint = viewingId
     ? viewing
       ? `${viewing.displayName}님의 지도예요`
@@ -107,16 +126,18 @@ export default function Home() {
         : '가 본 가게를 눌러 5초를 남겨 보세요';
 
   return (
-    <div className="relative w-full map-screen">
+    <div className="relative w-full map-screen overflow-hidden">
       <PlaceMap
         selectedId={selectedId}
         onSelect={(p) => setSelectedId(p.id)}
         videoCount={mapCount}
         marks={town || viewingId ? undefined : myMarks}
+        onPan={onMapPan}
+        onPanEnd={onMapPanEnd}
         className="absolute inset-0"
       />
 
-      <div className="absolute top-3 inset-x-3 z-10 flex flex-col gap-2">
+      <div ref={overlayRef} className="absolute top-3 inset-x-3 z-10 flex flex-col gap-2">
         <PlaceSearch onPick={(p) => setSelectedId(p.id)} />
         {SOCIAL_ENABLED && me && (
           <FriendMapSelector

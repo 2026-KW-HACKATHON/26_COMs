@@ -30,13 +30,23 @@ interface PlaceMapProps {
   fitPlaceIds?: string[];
   /** 내 위치(파란 점)를 보여 주고 동네 안이면 그곳으로 옮긴다. 기본은 켬 (그룹 지도는 끔) */
   showMyLocation?: boolean;
+  /** 손가락으로 지도를 끄는 동안 세로로 움직인 픽셀 (위로 밀면 양수). 홈 지도가 검색창을 함께 밀어 올린다 */
+  onPan?: (dy: number) => void;
+  /** 지도를 다 끌고 손을 뗐을 때 */
+  onPanEnd?: () => void;
   className?: string;
 }
 
 /** 도로 폭(m). 줌에 맞춰 화면 두께를 다시 계산한다 */
 const ROAD_METERS = { major: 15, minor: 7, lane: 4 };
-/** 이 줌 이상에서 가게 이름을 보여 준다 */
-const NAME_ZOOM = 18;
+/** 이 줌 이상에서 영상(방문)이 없는 가게 이름도 보여 준다 */
+const NAME_ZOOM = 18.5;
+/** 이 줌 이상에서 가게 말풍선(이름·영상 수)을 보여 준다. 그보다 축소하면 말풍선을 통째로 숨긴다 */
+const PILL_ZOOM = 17.25;
+/** 이 줌보다 축소하면 작은 길·학교·공원 이름을 숨긴다 */
+const LANDMARK_ZOOM = 16.5;
+/** 내 위치·그룹 땅으로 옮길 때 (말풍선은 보이고, 나머지 가게 이름은 조금 더 확대해야 보인다) */
+const LOCATE_ZOOM = 18;
 const FOCUS_ZOOM = 17;
 /** 내 위치가 이 시간(ms) 안에 잡히면 움직이는 효과 없이 바로 그 자리에서 시작한다 */
 const INSTANT_FIX_MS = 400;
@@ -166,13 +176,15 @@ function summaryName(places: Place[]) {
   return places.length > 1 ? `${places[0].name} 외 ${places.length - 1}` : places[0].name;
 }
 
-export default function PlaceMap({ selectedId, onSelect, videoCount, marks, owners, fitPlaceIds, showMyLocation = true, className = '' }: PlaceMapProps) {
+export default function PlaceMap({ selectedId, onSelect, videoCount, marks, owners, fitPlaceIds, showMyLocation = true, onPan, onPanEnd, className = '' }: PlaceMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const rendererRef = useRef<L.Canvas | null>(null);
   const dynamicRef = useRef<L.LayerGroup | null>(null);
   const onSelectRef = useRef(onSelect);
   const selectedIdRef = useRef(selectedId);
+  const onPanRef = useRef(onPan);
+  const onPanEndRef = useRef(onPanEnd);
   const fitsPlacesRef = useRef(fitPlaceIds !== undefined);
   // 바탕 지도는 처음 한 번만 그려서 처음 값을 쓴다
   const showMyLocationRef = useRef(showMyLocation);
@@ -181,6 +193,8 @@ export default function PlaceMap({ selectedId, onSelect, videoCount, marks, owne
   useEffect(() => {
     onSelectRef.current = onSelect;
     selectedIdRef.current = selectedId;
+    onPanRef.current = onPan;
+    onPanEndRef.current = onPanEnd;
   });
 
   // 바탕 지도: 한 번만 그린다. 종류별로 하나의 레이어로 묶어 캔버스에 그려서 가볍다
@@ -245,9 +259,9 @@ export default function PlaceMap({ selectedId, onSelect, videoCount, marks, owne
       roads.major.setStyle({ weight: Math.max(2.5, ROAD_METERS.major / metersPerPixel) });
       roads.minor.setStyle({ weight: Math.max(1.5, ROAD_METERS.minor / metersPerPixel) });
       roads.lane.setStyle({ weight: Math.max(1, ROAD_METERS.lane / metersPerPixel) });
-      el.classList.toggle('map-z-low', z < 16.5);
-      el.classList.toggle('map-z-mid', z >= 16.5 && z < NAME_ZOOM);
-      el.classList.toggle('map-z-high', z >= NAME_ZOOM);
+      el.classList.toggle('map-z-low', z < LANDMARK_ZOOM);
+      el.classList.toggle('map-hide-pills', z < PILL_ZOOM);
+      el.classList.toggle('map-hide-names', z < NAME_ZOOM);
     };
     map.on('zoomend', syncZoom);
 
@@ -281,9 +295,22 @@ export default function PlaceMap({ selectedId, onSelect, videoCount, marks, owne
         zIndexOffset: 900,
       }).addTo(map);
       if (touched || selectedIdRef.current || fitsPlacesRef.current) return;
-      if (performance.now() - askedAt < INSTANT_FIX_MS) map.setView(here, NAME_ZOOM, { animate: false });
-      else map.flyTo(here, NAME_ZOOM, { duration: 0.8 });
+      if (performance.now() - askedAt < INSTANT_FIX_MS) map.setView(here, LOCATE_ZOOM, { animate: false });
+      else map.flyTo(here, LOCATE_ZOOM, { duration: 0.8 });
     });
+
+    // 끄는 동안 세로 이동량을 알려 준다. 보이는 영역의 위쪽 끝(픽셀)이 아래로 가면 지도를 위로 민 것
+    let lastTop = 0;
+    const panTop = () => map.getPixelBounds().min?.y ?? 0;
+    map.on('dragstart', () => {
+      lastTop = panTop();
+    });
+    map.on('drag', () => {
+      const top = panTop();
+      onPanRef.current?.(top - lastTop);
+      lastTop = top;
+    });
+    map.on('dragend', () => onPanEndRef.current?.());
 
     mapRef.current = map;
     return () => {
@@ -384,7 +411,7 @@ export default function PlaceMap({ selectedId, onSelect, videoCount, marks, owne
       const index = data.buildingOf.get(id);
       return !place ? [] : index === undefined ? [[place.lat, place.lng]] : [data.buildings[index].center];
     });
-    if (points.length) map.flyToBounds(L.latLngBounds(points), { padding: [56, 56], maxZoom: NAME_ZOOM, duration: 0.6 });
+    if (points.length) map.flyToBounds(L.latLngBounds(points), { padding: [56, 56], maxZoom: LOCATE_ZOOM, duration: 0.6 });
   }, [fitKey]);
 
   // 선택된 장소가 화면 밖(검색으로 고른 경우 등)이면 그쪽으로 이동
