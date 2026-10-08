@@ -13,8 +13,8 @@ const BUCKET = 'capsules';
  * 서명 URL은 친구를 끊어도 만료 전까지 쓸 수 있어서 짧게 둔다.
  */
 const SIGNED_URL_SECONDS = 10 * 60;
-/** 작성자(capsules.user_id → profiles)와 태그된 친구를 한 번에 불러온다 */
-const CAPSULE_SELECT = `*, author:profiles!capsules_user_id_fkey(${PROFILE_COLUMNS}), capsule_tags(profile:profiles(${PROFILE_COLUMNS}))`;
+/** 작성자(capsules.user_id → profiles)와 태그된 친구, 내 하트(정책상 본인 하트만 보인다)를 한 번에 불러온다 */
+const CAPSULE_SELECT = `*, author:profiles!capsules_user_id_fkey(${PROFILE_COLUMNS}), capsule_tags(profile:profiles(${PROFILE_COLUMNS})), my_like:capsule_likes(user_id)`;
 
 const EXTENSION: Record<string, string> = { 'video/mp4': 'mp4', 'video/webm': 'webm', 'video/quicktime': 'mov' };
 
@@ -32,8 +32,10 @@ interface CapsuleRow {
   created_at: string;
   visibility: Visibility;
   verified: boolean;
+  like_count: number;
   author: ProfileRow | null;
   capsule_tags: { profile: ProfileRow | null }[];
+  my_like: { user_id: string }[];
 }
 
 export class LoginRequiredError extends Error {}
@@ -86,6 +88,8 @@ async function toCapsules(rows: CapsuleRow[]): Promise<Capsule[]> {
     thumbnail: (r.thumbnail_path && urls.get(r.thumbnail_path)) || null,
     createdAt: Date.parse(r.created_at),
     visibility: r.visibility ?? 'friends',
+    likeCount: r.like_count ?? 0,
+    liked: r.my_like.length > 0,
     verified: !!r.verified,
   }));
 }
@@ -137,6 +141,8 @@ export async function addCapsule(data: NewCapsule): Promise<Capsule> {
     thumbnail: data.thumbnail,
     createdAt: Date.now(),
     visibility: data.visibility,
+    likeCount: 0,
+    liked: false,
     verified: false,
   };
 }
@@ -213,6 +219,21 @@ export async function setVisibility(id: string, visibility: Visibility): Promise
   if (!isUuid(id)) return;
   const { error } = await client().from(TABLE).update({ visibility }).eq('id', id);
   if (error) throw error;
+}
+
+/** 하트 누르기·취소 (볼 수 있는 영상에만). 다른 기기에서 이미 눌렀거나 취소했어도 성공으로 본다 */
+export async function setLiked(id: string, liked: boolean): Promise<void> {
+  if (!isUuid(id)) return;
+  const me = await currentUserId();
+  if (!me) throw new LoginRequiredError();
+  if (liked) {
+    // 누른 사람은 서버가 로그인 계정으로 정한다
+    const { error } = await client().from('capsule_likes').insert({ capsule_id: id });
+    if (error && error.code !== '23505') throw error;
+  } else {
+    const { error } = await client().from('capsule_likes').delete().eq('capsule_id', id).eq('user_id', me);
+    if (error) throw error;
+  }
 }
 
 /** 작성자만 지울 수 있다 (태그·파일도 함께 삭제) */

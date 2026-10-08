@@ -9,4 +9,4 @@ export const STORAGE_MODE = supabase ? 'cloud' : 'device';
 /** 로그인·친구·태그 기능을 쓸 수 있는지 (서버 저장일 때만) */
 export const SOCIAL_ENABLED = STORAGE_MODE === 'cloud';
 
-export const { addCapsule, getCapsule, listCapsules, listFeed, listPlaceCapsules, setVisibility, deleteCapsule, listPlaceStats } = supabase ? cloud : device;
+export const { addCapsule, getCapsule, listCapsules, listFeed, listPlaceCapsules, setVisibility, setLiked, deleteCapsule, listPlaceStats } = supabase ? cloud : device;

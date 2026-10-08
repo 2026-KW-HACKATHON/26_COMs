@@ -15,8 +15,8 @@ describe('schema loading', () => {
   test('schema.sql runs twice in a row without error', async () => {
     const h = await createDb({ runs: 2 });
     const policies = await h.q('admin', `select count(*)::int as n from pg_policies where schemaname in ('public', 'storage')`);
-    // 17 table policies + 6 "block anonymous" restrictive policies + 5 storage policies
-    assert.equal(policies[0].n, 28);
+    // 20 table policies + 7 "block anonymous" restrictive policies + 5 storage policies
+    assert.equal(policies[0].n, 32);
     await h.close();
   });
 
@@ -735,6 +735,7 @@ describe('hardening', () => {
     assert.deepEqual(await h.q(anonUser, 'select * from public.capsules'), []);
     assert.deepEqual(await h.q(anonUser, 'select * from public.friendships'), []);
     assert.deepEqual(await h.q(anonUser, 'select * from public.capsule_tags'), []);
+    assert.deepEqual(await h.q(anonUser, 'select * from public.capsule_likes'), []);
     assert.deepEqual(await h.q(anonUser, 'select name from storage.objects'), []);
     assert.deepEqual(await h.q(anonUser, `select * from public.search_profiles('hard')`), []);
     assert.deepEqual(await h.q(anonUser, 'select * from public.nudges'), []);
@@ -749,6 +750,7 @@ describe('hardening', () => {
       RLS,
     );
     await assert.rejects(h.upload(anonUser, `${anonUser.id}/v.webm`), RLS);
+    await assert.rejects(h.q(anonUser, 'insert into public.capsule_likes (capsule_id) values ($1)', [cap.id]), RLS);
     assert.equal(await h.run(anonUser, `update public.profiles set display_name = 'spam' where id = $1`, [anonUser.id]), 0);
     await assert.rejects(h.q(anonUser, 'select public.nudge_friend($1, $2)', [cap.id, A]), /not authenticated/);
     await assert.rejects(
@@ -763,7 +765,7 @@ describe('hardening', () => {
   });
 
   test('TRUNCATE and other bulk privileges are revoked from anon and authenticated', async () => {
-    for (const t of ['profiles', 'friendships', 'capsules', 'capsule_tags', 'nudges', 'push_subscriptions']) {
+    for (const t of ['profiles', 'friendships', 'capsules', 'capsule_tags', 'capsule_likes', 'nudges', 'push_subscriptions']) {
       await assert.rejects(h.q(A, `truncate public.${t} cascade`), DENIED, `authenticated truncate ${t}`);
       await assert.rejects(h.q('anon', `truncate public.${t} cascade`), DENIED, `anon truncate ${t}`);
     }
@@ -1096,5 +1098,106 @@ describe('R11 notification server (service_role)', () => {
     assert.equal(await h.run('service', 'update public.nudges set pushed_at = now() where id = $1 and pushed_at is null', [nudgeId]), 1);
     assert.equal((await h.q('service', 'select endpoint from public.push_subscriptions where user_id = $1', [B])).length, 1);
     assert.equal(await h.run('service', 'delete from public.push_subscriptions where user_id = $1', [B]), 1);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// R12 likes (하트):
+//   A–B are friends. A left a friends-only capsule (priv) and a town capsule (pub). S is a stranger.
+describe('R12 likes', () => {
+  let h, A, B, S, priv, pub;
+  const like = (who, capsule) => h.q(who, 'insert into public.capsule_likes (capsule_id) values ($1)', [capsule]);
+  const unlike = (who, capsule) => h.run(who, 'delete from public.capsule_likes where capsule_id = $1', [capsule]);
+  const count = async (who, capsule) =>
+    (await h.q(who, 'select like_count from public.capsules where id = $1', [capsule]))[0]?.like_count;
+
+  before(async () => {
+    h = await createDb();
+    A = await h.signUp({ email: 'la.like@x.com' });
+    B = await h.signUp({ email: 'lb.like@x.com' });
+    S = await h.signUp({ email: 'ls.like@x.com' });
+    await h.befriend(A, B);
+    priv = await h.capsule(A, { place: 'p1' });
+    pub = await h.capsule(A, { place: 'p2' });
+    await h.run(A, `update public.capsules set visibility = 'town' where id = $1`, [pub.id]);
+  });
+  after(() => h.close());
+
+  test('new capsules start at 0; a friend likes once and everyone who sees the capsule sees the count', async () => {
+    assert.equal(await count(A, priv.id), 0);
+    await like(B, priv.id);
+    assert.equal(await count(A, priv.id), 1);
+    assert.equal(await count(B, priv.id), 1);
+    await assert.rejects(like(B, priv.id), /duplicate key/);
+    assert.equal(await count(A, priv.id), 1);
+  });
+
+  test('the owner can like their own capsule', async () => {
+    await like(A, priv.id);
+    assert.equal(await count(A, priv.id), 2);
+  });
+
+  test('only my own likes are visible, not who else liked (not even to the author)', async () => {
+    const mine = async (who) => (await h.q(who, 'select capsule_id, user_id from public.capsule_likes')).map((r) => [r.capsule_id, r.user_id]);
+    assert.deepEqual(await mine(A), [[priv.id, A]]);
+    assert.deepEqual(await mine(B), [[priv.id, B]]);
+    assert.deepEqual(await mine(S), []);
+    await assert.rejects(h.q('anon', 'select * from public.capsule_likes'), DENIED);
+  });
+
+  test('strangers cannot like a capsule they cannot see, but can like a town capsule', async () => {
+    await assert.rejects(like(S, priv.id), RLS);
+    await assert.rejects(like(S, randomUUID()), RLS);
+    await like(S, pub.id);
+    assert.equal(await count(S, pub.id), 1);
+    await assert.rejects(like('anon', pub.id), DENIED);
+  });
+
+  test('nobody likes in someone else’s name or sets the count directly', async () => {
+    await assert.rejects(h.q(S, 'insert into public.capsule_likes (capsule_id, user_id) values ($1, $2)', [pub.id, B]), DENIED);
+    await assert.rejects(h.q(A, 'update public.capsules set like_count = 100 where id = $1', [priv.id]), DENIED);
+    await assert.rejects(h.q(B, 'update public.capsule_likes set capsule_id = $1', [pub.id]), DENIED);
+    await assert.rejects(
+      h.q(A, `insert into public.capsules (place_id, place_name, lat, lng, video_path, clip_duration, like_count)
+              values ('p3', 'x', 0, 0, $1, 5, 100)`, [`${A}/forged.webm`]),
+      DENIED,
+    );
+    await assert.rejects(h.q(A, 'select public.count_capsule_like()'), DENIED);
+    assert.equal(await count(A, priv.id), 2);
+  });
+
+  test('unliking removes only my own like and lowers the count', async () => {
+    assert.equal(await h.run(A, 'delete from public.capsule_likes where user_id = $1', [B]), 0);
+    assert.equal(await unlike(B, priv.id), 1);
+    assert.equal(await count(A, priv.id), 1);
+    assert.equal(await unlike(B, priv.id), 0);
+    assert.equal(await count(A, priv.id), 1);
+  });
+
+  test('after unfriending, the old like still counts and can still be taken back', async () => {
+    await like(B, priv.id);
+    await h.q(B, 'select public.remove_friend($1)', [A]);
+    assert.equal(await count(A, priv.id), 2);
+    assert.equal(await unlike(B, priv.id), 1);
+    assert.equal(await count(A, priv.id), 1);
+  });
+
+  test('a deleted account’s likes disappear from the count', async () => {
+    assert.equal(await count(A, pub.id), 1);
+    await h.q('admin', 'delete from auth.users where id = $1', [S]);
+    assert.equal(await count(A, pub.id), 0);
+  });
+
+  test('deleting a liked capsule removes its likes', async () => {
+    assert.equal(await h.run(A, 'delete from public.capsules where id = $1', [priv.id]), 1);
+    assert.deepEqual(await h.q('admin', 'select * from public.capsule_likes where capsule_id = $1', [priv.id]), []);
+  });
+
+  test('re-running the schema keeps likes and counts', async () => {
+    await like(A, pub.id);
+    await h.db.exec(schemaSql());
+    assert.equal(await count(A, pub.id), 1);
+    assert.equal(await unlike(A, pub.id), 1);
+    assert.equal(await count(A, pub.id), 0);
   });
 });

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import Avatar from '../components/Avatar';
 import FeedVideo from '../components/FeedVideo';
+import LikeButton from '../components/LikeButton';
 import RecallCard from '../components/RecallCard';
 import { CATEGORY_EMOJI, getPlace, placeSubtitle } from '../data/places';
 import { useAuth } from '../hooks/useAuth';
@@ -184,6 +185,10 @@ function FeedItem({ capsule: c, me, stat, onOpen, onMap }: FeedItemProps) {
       </button>
 
       <FeedVideo capsule={c} className="w-full aspect-[4/5] rounded-2xl" />
+
+      <div className="flex items-center -my-1">
+        <LikeButton capsule={c} />
+      </div>
 
       <button onClick={onMap} className="flex items-center gap-3 p-2.5 pr-3 rounded-2xl bg-surface-container-low text-left pressable" type="button">
         <span className="w-10 h-10 shrink-0 rounded-full bg-surface flex items-center justify-center text-[20px]">

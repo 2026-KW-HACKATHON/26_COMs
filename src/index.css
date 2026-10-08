@@ -50,10 +50,15 @@
   .ticker-in {
     animation: ticker-in 0.35s ease-out both;
   }
+  /* 피드 하트: 누르면 톡 커졌다 돌아온다 */
+  .like-pop {
+    animation: like-pop 0.35s cubic-bezier(0.2, 0.9, 0.3, 1.3);
+  }
   @media (prefers-reduced-motion: reduce) {
     .nudge-drop,
     .nudge-wiggle,
-    .ticker-in {
+    .ticker-in,
+    .like-pop {
       animation: none;
     }
   }
@@ -67,6 +72,18 @@
   to {
     transform: none;
     opacity: 1;
+  }
+}
+
+@keyframes like-pop {
+  0% {
+    transform: scale(1);
+  }
+  40% {
+    transform: scale(1.3);
+  }
+  100% {
+    transform: scale(1);
   }
 }
 

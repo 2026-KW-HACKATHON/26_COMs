@@ -30,6 +30,10 @@ export interface Capsule {
   thumbnail: Media | null;
   createdAt: number;
   visibility: Visibility;
+  /** 하트 수 */
+  likeCount: number;
+  /** 내가 하트를 눌렀는지 */
+  liked: boolean;
   /** 예전 현장 인증 기록 (지금은 화면에 쓰지 않고, 새 영상은 늘 false) */
   verified: boolean;
 }
