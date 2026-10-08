@@ -47,11 +47,12 @@ function heatLevel(count: number) {
 
 /** 단계별 빛 번짐: 흐림 반경(px)과 진하기 */
 const GLOW = [
-  { blur: 5, alpha: 0.2 },
-  { blur: 8, alpha: 0.26 },
-  { blur: 11, alpha: 0.32 },
-  { blur: 15, alpha: 0.38 },
-  { blur: 20, alpha: 0.44 },
+  // 플랫 디자인: 빛 번짐 없이 건물 색 단계만으로 구분한다
+  { blur: 0, alpha: 0 },
+  { blur: 0, alpha: 0 },
+  { blur: 0, alpha: 0 },
+  { blur: 0, alpha: 0 },
+  { blur: 0, alpha: 0 },
 ];
 
 /** 테두리는 얇게(고해상도 화면에서 1픽셀 남짓), 색은 단계별로 채운다 */
@@ -59,7 +60,7 @@ function storeStyle(count: number, selected: boolean): L.PathOptions {
   const base: L.PathOptions = count
     ? { fillColor: MAP_COLORS.heat[heatLevel(count)], fillOpacity: 1, color: MAP_COLORS.heatStroke, opacity: 0.3, weight: 0.6 }
     : { fillColor: MAP_COLORS.store, fillOpacity: 1, color: MAP_COLORS.storeStroke, opacity: 1, weight: 0.6 };
-  return selected ? { ...base, color: MAP_COLORS.selected, opacity: 1, weight: 2, ...(count ? {} : { fillColor: '#C3C9DC' }) } : base;
+  return selected ? { ...base, color: MAP_COLORS.selected, opacity: 1, weight: 2, ...(count ? {} : { fillColor: '#C5CAD2' }) } : base;
 }
 
 interface GlowOptions extends L.PathOptions {
@@ -87,6 +88,8 @@ const GlowCanvas = L.Canvas.extend({
   _fillStroke(this: CanvasInternals, ctx: CanvasRenderingContext2D, layer: L.Path) {
     const glow = glowOf(layer);
     if (!glow) return canvasBase._fillStroke.call(this, ctx, layer);
+    // 번짐이 없는 단계는 아무것도 그리지 않는다 (같은 모양을 칠하면 건물 가장자리에 색이 비친다)
+    if (!glow.blur) return;
     ctx.save();
     ctx.globalAlpha = 1;
     ctx.shadowColor = glow.color;

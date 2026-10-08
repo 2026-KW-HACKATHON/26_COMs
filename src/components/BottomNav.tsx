@@ -32,11 +32,11 @@ export default function BottomNav({ currentPath }: BottomNavProps) {
   return (
     <nav className="fixed bottom-0 inset-x-0 z-50 pb-safe">
       <div className="max-w-[430px] mx-auto px-3 pb-3">
-        <div className="h-[var(--nav-bar-h)] grid grid-cols-5 items-end rounded-[28px] app-surface px-2 py-2">
+        <div className="h-[var(--nav-bar-h)] grid grid-cols-5 items-end rounded-xl app-surface px-2 py-2">
         {TABS_LEFT.map(tab)}
 
         <Link to="/leave" className="flex flex-col items-center justify-center gap-0.5 text-[11px] font-semibold text-primary">
-          <span className="w-12 h-12 rounded-full accent-gradient text-white flex items-center justify-center pressable">
+          <span className="w-12 h-12 rounded-full fill-accent text-white flex items-center justify-center pressable">
             <span className="material-symbols-rounded text-[24px] icon-fill">add</span>
           </span>
           남기기

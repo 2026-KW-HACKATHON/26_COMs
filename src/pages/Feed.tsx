@@ -91,13 +91,13 @@ export default function Feed() {
   return (
     <div className="flex flex-col w-full pt-3 pb-8 gap-4">
       {SOCIAL_ENABLED && (
-        <div className="flex p-1 rounded-full glass border border-white/80 shadow-[0_10px_26px_rgba(90,100,160,0.04)]" role="tablist" aria-label="피드">
+        <div className="flex p-1 rounded-lg bg-gray-100 border border-gray-200" role="tablist" aria-label="피드">
           {SCOPES.map((s) => (
             <button
               key={s.value}
               onClick={() => selectScope(s.value)}
-              className={`flex-1 h-10 rounded-full text-label-md font-semibold transition-all ${
-                scope === s.value ? 'silver-gradient text-on-surface shadow-[0_6px_16px_rgba(90,100,160,0.05)]' : 'text-gray-500'
+              className={`flex-1 h-10 rounded-md text-label-md font-semibold transition-all ${
+                scope === s.value ? 'fill-neutral text-on-surface' : 'text-gray-500'
               }`}
               type="button"
               role="tab"
@@ -130,7 +130,7 @@ export default function Feed() {
             <button
               onClick={loadMore}
               disabled={loadingMore}
-              className="h-12 rounded-xl bg-surface-container text-gray-700 text-label-lg flex items-center justify-center gap-1 pressable disabled:opacity-50"
+              className="h-12 rounded-lg bg-surface-container text-gray-700 text-label-lg flex items-center justify-center gap-1 pressable disabled:opacity-50"
               type="button"
             >
               {loadingMore ? '불러오는 중…' : '더 보기'}
@@ -189,7 +189,7 @@ function FeedItem({ capsule: c, me, stat, onOpen, onMap }: FeedItemProps) {
       </button>
 
       <div className="px-4">
-        <FeedVideo capsule={c} onLike={like.like} className="w-full aspect-[4/5] rounded-[24px] overflow-hidden" />
+        <FeedVideo capsule={c} onLike={like.like} className="w-full aspect-[4/5] rounded-xl overflow-hidden" />
       </div>
 
       <div className="flex items-center px-4 -my-1.5">
@@ -223,14 +223,14 @@ function EmptyFeed({ scope, noFriends, onTown }: { scope: Scope; noFriends: bool
   const hint = town ? "영상을 남길 때 '동네 모두'를 고르면 여기에 떠요." : findFriends ? '같은 동네 친구를 찾아 보세요.' : '가게에서 5초를 남기면 친구들 피드에 떠요.';
   return (
     <div className="flex flex-col items-center text-center py-14 px-6 app-card text-on-surface-variant">
-      <div className="w-16 h-16 rounded-full pastel-gradient flex items-center justify-center text-primary">
+      <div className="w-16 h-16 rounded-full fill-tint flex items-center justify-center text-primary">
         <span className="material-symbols-rounded text-[34px] icon-fill">{town ? 'location_city' : findFriends ? 'group_add' : 'dynamic_feed'}</span>
       </div>
       <p className="mt-2 text-body-md text-on-surface">{title}</p>
       <p className="mt-1 text-label-md">{hint}</p>
       <button
         onClick={() => navigate(findFriends ? '/friends' : '/leave')}
-        className="mt-5 h-12 px-6 rounded-full accent-gradient text-white text-label-lg font-bold pressable"
+        className="mt-5 h-12 px-6 rounded-lg fill-accent text-white text-label-lg font-bold pressable"
         type="button"
       >
         {findFriends ? '친구 찾기' : '5초 남기기'}
@@ -251,9 +251,9 @@ function FeedSkeleton() {
         <div key={i} className="flex flex-col gap-3 app-card overflow-hidden p-4">
           <div className="flex items-center gap-2.5">
             <span className="w-9 h-9 rounded-full bg-gray-100" />
-            <span className="w-32 h-4 rounded-full bg-gray-100" />
+            <span className="w-32 h-4 rounded-lg bg-gray-100" />
           </div>
-          <div className="w-full aspect-[4/5] rounded-[24px] bg-gray-100" />
+          <div className="w-full aspect-[4/5] rounded-xl bg-gray-100" />
         </div>
       ))}
     </div>

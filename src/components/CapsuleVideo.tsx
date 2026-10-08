@@ -126,7 +126,7 @@ export default function CapsuleVideo({ src, start = 0, duration = CLIP_SECONDS, 
 
       {!playing && (
         <button onClick={handleTap} className="absolute inset-0 flex items-center justify-center" type="button" aria-label="재생">
-          <span className="w-14 h-14 rounded-full bg-white/75 backdrop-blur-md border border-white/80 text-gray-800 shadow-float flex items-center justify-center">
+          <span className="w-14 h-14 rounded-full bg-white text-gray-800 flex items-center justify-center">
             <span className="material-symbols-rounded text-[34px] icon-fill">play_arrow</span>
           </span>
         </button>
@@ -134,7 +134,7 @@ export default function CapsuleVideo({ src, start = 0, duration = CLIP_SECONDS, 
 
       <button
         onClick={() => setMuted((m) => !m)}
-        className="absolute top-2.5 right-2.5 w-9 h-9 rounded-full bg-white/75 backdrop-blur-md border border-white/80 text-gray-800 shadow-float flex items-center justify-center"
+        className="absolute top-2.5 right-2.5 w-9 h-9 rounded-full bg-white text-gray-800 flex items-center justify-center"
         type="button"
         aria-label={muted ? '소리 켜기' : '소리 끄기'}
       >
@@ -142,7 +142,7 @@ export default function CapsuleVideo({ src, start = 0, duration = CLIP_SECONDS, 
       </button>
 
       <div className="absolute bottom-0 inset-x-0 h-1 bg-white/25">
-        <div className="h-full bg-gradient-to-r from-[#B4C0EE] to-[#CBBFEC]" style={{ width: `${progress * 100}%` }} />
+        <div className="h-full bg-primary" style={{ width: `${progress * 100}%` }} />
       </div>
 
       {burst > 0 && (

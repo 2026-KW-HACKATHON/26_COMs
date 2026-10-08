@@ -1,27 +1,26 @@
 /** @type {import('tailwindcss').Config} */
 
-// 부드러운 화이트 글라스 테마: 채도를 낮춘 푸른 회색 단계 + 차분한 페리윙클·라벤더 강조.
-// (지도 색은 src/lib/theme.ts, 그라데이션·유리 효과는 src/index.css에서 같은 값을 쓴다)
+// 플랫 디자인: 단색 면 + 얇은 테두리. 뉴트럴 회색 단계 + 차분한 블루 강조색 하나.
+// (지도 색은 src/lib/theme.ts에서 같은 값을 쓴다)
 const GRAY = {
-  50: '#F9FAFD',
-  100: '#F3F5FA',
-  200: '#E6E9F2',
-  300: '#D3D8E4',
-  400: '#A3AABB',
-  500: '#636C85',
-  600: '#525B72',
-  700: '#3E465C',
-  800: '#2C3346',
-  900: '#1F2537',
+  50: '#FAFAFB',
+  100: '#F3F4F6',
+  200: '#E6E8EC',
+  300: '#D5D8DE',
+  400: '#A4AAB3',
+  500: '#626A75',
+  600: '#4F5661',
+  700: '#3A404A',
+  800: '#2A2F37',
+  900: '#1F2329',
 };
-// 강조 = 차분한 페리윙클(흰 글씨 대비 4.9:1), 보조 강조 = 옅은 라벤더. 연한 강조 = 파스텔
+// 강조 = 차분한 블루(흰 글씨 대비 4.8:1). 연한 강조 = 아주 옅은 블루
 const BRAND = {
-  main: '#5E68C4',
-  strong: '#4E57A8',
-  lavender: '#7A68C2',
-  weak: '#F0F2FB',
-  weaker: '#E4E7F7',
-  onWeak: '#4E56A8',
+  main: '#3B6FD4',
+  strong: '#2F5DB8',
+  weak: '#EEF3FC',
+  weaker: '#DDE7FA',
+  onWeak: '#2F5DB8',
 };
 
 module.exports = {
@@ -39,10 +38,10 @@ module.exports = {
         'primary-fixed': BRAND.weak,
         'primary-fixed-dim': BRAND.weaker,
         'on-primary-fixed': BRAND.onWeak,
-        secondary: BRAND.lavender,
+        secondary: BRAND.strong,
         'secondary-container': BRAND.weak,
 
-        background: '#FFFFFF',
+        background: '#F7F8FA',
         surface: '#FFFFFF',
         'surface-bright': '#FFFFFF',
         'surface-container-lowest': '#FFFFFF',
@@ -61,10 +60,10 @@ module.exports = {
         'inverse-surface': BRAND.main,
         'inverse-on-surface': '#FFFFFF',
 
-        error: '#C2525D',
+        error: '#C9484F',
         'on-error': '#FFFFFF',
-        'error-container': '#FBF0F1',
-        'on-error-container': '#A8434D',
+        'error-container': '#FCEFF0',
+        'on-error-container': '#A63A41',
       },
       spacing: {
         'space-xs': '0.25rem',
@@ -107,9 +106,9 @@ module.exports = {
         '4xl': '2rem',
       },
       boxShadow: {
-        // 지도 위에 뜨는 요소만 은은한 그림자를 쓴다
-        float: '0 1px 4px rgba(70, 80, 130, 0.05), 0 8px 24px rgba(90, 100, 160, 0.08)',
-        sheet: '0 -2px 20px rgba(90, 100, 160, 0.06), 0 12px 32px rgba(70, 80, 130, 0.09)',
+        // 플랫: 지도 위에 뜨는 요소만 아주 얇은 그림자 한 겹 (테두리와 함께 쓴다)
+        float: '0 1px 2px rgba(16, 24, 40, 0.06)',
+        sheet: '0 1px 3px rgba(16, 24, 40, 0.08)',
       },
     },
   },

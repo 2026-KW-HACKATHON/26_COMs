@@ -28,7 +28,7 @@ export default function Header({ currentPath, goBack }: HeaderProps) {
   return (
     <header className="fixed top-0 w-full z-50 pt-safe">
       <div className="max-w-[430px] mx-auto px-3">
-        <div className="mt-2 mb-2 h-14 px-3 flex items-center justify-between app-surface rounded-full">
+        <div className="mt-2 mb-2 h-14 px-3 flex items-center justify-between app-surface rounded-xl">
         {subTitle ? (
           <>
             <button onClick={goBack} className="w-10 h-10 flex items-center justify-center rounded-full active:bg-gray-100 text-on-surface transition-colors" aria-label="뒤로">
@@ -40,7 +40,7 @@ export default function Header({ currentPath, goBack }: HeaderProps) {
         ) : (
           <>
             <div className="flex items-center gap-3 min-w-0">
-              <div className="w-10 h-10 rounded-full accent-gradient flex items-center justify-center text-white">
+              <div className="w-10 h-10 rounded-full fill-accent flex items-center justify-center text-white">
                 <span className="material-symbols-rounded text-[22px] icon-fill">camera_alt</span>
               </div>
               <div className="min-w-0">
@@ -48,7 +48,7 @@ export default function Header({ currentPath, goBack }: HeaderProps) {
               </div>
             </div>
             <div className={`flex items-center gap-2 ${showBell ? '' : 'mr-1'}`}>
-              <span className="flex items-center gap-1 h-9 pl-2.5 pr-3 rounded-full bg-gray-50 text-[12px] font-semibold text-gray-700 border border-gray-100">
+              <span className="flex items-center gap-1 h-9 pl-2.5 pr-3 rounded-md bg-gray-50 text-[12px] font-semibold text-gray-700 border border-gray-100">
                 <span className="material-symbols-rounded text-[16px] text-gray-500">location_on</span>
                 노원구 월계1동
               </span>

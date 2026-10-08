@@ -14,19 +14,12 @@
   }
   html {
     -webkit-text-size-adjust: 100%;
-    /* 밝은 바탕: 흰빛 위에 파스텔 블루·라벤더 빛무리가 번져 유리판 뒤가 은은하게 빛난다 */
-    background:
-      radial-gradient(46% 30% at 6% 2%, rgba(255, 255, 255, 1), transparent 70%),
-      radial-gradient(44% 32% at 98% 12%, rgba(196, 210, 245, 0.42), transparent 72%),
-      radial-gradient(50% 34% at 0% 58%, rgba(216, 206, 245, 0.38), transparent 72%),
-      radial-gradient(48% 32% at 96% 90%, rgba(198, 220, 242, 0.34), transparent 72%),
-      linear-gradient(180deg, #fcfcfe 0%, #f6f7fc 50%, #f5f3fb 100%);
-    background-attachment: fixed;
-    background-color: #f7f8fc;
+    /* 플랫: 단색 오프화이트 바탕 */
+    background-color: theme('colors.background');
   }
   body {
     @apply text-on-surface antialiased;
-    background: transparent;
+    background-color: theme('colors.background');
     /* 한글은 단어 중간에서 줄바꿈하지 않는다 */
     word-break: keep-all;
     overflow-wrap: anywhere;
@@ -39,85 +32,59 @@
   }
 }
 
+/* ── 플랫 디자인 시스템: 단색 면 + 1px 테두리, 그라데이션·흐림·큰 그림자 없음 ── */
 @layer components {
   .app-shell {
     @apply relative w-full min-h-screen text-on-surface;
   }
-  /* 유리판 (카드·목록): 밝은 흰 유리. 왼쪽 위에 반사광, 푸른 기가 도는 그림자로 바탕과 구분된다 */
-  .glass {
-    background:
-      radial-gradient(120% 60% at 0% 0%, rgba(255, 255, 255, 0.95), transparent 60%),
-      linear-gradient(160deg, rgba(255, 255, 255, 0.94) 0%, rgba(249, 250, 253, 0.84) 100%);
-    -webkit-backdrop-filter: blur(16px) saturate(170%);
-    backdrop-filter: blur(16px) saturate(170%);
-    box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 1),
-      0 0 0 1px rgba(110, 118, 170, 0.06),
-      0 2px 6px rgba(70, 80, 130, 0.03),
-      0 14px 36px rgba(90, 100, 160, 0.07);
+  /* 카드·목록: 흰 면 + 얇은 회색 테두리 */
+  .surface {
+    background-color: #fff;
+    border-color: theme('colors.gray.200');
   }
-  /* 지도·영상 위에 뜨는 유리판 (머리줄·아래 탭·시트·알림): 더 불투명하고 더 흐리게, 그림자도 한 겹 더 */
-  .glass-panel,
+  /* 머리줄·아래 탭·지도 위 검색창·시트·알림: 흰 면 + 테두리 + 아주 얇은 그림자 한 겹 */
+  .surface-float,
   .app-surface {
-    background:
-      radial-gradient(120% 70% at 0% 0%, rgba(255, 255, 255, 1), transparent 60%),
-      linear-gradient(180deg, rgba(255, 255, 255, 0.95) 0%, rgba(248, 249, 253, 0.88) 100%);
-    -webkit-backdrop-filter: blur(22px) saturate(180%);
-    backdrop-filter: blur(22px) saturate(180%);
-    border: 1px solid rgba(255, 255, 255, 0.95);
-    box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 1),
-      0 0 0 1px rgba(110, 118, 170, 0.07),
-      0 4px 10px rgba(70, 80, 130, 0.04),
-      0 18px 44px rgba(90, 100, 160, 0.09);
+    background-color: #fff;
+    border: 1px solid theme('colors.gray.200');
+    box-shadow: 0 1px 2px rgba(16, 24, 40, 0.06);
   }
   .app-card {
-    @apply glass rounded-[28px] border border-white;
+    @apply rounded-xl border border-gray-200 bg-white;
   }
   .app-chip {
-    @apply inline-flex items-center gap-1 rounded-full border border-white px-3 py-1.5 text-[12px] font-semibold text-gray-700;
-    background: linear-gradient(180deg, #ffffff 0%, #f2f3fb 100%);
-    box-shadow: 0 0 0 1px rgba(110, 118, 170, 0.08), 0 2px 6px rgba(90, 100, 160, 0.06);
+    @apply inline-flex items-center gap-1 rounded-md border border-gray-200 bg-white px-2.5 py-1 text-[12px] font-semibold text-gray-700;
   }
-  /* 보조 버튼·누를 수 있는 요소: 흰색 → 옅은 블루 유리 + 진한 남색 글씨 */
-  .silver-gradient {
-    background: linear-gradient(180deg, #ffffff 0%, #f8f9fd 50%, #eef0f9 100%);
-    border: 1px solid rgba(110, 118, 170, 0.13);
-    box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 1),
-      inset 0 -1px 0 rgba(110, 118, 170, 0.05),
-      0 2px 4px rgba(70, 80, 130, 0.04),
-      0 8px 20px rgba(90, 100, 160, 0.07);
-  }
-  .silver-gradient:active {
-    background: linear-gradient(180deg, #f0f2fa 0%, #e6e9f5 100%);
-  }
-  .silver-gradient:disabled {
-    background: #f3f4f9;
-    color: theme('colors.gray.400');
-    box-shadow: none;
-  }
-  /* 주요 버튼·강조 요소: 블루 → 라벤더 + 흰 글씨 (양 끝 모두 흰 글씨 대비 5:1 이상) */
-  .accent-gradient {
-    background:
-      linear-gradient(180deg, rgba(255, 255, 255, 0.16) 0%, rgba(255, 255, 255, 0) 50%),
-      linear-gradient(120deg, #5e68c4 0%, #6b67c4 50%, #7a68c2 100%);
+  /* 주요 버튼·강조 요소: 단색 블루 + 흰 글씨 */
+  .fill-accent {
+    background-color: theme('colors.primary');
     color: #fff;
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 2px 6px rgba(94, 104, 196, 0.14), 0 8px 20px rgba(122, 104, 194, 0.14);
+    transition: background-color 0.15s ease;
   }
-  .accent-gradient:active {
-    filter: brightness(0.95);
+  .fill-accent:active {
+    background-color: theme('colors.primary-strong');
   }
-  .accent-gradient:disabled {
-    background: #eceef5;
+  .fill-accent:disabled {
+    background-color: theme('colors.gray.200');
+    color: theme('colors.gray.500');
+  }
+  /* 보조 버튼·선택된 탭: 흰 면 + 테두리 */
+  .fill-neutral {
+    background-color: #fff;
+    border: 1px solid theme('colors.gray.300');
+    transition: background-color 0.15s ease;
+  }
+  .fill-neutral:active {
+    background-color: theme('colors.gray.100');
+  }
+  .fill-neutral:disabled {
+    background-color: theme('colors.gray.100');
     color: theme('colors.gray.400');
-    box-shadow: none;
   }
-  /* 아이콘 배경 등 장식용 파스텔: 하늘색 → 라벤더 (진한 블루 아이콘이 올라간다) */
-  .pastel-gradient {
-    background: linear-gradient(135deg, #eaeffb 0%, #efebfa 100%);
+  /* 아이콘 배경·배지 등 옅은 강조: 아주 옅은 블루 단색 + 블루 글씨 */
+  .fill-tint {
+    background-color: theme('colors.primary-fixed');
     color: theme('colors.primary');
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9), 0 0 0 1px rgba(110, 118, 170, 0.08), 0 8px 20px rgba(122, 104, 194, 0.08);
   }
   /* 지도 카드: 머리줄과 아래 탭 사이를 꽉 채우고, 좌우는 머리줄·아래 탭과 같은 12px 여백에 맞춘다.
      main에 이미 pt-14(3.5rem)가 있어서 그만큼 빼고 위 간격을 준다. 화면이 아주 낮으면 16rem 아래로는 줄이지 않는다 */
@@ -127,10 +94,9 @@
     margin-top: calc(var(--header-space) - 3.5rem);
     height: max(16rem, calc(100vh - var(--header-space) - var(--nav-space)));
     height: max(16rem, calc(100dvh - var(--header-space) - var(--nav-space)));
-    border-radius: 28px;
-    box-shadow: 0 0 0 1px rgba(110, 118, 170, 0.07), 0 4px 10px rgba(70, 80, 130, 0.04), 0 18px 44px rgba(90, 100, 160, 0.09);
+    border-radius: 12px;
   }
-  /* 지도 자체: 카드 모서리에 맞춰 잘리고 흰 유리 테두리를 두른다. 위에 뜨는 검색창·시트는 형제 요소라 잘리지 않는다 */
+  /* 지도 자체: 카드 모서리에 맞춰 잘리고 1px 테두리. 위에 뜨는 검색창·시트는 형제 요소라 잘리지 않는다 */
   .map-canvas {
     position: absolute;
     inset: 0;
@@ -145,20 +111,15 @@
     inset: 0;
     z-index: 1000;
     border-radius: inherit;
-    border: 1px solid rgba(255, 255, 255, 0.95);
-    box-shadow: inset 0 0 0 1px rgba(110, 118, 170, 0.05);
+    border: 1px solid theme('colors.gray.200');
     pointer-events: none;
   }
-  /* 썸네일 위 재생 표시: 사진을 덮지 않고 작은 유리 원만 올린다 */
+  /* 썸네일 위 재생 표시: 사진을 덮지 않고 작은 흰 원만 올린다 */
   .media-play {
     padding: 0.18em;
     border-radius: 999px;
-    color: theme('colors.primary');
-    background: rgba(255, 255, 255, 0.88);
-    -webkit-backdrop-filter: blur(8px);
-    backdrop-filter: blur(8px);
-    border: 1px solid rgba(255, 255, 255, 1);
-    box-shadow: 0 4px 14px rgba(70, 80, 130, 0.14);
+    color: theme('colors.gray.800');
+    background-color: #fff;
     font-size: 0.8em;
   }
 }
@@ -317,16 +278,6 @@
   display: none;
 }
 
-/* ── 강조색 클래스에 그라데이션을 덧입힌다 (배경색은 그대로 두어 대체색이 된다) ── */
-.bg-primary {
-  background-image: linear-gradient(120deg, #5e68c4 0%, #7a68c2 100%);
-}
-.bg-primary-fixed {
-  background-image: linear-gradient(135deg, #f4f6fc 0%, #efecf9 100%);
-}
-.bg-inverse-surface {
-  background-image: linear-gradient(120deg, #5e68c4 0%, #7068c3 100%);
-}
 /* 오류 문구: 빨간색 + 굵기 + 경고 표시 (색만으로 구분하지 않는다) */
 p.text-error {
   font-weight: 600;
@@ -403,13 +354,12 @@ p.text-error::before {
   gap: 4px;
   padding: 3px 9px 3px 3px;
   border-radius: 999px;
-  background: linear-gradient(180deg, #ffffff 0%, #f2f3fb 100%);
-  border: 1px solid #ffffff;
+  background: #fff;
+  border: 1px solid theme('colors.gray.300');
   color: theme('colors.gray.900');
   font-size: 12px;
   font-weight: 700;
   text-shadow: none;
-  box-shadow: 0 0 0 1px rgba(110, 118, 170, 0.1), 0 4px 12px rgba(90, 100, 160, 0.14);
   transform: translate(-50%, calc(-100% - 4px));
 }
 .map-pill b {
@@ -417,7 +367,7 @@ p.text-error::before {
   height: 18px;
   padding: 0 5px;
   border-radius: 999px;
-  background: linear-gradient(120deg, #5e68c4 0%, #7a68c2 100%);
+  background: theme('colors.primary');
   color: #fff;
   font-size: 11px;
   line-height: 18px;
@@ -443,9 +393,9 @@ p.text-error::before {
   padding: 4px 10px;
 }
 .map-pill-selected {
-  background: linear-gradient(120deg, #5e68c4 0%, #7a68c2 100%);
+  background: theme('colors.primary');
+  border-color: theme('colors.primary');
   color: #fff;
-  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.9), 0 4px 14px rgba(94, 104, 196, 0.24);
 }
 .map-pill-selected b {
   background: #fff;
@@ -459,9 +409,10 @@ p.text-error::before {
   width: 16px;
   height: 16px;
   border-radius: 999px;
-  background: radial-gradient(circle at 35% 35%, #8db6f2 0%, #4d82d6 75%);
+  background: theme('colors.primary');
   border: 3px solid #fff;
-  box-shadow: 0 0 0 7px rgba(77, 130, 214, 0.14), 0 1px 4px rgba(40, 60, 110, 0.22);
+  /* 옅은 단색 원으로 위치 범위를 표시 */
+  box-shadow: 0 0 0 6px rgba(59, 111, 212, 0.16);
   pointer-events: none;
 }
 /* 줌 단계별로 보이는 이름 (PlaceMap이 컨테이너에 map-z-* 클래스를 붙인다) */

@@ -36,7 +36,7 @@ export default function FriendTagPicker({ friends, selected, onChange }: FriendT
             <button
               key={f.id}
               onClick={() => toggle(f)}
-              className="h-8 pl-1 pr-2 rounded-full bg-inverse-surface text-inverse-on-surface text-label-md flex items-center gap-1 pressable"
+              className="h-8 pl-1 pr-2 rounded-md bg-inverse-surface text-inverse-on-surface text-label-md flex items-center gap-1 pressable"
               type="button"
               aria-label={`${f.displayName} 태그 빼기`}
             >
@@ -48,7 +48,7 @@ export default function FriendTagPicker({ friends, selected, onChange }: FriendT
         </div>
       )}
 
-      <div className="flex items-center gap-2 px-4 h-12 rounded-xl bg-surface-container">
+      <div className="flex items-center gap-2 px-4 h-12 rounded-lg bg-surface-container">
         <span className="material-symbols-rounded text-[20px] text-gray-400">alternate_email</span>
         <input
           value={query}

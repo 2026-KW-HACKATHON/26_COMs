@@ -1,17 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
   <!-- 여백 없이 꽉 채운 정사각형: 안드로이드(마스커블)·iOS가 각자 모양으로 잘라 쓴다 -->
-  <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#5E68C4"/>
-      <stop offset="1" stop-color="#7A68C2"/>
-    </linearGradient>
-    <linearGradient id="pin" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#FFFFFF"/>
-      <stop offset="1" stop-color="#ECEAF8"/>
-    </linearGradient>
-  </defs>
-  <rect width="512" height="512" fill="url(#bg)"/>
+  <rect width="512" height="512" fill="#3B6FD4"/>
   <!-- 장소(핀) + 5초 영상(재생) -->
-  <path fill="url(#pin)" d="M256 104c-66.3 0-120 53.7-120 120 0 88 120 184 120 184s120-96 120-184c0-66.3-53.7-120-120-120z"/>
-  <path fill="#6B67C4" stroke="#6B67C4" stroke-width="16" stroke-linejoin="round" d="M240 184 308 224 240 264z"/>
+  <path fill="#fff" d="M256 104c-66.3 0-120 53.7-120 120 0 88 120 184 120 184s120-96 120-184c0-66.3-53.7-120-120-120z"/>
+  <path fill="#3B6FD4" stroke="#3B6FD4" stroke-width="16" stroke-linejoin="round" d="M240 184 308 224 240 264z"/>
 </svg>

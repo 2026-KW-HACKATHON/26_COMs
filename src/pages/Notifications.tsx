@@ -51,7 +51,7 @@ export default function Notifications() {
         <p className="py-10 text-center text-body-md text-on-surface-variant">알림을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.</p>
       ) : !list ? null : list.length === 0 ? (
         <div className="flex flex-col items-center text-center py-14 px-6 app-card text-on-surface-variant">
-          <div className="w-16 h-16 rounded-full pastel-gradient flex items-center justify-center text-primary">
+          <div className="w-16 h-16 rounded-full fill-tint flex items-center justify-center text-primary">
             <span className="material-symbols-rounded text-[34px] icon-fill">notifications</span>
           </div>
           <p className="mt-2 text-body-md text-on-surface">아직 받은 알림이 없어요</p>
@@ -59,7 +59,7 @@ export default function Notifications() {
           <p className="text-label-md">나도 영상 화면에서 같이 간 친구를 조를 수 있어요.</p>
         </div>
       ) : (
-        <ul className="flex flex-col divide-y divide-gray-100 glass border border-white/80 rounded-[28px] overflow-hidden">
+        <ul className="flex flex-col divide-y divide-gray-100 surface border border-gray-200 rounded-xl overflow-hidden">
           {list.map((n) => (
             <NudgeItem key={n.id} nudge={n} onOpen={() => n.capsuleId && navigate(`/video/${n.capsuleId}`)} />
           ))}
@@ -127,10 +127,10 @@ function PushCard() {
 
   if (state === 'on') {
     return (
-      <div className="flex items-center gap-2 h-11 pl-3 pr-1.5 rounded-full glass border border-white/80 shadow-[0_10px_22px_rgba(90,100,160,0.04)]">
+      <div className="flex items-center gap-2 h-11 pl-3 pr-1.5 rounded-lg surface border border-gray-200">
         <span className="material-symbols-rounded icon-fill text-[20px] text-primary">notifications_active</span>
         <span className="flex-1 text-label-md text-gray-700">이 기기에서 폰 알림을 받고 있어요</span>
-        <button onClick={() => toggle(false)} disabled={busy} className="h-8 px-3 rounded-full text-label-md font-semibold text-gray-500 bg-gray-100 pressable disabled:opacity-50" type="button">
+        <button onClick={() => toggle(false)} disabled={busy} className="h-8 px-3 rounded-md text-label-md font-semibold text-gray-500 bg-gray-100 pressable disabled:opacity-50" type="button">
           끄기
         </button>
       </div>
@@ -145,7 +145,7 @@ function PushCard() {
   const { title, body } = copy[state];
 
   return (
-    <div className="flex items-center gap-3 p-4 rounded-[28px] glass border border-white/80 shadow-[0_12px_24px_rgba(90,100,160,0.06)]">
+    <div className="flex items-center gap-3 p-4 rounded-xl surface border border-gray-200">
       <span className="material-symbols-rounded icon-fill text-[28px] text-primary shrink-0">
         {state === 'off' ? 'notifications_active' : state === 'denied' ? 'notifications_off' : 'add_to_home_screen'}
       </span>
@@ -154,7 +154,7 @@ function PushCard() {
         <p className="text-label-sm text-on-surface-variant">{body}</p>
       </div>
       {state === 'off' && (
-        <button onClick={() => toggle(true)} disabled={busy} className="h-9 px-3.5 shrink-0 rounded-full accent-gradient text-white text-label-md font-bold pressable disabled:opacity-50" type="button">
+        <button onClick={() => toggle(true)} disabled={busy} className="h-9 px-3.5 shrink-0 rounded-md fill-accent text-white text-label-md font-bold pressable disabled:opacity-50" type="button">
           켜기
         </button>
       )}
