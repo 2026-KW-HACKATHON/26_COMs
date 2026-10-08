@@ -17,10 +17,10 @@ type Facing = 'environment' | 'user';
 
 function describeError(err: unknown) {
   const name = err instanceof DOMException ? err.name : '';
-  if (name === 'NotAllowedError') return '카메라 권한이 거부되었어요. 브라우저 설정에서 카메라를 허용하거나 앨범에서 영상을 선택해 주세요.';
-  if (name === 'NotFoundError') return '사용할 수 있는 카메라를 찾지 못했어요. 앨범에서 영상을 선택해 주세요.';
+  if (name === 'NotAllowedError') return '카메라 권한이 꺼져 있어요. 브라우저 설정에서 카메라를 허용해 주세요.';
+  if (name === 'NotFoundError') return '사용할 수 있는 카메라를 찾지 못했어요.';
   if (!window.isSecureContext) return '카메라는 https 또는 localhost 환경에서만 사용할 수 있어요.';
-  return '카메라를 시작하지 못했어요. 앨범에서 영상을 선택해 주세요.';
+  return '카메라를 시작하지 못했어요. 닫고 다시 열어 주세요.';
 }
 
 async function openCamera(facing: Facing) {
@@ -66,7 +66,7 @@ export default function VideoRecorder({ onRecorded, onClose }: VideoRecorderProp
         // 전화가 오거나 다른 앱이 카메라를 가져가면 화면이 멈추므로 오류로 알린다
         stream.getVideoTracks()[0]?.addEventListener('ended', () => {
           if (cancelled || recorderRef.current?.state === 'recording') return;
-          setError('카메라 연결이 끊겼어요. 다시 열거나 앨범에서 영상을 선택해 주세요.');
+          setError('카메라 연결이 끊겼어요. 닫고 다시 열어 주세요.');
           setStatus('error');
         });
         const el = previewRef.current;
@@ -115,7 +115,7 @@ export default function VideoRecorder({ onRecorded, onClose }: VideoRecorderProp
     try {
       recorder = new MediaRecorder(stream, mimeType ? { mimeType, videoBitsPerSecond: 2_500_000 } : undefined);
     } catch {
-      setError('이 브라우저는 영상 촬영을 지원하지 않아요. 앨범에서 영상을 선택해 주세요.');
+      setError('이 브라우저는 영상 촬영을 지원하지 않아요. Chrome이나 Safari에서 열어 주세요.');
       setStatus('error');
       return;
     }
@@ -153,7 +153,7 @@ export default function VideoRecorder({ onRecorded, onClose }: VideoRecorderProp
     try {
       recorder.start();
     } catch {
-      setError('촬영을 시작하지 못했어요. 다시 열거나 앨범에서 영상을 선택해 주세요.');
+      setError('촬영을 시작하지 못했어요. 닫고 다시 열어 주세요.');
       setStatus('error');
       return;
     }
@@ -197,7 +197,7 @@ export default function VideoRecorder({ onRecorded, onClose }: VideoRecorderProp
         </button>
         <div className="px-3 py-1.5 rounded-full bg-black/40 backdrop-blur text-label-md flex items-center gap-1.5">
           {recording && <span className="w-2 h-2 rounded-full bg-error animate-pulse" />}
-          {recording ? `${elapsed.toFixed(1)} / ${CLIP_SECONDS}.0초` : `${CLIP_SECONDS}초 기억 촬영`}
+          {recording ? `${elapsed.toFixed(1)} / ${CLIP_SECONDS}.0초` : `최대 ${CLIP_SECONDS}초`}
         </div>
         <button
           onClick={flipCamera}

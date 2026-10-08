@@ -10,7 +10,7 @@ const TABS_LEFT = [
 ];
 const TABS_RIGHT = [
   { path: '/ranking', key: 'ranking', icon: 'leaderboard', label: '랭킹' },
-  { path: '/log', key: 'log', icon: 'video_library', label: '마이로그' },
+  { path: '/log', key: 'log', icon: 'video_library', label: 'MY' },
 ];
 
 export default function BottomNav({ currentPath }: BottomNavProps) {

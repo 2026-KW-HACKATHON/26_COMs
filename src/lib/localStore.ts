@@ -60,7 +60,7 @@ export async function addCapsule(data: NewCapsule): Promise<Capsule> {
     createdAt: Date.now(),
     // 기기 저장은 이 기기에서만 보여서 공개 범위가 없다
     visibility: 'friends',
-    verified: data.verified,
+    verified: false,
   };
   await run('readwrite', (s) => s.put(capsule));
   return capsule;

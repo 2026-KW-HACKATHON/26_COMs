@@ -4,7 +4,7 @@ import { CATEGORY_EMOJI, getPlace } from '../data/places';
 import { DUE_DAYS, REGULAR_DAYS, daysAgo, myPlaceVisits, summarizeVisits } from '../lib/visits';
 import type { Capsule } from '../types/capsule';
 
-/** 마이로그 위쪽: 동네 가게 중 몇 곳을 가 봤는지, 단골 수, 오래 안 간 곳 (내가 남겼거나 태그된 영상 기준) */
+/** MY 탭 위쪽: 동네 가게 중 몇 곳을 가 봤는지, 단골 수, 오래 안 간 곳 (내가 남겼거나 태그된 영상 기준) */
 export default function MyTownCard({ capsules }: { capsules: Capsule[] }) {
   const navigate = useNavigate();
   const summary = useMemo(() => summarizeVisits(myPlaceVisits(capsules)), [capsules]);

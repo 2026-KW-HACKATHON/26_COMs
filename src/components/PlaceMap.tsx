@@ -218,7 +218,7 @@ export default function PlaceMap({ selectedId, onSelect, videoCount, marks, clas
     el.addEventListener('wheel', touch, { passive: true });
     el.addEventListener('touchstart', touch, { passive: true });
     const askedAt = performance.now();
-    void getFix({ timeoutMs: 8000, highAccuracy: false, maxAgeMs: 120_000 }).then((fix) => {
+    void getFix().then((fix) => {
       if (!alive || !fix) return;
       const here = L.latLng(fix.lat, fix.lng);
       if (!view.contains(here)) return;

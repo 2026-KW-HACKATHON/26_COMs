@@ -120,7 +120,7 @@ export default function Home() {
       ? `${PERIOD_LABEL} 동안 동네 사람들이 다녀간 곳이에요`
       : !town && mySummary.visited
         ? `월계1동 ${mySummary.total}곳 중 ${mySummary.visited}곳 가 봤어요`
-        : '건물을 눌러 그곳의 5초를 남겨 보세요';
+        : '가 본 가게를 눌러 5초를 남겨 보세요';
 
   return (
     <div className="relative w-full h-[calc(100dvh-7.5rem)]">

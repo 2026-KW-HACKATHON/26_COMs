@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import CapsuleVideo from '../components/CapsuleVideo';
 import FriendTagPicker from '../components/FriendTagPicker';
@@ -9,22 +9,16 @@ import { placesInSameBuilding } from '../data/mapData';
 import { CATEGORY_EMOJI, getPlace, placeSubtitle, type Place } from '../data/places';
 import { useCapsules } from '../hooks/useCapsules';
 import { useFriendships } from '../hooks/useFriendships';
-import { MAX_VIDEO_BYTES, SOCIAL_ENABLED, STORAGE_MODE, addCapsule } from '../lib/capsuleStore';
-import { formatSeconds } from '../lib/format';
-import { distanceMeters, formatDistance, getFix, isOnSite, type Fix } from '../lib/location';
-import { probeDuration, thumbnailAt, trimClip } from '../lib/video';
+import { SOCIAL_ENABLED, STORAGE_MODE, addCapsule } from '../lib/capsuleStore';
+import { probeDuration, thumbnailAt } from '../lib/video';
 import { CLIP_SECONDS, type Visibility } from '../types/capsule';
 import type { Profile } from '../types/social';
 
-/** 이보다 크거나 5초보다 긴 앨범 영상은 고른 구간만 다시 녹화해서 올린다 */
-const TRIM_OVER_BYTES = 4 * 1024 * 1024;
-
+/** 앱에서 방금 찍은 5초 (영상은 가게에서 그 자리에서 찍은 것만 남긴다) */
 interface DraftVideo {
   blob: Blob;
   duration: number;
-  clipStart: number;
   thumbnail: Blob | null;
-  source: 'camera' | 'upload';
 }
 
 /**
@@ -36,7 +30,6 @@ interface DraftVideo {
 export default function Leave() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // 주소의 가게가 곧 고른 가게. 없으면 지도에서 고르는 화면
   const place = getPlace(searchParams.get('place'));
@@ -47,14 +40,9 @@ export default function Leave() {
   const fromMapRef = useRef(false);
   const [video, setVideo] = useState<DraftVideo | null>(null);
   const [recorderOpen, setRecorderOpen] = useState(false);
-  const [videoError, setVideoError] = useState('');
-  const [processing, setProcessing] = useState(false);
-  /** 남기는 중인 단계: 앨범 영상 줄이기 → 올리기 */
-  const [saving, setSaving] = useState<false | 'trim' | 'upload'>(false);
+  const [saving, setSaving] = useState(false);
   const [tags, setTags] = useState<Profile[]>([]);
   const [visibility, setVisibility] = useState<Visibility>('friends');
-  /** 촬영 직후 기기 위치 (현장 인증용, 저장하지 않음). pending: 확인 중, null: 못 잡음·거절 */
-  const [fix, setFix] = useState<Fix | null | 'pending'>(null);
   const { list: friendships } = useFriendships();
   const friends = friendships?.filter((f) => f.status === 'friend') ?? null;
 
@@ -81,75 +69,29 @@ export default function Leave() {
   /** seconds: 실제로 촬영한 길이 (중간에 멈추면 5초보다 짧다) */
   const handleRecorded = async (blob: Blob, thumbnail: Blob | null, seconds: number) => {
     setRecorderOpen(false);
-    setVideoError('');
-    // 현장 인증: 방금 찍은 곳이 가게 근처인지 (가게는 나중에 바꿀 수 있어서 위치만 기억해 두고 남길 때 판단한다)
-    setFix('pending');
-    void getFix().then(setFix);
     const duration = await probeDuration(blob).catch(() => 0);
-    setVideo({ blob, duration: duration || seconds, clipStart: 0, thumbnail, source: 'camera' });
+    setVideo({ blob, duration: duration || seconds, thumbnail });
   };
 
-  const handleFile = async (e: ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    e.target.value = '';
-    if (!file) return;
-    setVideoError('');
-    if (file.type && !file.type.startsWith('video/')) {
-      setVideoError('동영상 파일만 올릴 수 있어요.');
-      return;
-    }
-    if (file.size > MAX_VIDEO_BYTES) {
-      setVideoError(`영상 용량이 너무 커요 (최대 ${MAX_VIDEO_BYTES / 1024 / 1024}MB). 더 짧은 영상을 선택하거나 앱에서 5초 촬영해 주세요.`);
-      return;
-    }
-    setProcessing(true);
-    try {
-      const duration = await probeDuration(file);
-      if (!duration) throw new Error('empty');
-      setVideo({ blob: file, duration, clipStart: 0, thumbnail: null, source: 'upload' });
-      setFix(null);
-    } catch {
-      setVideoError('이 영상은 브라우저에서 재생할 수 없는 형식이에요. 다른 영상을 선택해 주세요.');
-    } finally {
-      setProcessing(false);
-    }
-  };
-
-  const missing = !video ? '5초 영상을 추가해 주세요' : '';
+  const missing = !video ? '가게에서 5초를 찍어 주세요' : '';
 
   const handleLeave = async () => {
     if (!place || !video || saving) return;
-    const clipDuration = Math.min(CLIP_SECONDS, video.duration - video.clipStart);
-    // 큰 앨범 원본 대신 고른 구간만 다시 녹화해서 올린다. 버튼을 누른 이 순간(await 전)에 시작해야 iPhone에서 소리까지 담긴다.
-    // 줄이지 못하면(지원하지 않는 브라우저 등) 원본을 그대로 올린다
-    const needsTrim = video.source === 'upload' && (video.blob.size > TRIM_OVER_BYTES || video.duration > CLIP_SECONDS + 0.1);
-    const trimming = needsTrim
-      ? trimClip(video.blob, video.clipStart, clipDuration).catch((err) => {
-          console.warn('영상을 줄이지 못해 원본을 올려요', err);
-          return null;
-        })
-      : Promise.resolve(null);
-    setSaving(needsTrim ? 'trim' : 'upload');
+    const clipDuration = Math.min(CLIP_SECONDS, video.duration);
+    setSaving(true);
     try {
-      // 앨범 영상은 사용자가 고른 구간의 첫 부분을 썸네일로 쓴다
-      let thumbnail = video.source === 'camera' ? video.thumbnail : null;
-      if (!thumbnail) {
-        thumbnail = await thumbnailAt(video.blob, video.clipStart + Math.min(1, clipDuration / 2)).catch(() => null);
-      }
-      const trimmed = await trimming;
-      setSaving('upload');
+      const thumbnail = video.thumbnail ?? (await thumbnailAt(video.blob, Math.min(1, clipDuration / 2)).catch(() => null));
       await addCapsule({
         placeId: place.id,
         placeName: place.name,
         lat: place.lat,
         lng: place.lng,
-        video: trimmed ?? video.blob,
-        clipStart: trimmed ? 0 : video.clipStart,
+        video: video.blob,
+        clipStart: 0,
         clipDuration,
         thumbnail,
         tagIds: tags.map((t) => t.id),
         visibility,
-        verified: onSite,
       });
       navigator.vibrate?.(30);
       navigate('/', { replace: true, state: { placeId: place.id } });
@@ -159,11 +101,6 @@ export default function Leave() {
       setSaving(false);
     }
   };
-
-  const canTrim = video && video.duration > CLIP_SECONDS + 0.1;
-  // 앱에서 찍은 영상이고, 그때 위치가 고른 가게 근처면 현장 인증
-  const fixed = fix && fix !== 'pending' ? fix : null;
-  const onSite = video?.source === 'camera' && !!place && !!fixed && isOnSite(fixed, place);
 
   if (!place) {
     return <PickPlace pickId={pickId} onPick={setPickId} onChoose={choosePlace} />;
@@ -189,7 +126,7 @@ export default function Leave() {
 
       <section className="flex flex-col gap-3 py-6">
         <div className="flex items-center justify-between">
-          <StepTitle step={1} title="5초 영상을 담아 주세요" />
+          <StepTitle step={1} title="그 자리에서 5초를 찍어 주세요" />
           {video && (
             <span className="text-label-md text-primary font-bold px-2.5 py-1 bg-primary-fixed rounded-full">
               {Math.min(CLIP_SECONDS, video.duration).toFixed(1)}초
@@ -199,69 +136,24 @@ export default function Leave() {
 
         {video ? (
           <>
-            <CapsuleVideo
-              src={video.blob}
-              start={video.clipStart}
-              duration={Math.min(CLIP_SECONDS, video.duration)}
-              className="w-full aspect-[3/4] rounded-2xl"
-            />
-            {canTrim && (
-              <div className="flex flex-col gap-1.5">
-                <div className="flex items-center justify-between text-label-sm text-on-surface-variant">
-                  <span>담을 5초 구간 고르기</span>
-                  <span className="text-primary font-bold">
-                    {formatSeconds(video.clipStart)} ~ {formatSeconds(video.clipStart + CLIP_SECONDS)}
-                  </span>
-                </div>
-                <input
-                  type="range"
-                  min={0}
-                  max={video.duration - CLIP_SECONDS}
-                  step={0.1}
-                  value={video.clipStart}
-                  onChange={(e) => setVideo({ ...video, clipStart: Number(e.target.value) })}
-                  className="w-full accent-primary"
-                />
-              </div>
-            )}
-            <div className="grid grid-cols-2 gap-2">
-              <button onClick={() => setRecorderOpen(true)} className="h-12 rounded-xl bg-surface-container text-gray-700 text-label-lg flex items-center justify-center gap-1 pressable" type="button">
-                <span className="material-symbols-rounded text-[20px]">replay</span> 다시 촬영
-              </button>
-              <button onClick={() => fileInputRef.current?.click()} className="h-12 rounded-xl bg-surface-container text-gray-700 text-label-lg flex items-center justify-center gap-1 pressable" type="button">
-                <span className="material-symbols-rounded text-[20px]">video_library</span> 다른 영상
-              </button>
-            </div>
+            <CapsuleVideo src={video.blob} duration={Math.min(CLIP_SECONDS, video.duration)} className="w-full aspect-[3/4] rounded-2xl" />
+            <button onClick={() => setRecorderOpen(true)} className="h-12 rounded-xl bg-surface-container text-gray-700 text-label-lg flex items-center justify-center gap-1 pressable" type="button">
+              <span className="material-symbols-rounded text-[20px]">replay</span> 다시 찍기
+            </button>
           </>
         ) : (
-          <div className="grid grid-cols-2 gap-2.5">
-            <button
-              onClick={() => setRecorderOpen(true)}
-              className="h-36 rounded-2xl bg-primary-fixed flex flex-col items-center justify-center gap-2 pressable"
-              type="button"
-            >
-              <span className="w-12 h-12 rounded-full bg-primary text-on-primary flex items-center justify-center">
-                <span className="material-symbols-rounded text-[26px] icon-fill">videocam</span>
-              </span>
-              <span className="text-label-lg font-bold text-on-primary-fixed">지금 5초 촬영</span>
-            </button>
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              disabled={processing}
-              className="h-36 rounded-2xl bg-surface-container flex flex-col items-center justify-center gap-2 pressable disabled:opacity-60"
-              type="button"
-            >
-              <span className="w-12 h-12 rounded-full bg-surface text-gray-600 flex items-center justify-center">
-                <span className="material-symbols-rounded text-[26px]">{processing ? 'hourglass_top' : 'photo_library'}</span>
-              </span>
-              <span className="text-label-lg font-bold text-gray-700">{processing ? '영상 확인 중…' : '앨범에서 선택'}</span>
-            </button>
-          </div>
+          <button
+            onClick={() => setRecorderOpen(true)}
+            className="h-40 rounded-2xl bg-primary-fixed flex flex-col items-center justify-center gap-2 pressable"
+            type="button"
+          >
+            <span className="w-14 h-14 rounded-full bg-primary text-on-primary flex items-center justify-center">
+              <span className="material-symbols-rounded text-[30px] icon-fill">videocam</span>
+            </span>
+            <span className="text-label-lg font-bold text-on-primary-fixed">지금 이 가게에서 5초 찍기</span>
+            <span className="text-label-sm text-on-primary-fixed/70">최대 5초 · 중간에 멈출 수 있어요</span>
+          </button>
         )}
-
-        {video && <OnSiteNote source={video.source} fix={fix} place={place ?? null} onSite={onSite} />}
-        {videoError && <p className="text-label-sm text-error">{videoError}</p>}
-        <input ref={fileInputRef} type="file" accept="video/*" className="hidden" onChange={handleFile} />
       </section>
 
       {SOCIAL_ENABLED && (
@@ -303,11 +195,11 @@ export default function Leave() {
       <div className="flex flex-col gap-2 pt-2">
         <button
           onClick={handleLeave}
-          disabled={!!missing || !!saving}
+          disabled={!!missing || saving}
           className="w-full h-14 rounded-2xl bg-primary text-on-primary text-[17px] font-bold flex items-center justify-center pressable disabled:bg-gray-200 disabled:text-gray-400"
           type="button"
         >
-          {saving === 'trim' ? '5초로 줄이는 중…' : saving ? '남기는 중…' : '남기기'}
+          {saving ? '남기는 중…' : '남기기'}
         </button>
         {missing && <p className="text-center text-label-sm text-on-surface-variant">{missing}</p>}
       </div>
@@ -382,7 +274,7 @@ function PickPlace({ pickId, onPick, onChoose }: { pickId: string | null; onPick
         </div>
       ) : (
         <div className="absolute bottom-4 inset-x-0 z-10 flex justify-center pointer-events-none">
-          <span className="px-4 py-2 rounded-full bg-inverse-surface/90 text-inverse-on-surface text-label-md font-semibold">어디에서 남길까요? 건물을 눌러 골라 주세요</span>
+          <span className="px-4 py-2 rounded-full bg-inverse-surface/90 text-inverse-on-surface text-label-md font-semibold">어느 가게에서 남길까요? 지도에서 누르거나 검색해 주세요</span>
         </div>
       )}
     </div>
@@ -391,33 +283,8 @@ function PickPlace({ pickId, onPick, onChoose }: { pickId: string | null; onPick
 
 const VISIBILITY_OPTIONS: { value: Visibility; icon: string; label: string; description: string }[] = [
   { value: 'friends', icon: 'group', label: '친구만', description: '친구와 태그된 사람만 봐요' },
-  { value: 'town', icon: 'location_city', label: '동네 모두', description: '동네 피드와 가게에 떠요. 태그된 친구는 친구에게만 보여요' },
+  { value: 'town', icon: 'location_city', label: '동네 모두', description: '동네 사람 누구나 피드와 가게에서 봐요. 함께한 친구 이름은 친구에게만 보여요' },
 ];
-
-/** 현장 인증 상태 한 줄 */
-function OnSiteNote({ source, fix, place, onSite }: { source: DraftVideo['source']; fix: Fix | null | 'pending'; place: { lat: number; lng: number } | null; onSite: boolean }) {
-  const [icon, text, strong] =
-    source === 'upload'
-      ? ['photo_library', '앨범 영상은 현장 인증이 붙지 않아요. 가게에서 바로 찍으면 붙어요', false]
-      : fix === 'pending'
-        ? ['my_location', '가게 근처에서 찍었는지 확인하는 중…', false]
-        : !fix
-          ? ['location_off', '위치를 확인하지 못해 현장 인증 없이 남겨요', false]
-          : !place
-            ? ['my_location', '가게를 고르면 현장 인증을 확인해요', false]
-            : onSite
-              ? ['verified', `현장 인증 · 가게에서 ${formatDistance(distanceMeters(fix, place))}`, true]
-              : ['wrong_location', `가게에서 ${formatDistance(distanceMeters(fix, place))} 떨어져 있어 현장 인증이 안 돼요`, false];
-  return (
-    <p className={`flex items-center gap-1.5 text-label-md ${strong ? 'text-primary font-bold' : 'text-on-surface-variant'}`}>
-      <span className={`material-symbols-rounded text-[18px] ${strong ? 'icon-fill' : ''}`}>{icon}</span>
-      <span className="min-w-0">
-        {text}
-        {source === 'camera' && <span className="block text-label-sm font-normal text-gray-400">위치는 인증에만 쓰고 저장하지 않아요</span>}
-      </span>
-    </p>
-  );
-}
 
 function StepTitle({ step, title }: { step: number; title: string }) {
   return (

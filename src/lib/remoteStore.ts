@@ -114,7 +114,6 @@ export async function addCapsule(data: NewCapsule): Promise<Capsule> {
       clip_start: data.clipStart,
       clip_duration: data.clipDuration,
       visibility: data.visibility,
-      verified: data.verified,
     });
     if (error) throw error;
   } catch (err) {
@@ -138,7 +137,7 @@ export async function addCapsule(data: NewCapsule): Promise<Capsule> {
     thumbnail: data.thumbnail,
     createdAt: Date.now(),
     visibility: data.visibility,
-    verified: data.verified,
+    verified: false,
   };
 }
 
