@@ -4,12 +4,15 @@ import Avatar from '../components/Avatar';
 import FeedVideo from '../components/FeedVideo';
 import LikeButton from '../components/LikeButton';
 import RecallCard from '../components/RecallCard';
+import TitleBadge from '../components/TitleBadge';
 import { CATEGORY_EMOJI, getPlace, placeSubtitle } from '../data/places';
 import { useAuth } from '../hooks/useAuth';
+import { useFriendTitles } from '../hooks/useFriendTitles';
 import { useFriendships } from '../hooks/useFriendships';
 import { useLike } from '../hooks/useLike';
 import { SOCIAL_ENABLED, listFeed } from '../lib/capsuleStore';
 import { formatRelative } from '../lib/format';
+import type { Title } from '../lib/titles';
 import { FEED_PAGE, type Capsule } from '../types/capsule';
 
 type Scope = 'friends' | 'town';
@@ -29,6 +32,7 @@ export default function Feed() {
   const me = useAuth().session?.user.id ?? '';
   const { list: friendships } = useFriendships();
   const friendIds = useMemo(() => friendships?.filter((f) => f.status === 'friend').map((f) => f.id) ?? null, [friendships]);
+  const titles = useFriendTitles();
 
   // 탭을 바꾸면 이전 탭 목록이 잠깐 보이지 않도록 어느 탭의 목록인지 함께 기억한다
   const [loaded, setLoaded] = useState<{ scope: Scope; list: Capsule[]; failed: boolean } | null>(null);
@@ -121,7 +125,7 @@ export default function Feed() {
         <div className="flex flex-col -mt-2">
           <div className="flex flex-col divide-y divide-gray-100">
             {items.map((c) => (
-              <FeedItem key={c.id} capsule={c} me={me} onOpen={() => navigate(`/video/${c.id}`)} onMap={() => openOnMap(c)} />
+              <FeedItem key={c.id} capsule={c} me={me} title={titles.get(c.userId)} onOpen={() => navigate(`/video/${c.id}`)} onMap={() => openOnMap(c)} />
             ))}
           </div>
           {hasMore && (
@@ -143,11 +147,13 @@ export default function Feed() {
 interface FeedItemProps {
   capsule: Capsule;
   me: string;
+  /** 작성자의 칭호 (나와 친구만) */
+  title?: Title;
   onOpen: () => void;
   onMap: () => void;
 }
 
-function FeedItem({ capsule: c, me, onOpen, onMap }: FeedItemProps) {
+function FeedItem({ capsule: c, me, title, onOpen, onMap }: FeedItemProps) {
   const place = getPlace(c.placeId);
   const like = useLike(c);
   const mine = !SOCIAL_ENABLED || c.userId === me;
@@ -168,18 +174,25 @@ function FeedItem({ capsule: c, me, onOpen, onMap }: FeedItemProps) {
       <button onClick={onOpen} className="flex items-center gap-3 text-left" type="button">
         {SOCIAL_ENABLED && <Avatar profile={c.author} size={36} />}
         <span className="flex-1 min-w-0">
-          <span className="block text-label-lg text-on-surface truncate">
-            <b>{name}</b>
-            {withText && <span className="text-on-surface-variant"> · {withText}</span>}
+          {/* 이름 오른쪽에 칭호(나와 친구만), 함께한 친구는 아랫줄에 */}
+          <span className="flex items-center gap-1.5 min-w-0 text-label-lg text-on-surface">
+            <b className="min-w-0 truncate">{name}</b>
+            {title && <TitleBadge title={title} className="max-w-[60%]" />}
           </span>
-          <span className="flex items-center gap-1 text-label-sm text-on-surface-variant">
-            {formatRelative(c.createdAt)}
-            {c.visibility === 'town' && (
+          <span className="flex items-center gap-1 min-w-0 whitespace-nowrap text-label-sm text-on-surface-variant">
+            <span className="shrink-0">{formatRelative(c.createdAt)}</span>
+            {withText && (
               <>
+                <span aria-hidden>·</span>
+                <span className="min-w-0 truncate">{withText}</span>
+              </>
+            )}
+            {c.visibility === 'town' && (
+              <span className="shrink-0 flex items-center gap-1">
                 <span aria-hidden>·</span>
                 <span className="material-symbols-rounded text-[14px]">location_city</span>
                 동네 공개
-              </>
+              </span>
             )}
           </span>
         </span>

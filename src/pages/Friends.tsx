@@ -1,17 +1,24 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Avatar from '../components/Avatar';
+import TitleBadge from '../components/TitleBadge';
 import { useAuth } from '../hooks/useAuth';
+import { useFriendTitles } from '../hooks/useFriendTitles';
 import { useFriendships } from '../hooks/useFriendships';
 import { isAutoUsername, removeFriend, requestFriend, searchProfiles } from '../lib/social';
+import type { Title } from '../lib/titles';
 import type { FriendStatus, ProfileWithStatus } from '../types/social';
 
-function PersonRow({ person, children }: { person: ProfileWithStatus; children: ReactNode }) {
+function PersonRow({ person, title, children }: { person: ProfileWithStatus; title?: Title; children: ReactNode }) {
   return (
     <li className="flex items-center gap-3 py-3">
       <Avatar profile={person} size={44} />
       <div className="flex-1 min-w-0">
-        <p className="text-label-lg text-on-surface font-bold truncate">{person.displayName}</p>
+        <div className="flex items-center gap-1.5 min-w-0">
+          <p className="min-w-0 text-label-lg text-on-surface font-bold truncate">{person.displayName}</p>
+          {/* 칭호는 친구에게만 보인다 */}
+          {title && <TitleBadge title={title} className="max-w-[65%]" />}
+        </div>
         <p className="text-label-sm text-on-surface-variant truncate">@{person.username}</p>
       </div>
       <div className="flex items-center gap-1.5 shrink-0">{children}</div>
@@ -26,6 +33,7 @@ export default function Friends() {
   const navigate = useNavigate();
   const { profile } = useAuth();
   const { list, reload } = useFriendships();
+  const titles = useFriendTitles();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<{ q: string; list: ProfileWithStatus[] } | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -190,7 +198,7 @@ export default function Friends() {
           ) : (
             <ul className="px-1 divide-y divide-gray-100">
               {shownResults.map((p) => (
-                <PersonRow key={p.id} person={p}>{actions(p)}</PersonRow>
+                <PersonRow key={p.id} person={p} title={titles.get(p.id)}>{actions(p)}</PersonRow>
               ))}
             </ul>
           )
@@ -209,7 +217,7 @@ export default function Friends() {
               <h2 className="text-headline-sm text-on-surface">받은 요청 {incoming.length}</h2>
               <ul className="mt-1 divide-y divide-gray-100">
                 {incoming.map((p) => (
-                  <PersonRow key={p.id} person={p}>{actions(p)}</PersonRow>
+                  <PersonRow key={p.id} person={p} title={titles.get(p.id)}>{actions(p)}</PersonRow>
                 ))}
               </ul>
             </section>
@@ -222,7 +230,7 @@ export default function Friends() {
             ) : (
               <ul className="mt-1 divide-y divide-gray-100">
                 {friends.map((p) => (
-                  <PersonRow key={p.id} person={p}>{actions(p)}</PersonRow>
+                  <PersonRow key={p.id} person={p} title={titles.get(p.id)}>{actions(p)}</PersonRow>
                 ))}
               </ul>
             )}
@@ -233,7 +241,7 @@ export default function Friends() {
               <h2 className="text-headline-sm text-on-surface">보낸 요청 {outgoing.length}</h2>
               <ul className="mt-1 divide-y divide-gray-100">
                 {outgoing.map((p) => (
-                  <PersonRow key={p.id} person={p}>{actions(p)}</PersonRow>
+                  <PersonRow key={p.id} person={p} title={titles.get(p.id)}>{actions(p)}</PersonRow>
                 ))}
               </ul>
             </section>
