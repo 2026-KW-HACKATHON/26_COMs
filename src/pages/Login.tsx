@@ -88,9 +88,10 @@ export default function Login() {
 
   return (
     <div className="flex flex-col items-center w-full pt-8 pb-6 gap-8">
-      <div className="flex flex-col items-center text-center gap-4 w-full px-2 pt-4">
-        <img src="/pwa-192x192.png" alt="" className="w-14 h-14 rounded-xl" />
+      <div className="flex flex-col items-center text-center gap-4 w-full px-6 py-6">
+        <img src="/pwa-192x192.png" alt="" className="w-20 h-20 rounded-[24px]" />
         <div className="flex flex-col items-center gap-1">
+          <p className="text-[11px] font-semibold tracking-[0.22em] uppercase text-gray-500">Welcome back</p>
           <h2 className="text-headline-lg text-on-surface">왔다감</h2>
           <p className="text-label-lg font-bold text-primary">동네 가게에 남기는 5초</p>
         </div>
@@ -105,7 +106,7 @@ export default function Login() {
         <button
           onClick={() => login('kakao')}
           disabled={busy}
-          className="relative h-12 rounded-lg bg-[#FEE500] text-black/85 text-[16px] font-bold flex items-center justify-center gap-2 disabled:opacity-60 pressable"
+          className="relative h-14 rounded-2xl bg-[#FEE500] text-black/85 text-[16px] font-bold flex items-center justify-center gap-2 disabled:opacity-60 pressable"
           type="button"
         >
           <span className="absolute left-4">
@@ -116,7 +117,7 @@ export default function Login() {
         <button
           onClick={() => login('google')}
           disabled={busy || inKakaoTalk}
-          className="relative h-12 rounded-lg fill-neutral text-on-surface text-[16px] font-bold flex items-center justify-center gap-2 disabled:opacity-60 pressable"
+          className="relative h-14 rounded-2xl bg-white border border-gray-200 text-on-surface text-[16px] font-bold flex items-center justify-center gap-2 disabled:opacity-60 pressable"
           type="button"
         >
           <span className="absolute left-4">

@@ -109,7 +109,7 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
 
 function Table({ rows }: { rows: [string, string][] }) {
   return (
-    <dl className="rounded-lg bg-surface-container-low divide-y divide-gray-100">
+    <dl className="rounded-2xl bg-surface-container-low divide-y divide-gray-100">
       {rows.map(([k, v]) => (
         <div key={k} className="px-4 py-2.5 flex flex-col gap-0.5">
           <dt className="text-label-md font-bold text-on-surface">{k}</dt>

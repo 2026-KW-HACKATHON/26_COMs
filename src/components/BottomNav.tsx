@@ -20,31 +20,28 @@ export default function BottomNav({ currentPath }: BottomNavProps) {
       <Link
         key={t.key}
         to={t.path}
-        className={`flex flex-col items-center justify-center gap-0.5 text-[11px] font-medium transition-colors ${active ? 'text-on-surface' : 'text-gray-400'}`}
+        className={`flex flex-col items-center justify-center gap-0.5 text-[11px] font-semibold transition-colors ${active ? 'text-on-surface' : 'text-gray-400'}`}
         aria-current={active ? 'page' : undefined}
       >
-        <span className={`material-symbols-rounded text-[24px] ${active ? 'icon-fill' : ''}`}>{t.icon}</span>
+        <span className={`material-symbols-rounded text-[26px] ${active ? 'icon-fill' : ''}`}>{t.icon}</span>
         {t.label}
       </Link>
     );
   };
 
   return (
-    <nav className="fixed bottom-0 inset-x-0 z-50">
-      <div className="max-w-[430px] mx-auto pb-safe bg-white border-t border-gray-200 sm:border-x">
-        <div className="h-[var(--nav-bar-h)] grid grid-cols-5">
-          {TABS_LEFT.map(tab)}
+    <nav className="fixed bottom-0 inset-x-0 z-50 bg-white/95 backdrop-blur-xl border-t border-gray-100 pb-safe">
+      <div className="max-w-[430px] mx-auto h-16 grid grid-cols-5">
+        {TABS_LEFT.map(tab)}
 
-          {/* 남기기: 다른 탭과 같은 크기에, 아이콘만 강조색 상자에 담는다 */}
-          <Link to="/leave" className="flex flex-col items-center justify-center gap-0.5 text-[11px] font-medium text-on-surface" aria-current={currentPath === 'leave' ? 'page' : undefined}>
-            <span className="w-11 h-7 rounded-lg bg-primary text-white flex items-center justify-center pressable">
-              <span className="material-symbols-rounded text-[20px]">add</span>
-            </span>
-            남기기
-          </Link>
+        <Link to="/leave" className="flex flex-col items-center justify-center gap-0.5 text-[11px] font-semibold text-primary" aria-current={currentPath === 'leave' ? 'page' : undefined}>
+          <span className="w-12 h-8 rounded-full bg-primary text-on-primary flex items-center justify-center pressable">
+            <span className="material-symbols-rounded text-[24px]">add</span>
+          </span>
+          남기기
+        </Link>
 
-          {TABS_RIGHT.map(tab)}
-        </div>
+        {TABS_RIGHT.map(tab)}
       </div>
     </nav>
   );

@@ -26,33 +26,37 @@ export default function Header({ currentPath, goBack }: HeaderProps) {
   const showBell = SOCIAL_ENABLED && loggedIn;
 
   return (
-    <header className="fixed top-0 inset-x-0 z-50">
-      <div className="max-w-[430px] mx-auto pt-safe bg-white border-b border-gray-200 sm:border-x">
-        <div className="h-14 pl-2 pr-3 flex items-center justify-between">
+    <header className="fixed top-0 w-full z-50 pt-safe bg-white/90 backdrop-blur-xl border-b border-gray-100">
+      <div className="h-14 px-2 flex items-center justify-between max-w-[430px] mx-auto">
         {subTitle ? (
           <>
-            <button onClick={goBack} className="w-10 h-10 flex items-center justify-center rounded-full active:bg-gray-100 text-on-surface transition-colors" aria-label="뒤로">
-              <span className="material-symbols-rounded text-[22px]">arrow_back_ios_new</span>
+            <button onClick={goBack} className="w-11 h-11 flex items-center justify-center rounded-full active:bg-gray-100 text-on-surface transition-colors" aria-label="뒤로">
+              <span className="material-symbols-rounded text-[26px]">arrow_back_ios_new</span>
             </button>
-            <h1 className="text-[16px] font-bold text-on-surface">{subTitle}</h1>
-            <span className="w-10" />
+            <h1 className="text-[17px] font-bold text-on-surface">{subTitle}</h1>
+            <span className="w-11" />
           </>
         ) : (
           <>
-            {/* 앱 이름 옆에 동네 이름을 붙여 쓴다: "왔다감 · 월계1동" */}
-            <div className="pl-2 flex items-baseline gap-1.5 min-w-0">
-              <span className="text-[19px] font-extrabold tracking-tight text-on-surface">왔다감</span>
-              <span className="text-label-md text-on-surface-variant truncate">노원구 월계1동</span>
+            <div className="flex items-center gap-2 pl-2">
+              <span className="w-8 h-8 rounded-[10px] bg-primary text-on-primary flex items-center justify-center">
+                <span className="material-symbols-rounded icon-fill text-[19px]">location_on</span>
+              </span>
+              <span className="text-[20px] font-extrabold tracking-tight text-on-surface">왔다감</span>
             </div>
-            <div className="flex items-center gap-1">
+            <div className={`flex items-center gap-1 ${showBell ? '' : 'mr-2'}`}>
+              <span className="flex items-center gap-0.5 h-8 pl-2 pr-3 rounded-full bg-gray-100 text-[13px] font-semibold text-gray-700">
+                <span className="material-symbols-rounded text-[16px] text-gray-500">location_on</span>
+                노원구 월계1동
+              </span>
               {showBell && (
                 <Link
                   to="/notifications"
-                  className="relative w-10 h-10 flex items-center justify-center rounded-full active:bg-gray-100 text-gray-700"
+                  className="relative w-11 h-11 flex items-center justify-center rounded-full active:bg-gray-100 text-gray-700"
                   aria-label={unread ? `알림 ${unread}개 새로 옴` : '알림'}
                 >
                   {/* 새 조르기가 오면 벨이 흔들린다 */}
-                  <span key={unread} className={`material-symbols-rounded text-[24px] ${unread ? 'icon-fill nudge-wiggle' : ''}`}>
+                  <span key={unread} className={`material-symbols-rounded text-[26px] ${unread ? 'icon-fill nudge-wiggle' : ''}`}>
                     notifications
                   </span>
                   {unread > 0 && (
@@ -65,7 +69,6 @@ export default function Header({ currentPath, goBack }: HeaderProps) {
             </div>
           </>
         )}
-        </div>
       </div>
     </header>
   );

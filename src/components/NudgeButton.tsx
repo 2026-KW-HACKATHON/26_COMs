@@ -37,8 +37,8 @@ export default function NudgeButton({ capsuleId, friend, label = '조르기' }: 
     <button
       onClick={send}
       disabled={status === 'sending' || done}
-      className={`h-9 px-3.5 shrink-0 rounded-lg text-label-md font-bold flex items-center gap-1 pressable ${
-        done ? 'bg-gray-100 text-gray-500 border border-gray-200' : 'fill-accent text-white'
+      className={`h-9 px-3.5 shrink-0 rounded-full text-label-md font-bold flex items-center gap-1 pressable ${
+        done ? 'bg-gray-100 text-gray-500' : 'bg-primary text-on-primary'
       } ${status === 'sending' ? 'opacity-70' : ''}`}
       type="button"
       title={`${friend.displayName}님에게 또 가자고 조르기`}

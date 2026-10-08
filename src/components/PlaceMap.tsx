@@ -47,24 +47,26 @@ function heatLevel(count: number) {
 
 /** 단계별 빛 번짐: 흐림 반경(px)과 진하기 */
 const GLOW = [
-  // 플랫 디자인: 빛 번짐 없이 건물 색 단계만으로 구분한다
-  { blur: 0, alpha: 0 },
-  { blur: 0, alpha: 0 },
-  { blur: 0, alpha: 0 },
-  { blur: 0, alpha: 0 },
-  { blur: 0, alpha: 0 },
+  { blur: 5, alpha: 0.35 },
+  { blur: 8, alpha: 0.45 },
+  { blur: 11, alpha: 0.55 },
+  { blur: 15, alpha: 0.65 },
+  { blur: 20, alpha: 0.75 },
 ];
-
-/** 테두리는 얇게(고해상도 화면에서 1픽셀 남짓), 색은 단계별로 채운다 */
-function storeStyle(count: number, selected: boolean): L.PathOptions {
-  const base: L.PathOptions = count
-    ? { fillColor: MAP_COLORS.heat[heatLevel(count)], fillOpacity: 1, color: MAP_COLORS.heatStroke, opacity: 0.3, weight: 0.6 }
-    : { fillColor: MAP_COLORS.store, fillOpacity: 1, color: MAP_COLORS.storeStroke, opacity: 1, weight: 0.6 };
-  return selected ? { ...base, color: MAP_COLORS.selected, opacity: 1, weight: 2, ...(count ? {} : { fillColor: '#C5CAD2' }) } : base;
-}
 
 interface GlowOptions extends L.PathOptions {
   glow?: { color: string; blur: number };
+  /** 왼쪽 위 → 오른쪽 아래로 채울 두 색 (영상이 있는 건물) */
+  gradient?: readonly [string, string];
+}
+
+/** 테두리는 얇게(고해상도 화면에서 1픽셀 남짓), 색은 단계별 그라데이션으로 채운다 */
+function storeStyle(count: number, selected: boolean): GlowOptions {
+  const heat = MAP_COLORS.heat[heatLevel(count)];
+  const base: GlowOptions = count
+    ? { fillColor: heat[1], gradient: heat, fillOpacity: 1, color: MAP_COLORS.heatStroke, opacity: 0.3, weight: 0.6 }
+    : { fillColor: MAP_COLORS.store, fillOpacity: 1, color: MAP_COLORS.storeStroke, opacity: 1, weight: 0.6 };
+  return selected ? { ...base, color: MAP_COLORS.selected, opacity: 1, weight: 2, ...(count ? {} : { fillColor: '#B0B8C1' }) } : base;
 }
 
 function glowStyle(count: number): GlowOptions {
@@ -80,16 +82,33 @@ interface CanvasInternals {
 }
 const canvasBase = L.Canvas.prototype as unknown as CanvasInternals;
 const glowOf = (layer: L.Path) => (layer.options as GlowOptions).glow;
+/** 도형이 캔버스에서 차지하는 영역 (그리는 좌표와 같은 기준) */
+const pxBoundsOf = (layer: L.Path) => (layer as unknown as { _pxBounds?: L.Bounds })._pxBounds;
 /** Leaflet은 고해상도 화면에서 캔버스를 2배로 그리는데, 그림자 흐림은 그 배율을 따르지 않아서 직접 곱한다 */
 const CANVAS_SCALE = L.Browser.retina ? 2 : 1;
 
-/** glow 옵션이 있는 도형은 자기 모양의 흐린 빛만 그린다 (그 위에 같은 건물을 다시 그려 덮는다) */
+/**
+ * glow 옵션이 있는 도형은 자기 모양의 흐린 빛만 그린다 (그 위에 같은 건물을 다시 그려 덮는다).
+ * gradient 옵션이 있는 도형은 자기 영역에 맞춘 대각선 그라데이션으로 채운다 (지도를 움직일 때마다 다시 계산)
+ */
 const GlowCanvas = L.Canvas.extend({
   _fillStroke(this: CanvasInternals, ctx: CanvasRenderingContext2D, layer: L.Path) {
     const glow = glowOf(layer);
+    const { gradient } = layer.options as GlowOptions;
+    const px = pxBoundsOf(layer);
+    if (!glow && gradient && px?.min && px.max) {
+      const fill = ctx.createLinearGradient(px.min.x, px.min.y, px.max.x, px.max.y);
+      fill.addColorStop(0, gradient[0]);
+      fill.addColorStop(1, gradient[1]);
+      // Leaflet은 fillColor를 그대로 ctx.fillStyle에 넣으므로 그리는 동안만 그라데이션으로 바꿔 끼운다
+      const options = layer.options as { fillColor?: string | CanvasGradient };
+      const color = options.fillColor;
+      options.fillColor = fill;
+      canvasBase._fillStroke.call(this, ctx, layer);
+      options.fillColor = color;
+      return;
+    }
     if (!glow) return canvasBase._fillStroke.call(this, ctx, layer);
-    // 번짐이 없는 단계는 아무것도 그리지 않는다 (같은 모양을 칠하면 건물 가장자리에 색이 비친다)
-    if (!glow.blur) return;
     ctx.save();
     ctx.globalAlpha = 1;
     ctx.shadowColor = glow.color;
@@ -102,7 +121,7 @@ const GlowCanvas = L.Canvas.extend({
   _extendRedrawBounds(this: CanvasInternals, layer: L.Path) {
     canvasBase._extendRedrawBounds.call(this, layer);
     const glow = glowOf(layer);
-    const px = (layer as unknown as { _pxBounds?: L.Bounds })._pxBounds;
+    const px = pxBoundsOf(layer);
     if (glow && px?.min && px.max && this._redrawBounds) {
       const pad = glow.blur * 2;
       this._redrawBounds.extend(px.min.subtract([pad, pad]));

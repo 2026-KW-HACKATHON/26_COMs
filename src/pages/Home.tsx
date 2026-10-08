@@ -123,13 +123,13 @@ export default function Home() {
         : '가 본 가게를 눌러 5초를 남겨 보세요';
 
   return (
-    <div className="map-stage" data-bottom-bar={!selected && featured ? '' : undefined}>
+    <div className="relative w-full map-screen">
       <PlaceMap
         selectedId={selectedId}
         onSelect={(p) => setSelectedId(p.id)}
         videoCount={mapCount}
         marks={town ? medals : viewingId ? undefined : myMarks}
-        className="map-canvas"
+        className="absolute inset-0"
       />
 
       <div className="absolute top-3 inset-x-3 z-10 flex flex-col gap-2">
@@ -148,7 +148,7 @@ export default function Home() {
       </div>
 
       {selected ? (
-        <div className="absolute bottom-0 inset-x-0 z-10 bg-white border-t border-gray-200 rounded-t-xl p-5 flex flex-col gap-4">
+        <div className="absolute bottom-3 inset-x-3 z-10 bg-surface rounded-3xl p-5 shadow-sheet flex flex-col gap-4">
           <div className="flex items-start gap-3">
             <span className="w-11 h-11 shrink-0 rounded-full bg-surface-container flex items-center justify-center text-[22px]">
               {CATEGORY_EMOJI[selected.category] ?? '📍'}
@@ -168,7 +168,7 @@ export default function Home() {
           {selectedStat ? (
             <button
               onClick={() => navigate('/ranking')}
-              className="-mt-1 flex items-center gap-2 px-3.5 py-2.5 rounded-lg bg-primary-fixed text-on-primary-fixed text-label-md font-semibold text-left pressable"
+              className="-mt-1 flex items-center gap-2 px-3.5 py-2.5 rounded-2xl bg-primary-fixed text-on-primary-fixed text-label-md font-semibold text-left pressable"
               type="button"
             >
               <span className="text-[17px] leading-none">{MEDALS[selectedStat.rank - 1] ?? '🏆'}</span>
@@ -199,7 +199,7 @@ export default function Home() {
                 <button
                   key={p.id}
                   onClick={() => setSelectedId(p.id)}
-                  className={`h-8 shrink-0 px-3 rounded-md text-label-md font-semibold pressable ${
+                  className={`h-8 shrink-0 px-3 rounded-full text-label-md font-semibold pressable ${
                     p.id === selected.id ? 'bg-inverse-surface text-inverse-on-surface' : 'bg-surface-container text-gray-700'
                   }`}
                   type="button"
@@ -215,10 +215,10 @@ export default function Home() {
           {selectedVideos.length > 0 && (
             <div className="flex gap-2 overflow-x-auto no-scrollbar -mx-5 px-5">
               {selectedVideos.map((c) => (
-                <button key={c.id} onClick={() => navigate(`/video/${c.id}`)} className="relative w-[72px] h-24 shrink-0 rounded-lg overflow-hidden bg-surface-container pressable" type="button">
+                <button key={c.id} onClick={() => navigate(`/video/${c.id}`)} className="relative w-[72px] h-24 shrink-0 rounded-xl overflow-hidden bg-surface-container pressable" type="button">
                   <CapsuleThumb thumbnail={c.thumbnail} />
-                  <span className="absolute inset-0 flex items-center justify-center">
-                    <span className="media-play material-symbols-rounded text-[24px] icon-fill">play_arrow</span>
+                  <span className="absolute inset-0 flex items-center justify-center bg-black/15 text-white">
+                    <span className="material-symbols-rounded text-[24px] icon-fill">play_arrow</span>
                   </span>
                   {/* 지도 주인이 아닌 사람이 남긴 영상(지도 주인이 태그됨)은 작성자 사진을 표시 */}
                   {c.author && c.userId !== mapOwnerId && (
@@ -231,7 +231,7 @@ export default function Home() {
 
           <button
             onClick={() => navigate(`/leave?place=${encodeURIComponent(selected.id)}`)}
-            className="h-14 rounded-lg fill-accent text-white text-[16px] font-bold flex items-center justify-center gap-1.5 pressable"
+            className="h-14 rounded-2xl bg-primary text-on-primary text-[16px] font-bold flex items-center justify-center gap-1.5 pressable"
             type="button"
           >
             <span className="material-symbols-rounded text-[22px]">videocam</span>
@@ -239,16 +239,16 @@ export default function Home() {
           </button>
         </div>
       ) : (
-        <div className="absolute bottom-0 inset-x-0 z-10 flex flex-col items-center pointer-events-none">
-          <span className={`px-3.5 py-2 rounded-lg surface-float text-gray-800 text-label-md font-semibold mb-7`}>{hint}</span>
+        <div className="absolute bottom-3 inset-x-3 z-10 flex flex-col items-center gap-2 pointer-events-none">
+          <span className="px-4 py-2 rounded-full bg-inverse-surface/90 text-inverse-on-surface text-label-md font-semibold">{hint}</span>
           {/* 동네 랭킹 1~3위를 돌아가며 보여 주고, 누르면 전체 랭킹 */}
           {featured && (
             <button
               onClick={() => navigate('/ranking')}
-              className="pointer-events-auto w-full h-14 px-4 bg-white border-t border-gray-200 flex items-center gap-3 text-left active:bg-gray-50"
+              className="pointer-events-auto w-full h-16 pl-3 pr-2 rounded-2xl bg-surface shadow-sheet flex items-center gap-3 text-left pressable"
               type="button"
             >
-              <span className="shrink-0 text-[20px]">🏆</span>
+              <span className="w-10 h-10 shrink-0 rounded-full bg-primary-fixed flex items-center justify-center text-[20px]">🏆</span>
               <span className="flex-1 min-w-0">
                 <span className="block text-label-sm text-on-surface-variant">동네 랭킹 · {PERIOD_LABEL}</span>
                 <span key={featured.placeId} className="block text-label-lg font-bold text-on-surface truncate ticker-in">

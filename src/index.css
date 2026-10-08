@@ -3,23 +3,12 @@
 @tailwind utilities;
 
 @layer base {
-  :root {
-    /* 화면 위아래에 붙은 머리줄·아래 탭 높이 (본문 여백과 지도 높이가 이 값에 맞춘다) */
-    --header-space: calc(env(safe-area-inset-top, 0px) + 3.5rem);
-    /* 아래 탭 막대 높이 (BottomNav) */
-    --nav-bar-h: 3.5rem;
-    --nav-space: calc(env(safe-area-inset-bottom, 0px) + var(--nav-bar-h));
-    /* 본문 좌우 여백 (main의 px-4 sm:px-5와 같다) */
-    --page-x: 1rem;
-  }
   html {
     -webkit-text-size-adjust: 100%;
-    /* 플랫: 단색 오프화이트 바탕 */
-    background-color: theme('colors.background');
+    background: #fff;
   }
   body {
-    @apply text-on-surface antialiased;
-    background-color: theme('colors.background');
+    @apply bg-surface text-on-surface antialiased;
     /* 한글은 단어 중간에서 줄바꿈하지 않는다 */
     word-break: keep-all;
     overflow-wrap: anywhere;
@@ -30,99 +19,23 @@
   button {
     -webkit-tap-highlight-color: transparent;
   }
-  @media (min-width: 640px) {
-    :root {
-      --page-x: 1.25rem;
-    }
+  :root {
+    /* 아래 탭 막대(BottomNav) 높이 */
+    --nav-space: calc(4rem + env(safe-area-inset-bottom, 0px));
   }
 }
 
-/* ── 플랫 디자인 시스템: 단색 면 + 1px 테두리, 그라데이션·흐림·큰 그림자 없음 ── */
 @layer components {
   .app-shell {
-    @apply relative w-full min-h-screen text-on-surface;
+    @apply relative w-full min-h-screen bg-surface text-on-surface;
   }
-  /* 카드·목록: 흰 면 + 얇은 회색 테두리 */
-  .surface {
-    background-color: #fff;
-    border-color: theme('colors.gray.200');
+  /* 평평한 면: 회색 바탕, 그림자 없음. 그림자(떠 있는 요소)는 지도 위에 뜨는 것에만 쓴다 */
+  .flat-card {
+    @apply bg-gray-50 rounded-2xl;
   }
-  /* 머리줄·아래 탭·지도 위 검색창·시트·알림: 흰 면 + 테두리 + 아주 얇은 그림자 한 겹 */
-  .surface-float,
-  .app-surface {
-    background-color: #fff;
-    border: 1px solid theme('colors.gray.200');
-    box-shadow: 0 1px 2px rgba(16, 24, 40, 0.06);
-  }
-  .app-card {
-    @apply rounded-xl border border-gray-200 bg-white;
-  }
-  .app-chip {
-    @apply inline-flex items-center gap-1 rounded-md border border-gray-200 bg-white px-2.5 py-1 text-[12px] font-semibold text-gray-700;
-  }
-  /* 주요 버튼·강조 요소: 단색 블루 + 흰 글씨 */
-  .fill-accent {
-    background-color: theme('colors.primary');
-    color: #fff;
-    transition: background-color 0.15s ease;
-  }
-  .fill-accent:active {
-    background-color: theme('colors.primary-strong');
-  }
-  .fill-accent:disabled {
-    background-color: theme('colors.gray.200');
-    color: theme('colors.gray.500');
-  }
-  /* 보조 버튼·선택된 탭: 흰 면 + 테두리 */
-  .fill-neutral {
-    background-color: #fff;
-    border: 1px solid theme('colors.gray.300');
-    transition: background-color 0.15s ease;
-  }
-  .fill-neutral:active {
-    background-color: theme('colors.gray.100');
-  }
-  .fill-neutral:disabled {
-    background-color: theme('colors.gray.100');
-    color: theme('colors.gray.400');
-  }
-  /* 아이콘 배경·배지 등 옅은 강조: 아주 옅은 블루 단색 + 블루 글씨 */
-  .fill-tint {
-    background-color: theme('colors.primary-fixed');
-    color: theme('colors.primary');
-  }
-  /* 지도: 머리줄과 아래 탭 사이를 가장자리까지 꽉 채운다 (위아래 경계는 머리줄·아래 탭의 테두리).
-     화면이 아주 낮으면 16rem 아래로는 줄이지 않는다 */
-  .map-stage {
-    position: relative;
-    height: max(16rem, calc(100vh - var(--header-space) - var(--nav-space)));
-    height: max(16rem, calc(100dvh - var(--header-space) - var(--nav-space)));
-  }
-  /* 지도 아래에 랭킹 막대(h-14)가 붙어 있으면 지도 출처 표시를 그 위로 올린다 */
-  .map-stage[data-bottom-bar] .leaflet-bottom {
-    bottom: 3.5rem;
-  }
-  /* 지도 자체. 위에 뜨는 검색창·시트는 형제 요소라 잘리지 않는다 */
-  .map-canvas {
-    position: absolute;
-    inset: 0;
-    overflow: hidden;
-  }
-  /* 타임라인: 본문 좌우 여백을 넘어 화면 끝까지 이어지는 목록 (구분선이 가장자리까지 닿는다) */
-  .bleed {
-    margin-inline: calc(var(--page-x) * -1);
-  }
-  /* 타임라인 한 줄의 좌우 여백 */
-  .row-x {
-    padding-inline: var(--page-x);
-  }
-  /* 썸네일 위 재생 표시: 사진을 덮지 않고 작은 흰 원만 올린다 */
-  .media-play {
-    padding: 0.18em;
-    border-radius: 999px;
-    color: theme('colors.gray.800');
-    background-color: #fff;
-    font-size: 0.8em;
+  /* 지도 화면: 머리줄과 아래 탭 사이를 꽉 채운다 */
+  .map-screen {
+    height: calc(100dvh - 3.5rem - env(safe-area-inset-top, 0px) - var(--nav-space));
   }
 }
 
@@ -280,21 +193,6 @@
   display: none;
 }
 
-/* 오류 문구: 빨간색 + 굵기 + 경고 표시 (색만으로 구분하지 않는다) */
-p.text-error {
-  font-weight: 600;
-}
-p.text-error::before {
-  content: 'error';
-  font-family: 'Material Symbols Rounded';
-  font-weight: normal;
-  font-size: 1.15em;
-  vertical-align: -0.2em;
-  margin-right: 4px;
-  font-variation-settings: 'FILL' 1, 'wght' 500, 'GRAD' 0, 'opsz' 24;
-}
-
-
 .material-symbols-rounded {
   font-variation-settings: 'FILL' 0, 'wght' 500, 'GRAD' 0, 'opsz' 24;
   user-select: none;
@@ -307,12 +205,7 @@ p.text-error::before {
 .leaflet-container {
   font-family: inherit;
 }
-.leaflet-container a {
-  color: theme('colors.primary');
-}
 .leaflet-container .leaflet-control-attribution {
-  /* 둥근 모서리에 글자가 잘리지 않게 안쪽으로 */
-  margin: 0 16px 4px 0;
   background: transparent;
   color: theme('colors.gray.500');
   font-size: 10px;
@@ -357,11 +250,11 @@ p.text-error::before {
   padding: 3px 9px 3px 3px;
   border-radius: 999px;
   background: #fff;
-  border: 1px solid theme('colors.gray.300');
   color: theme('colors.gray.900');
   font-size: 12px;
   font-weight: 700;
   text-shadow: none;
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.14);
   transform: translate(-50%, calc(-100% - 4px));
 }
 .map-pill b {
@@ -379,8 +272,8 @@ p.text-error::before {
   margin-left: 4px;
   padding: 0 5px;
   border-radius: 999px;
-  background: theme('colors.primary-fixed');
-  color: theme('colors.on-primary-fixed');
+  background: theme('colors.gray.100');
+  color: theme('colors.gray.600');
   font-size: 10px;
   font-style: normal;
   font-weight: 700;
@@ -388,22 +281,17 @@ p.text-error::before {
   display: inline-block;
 }
 .map-pill-selected i {
-  background: rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.18);
   color: #fff;
 }
 .map-pill-plain {
   padding: 4px 10px;
 }
 .map-pill-selected {
-  background: theme('colors.primary');
-  border-color: theme('colors.primary');
+  background: theme('colors.gray.900');
   color: #fff;
 }
-.map-pill-selected b {
-  background: #fff;
-  color: theme('colors.primary');
-}
-/* 내 위치: 지도 앱들이 흔히 쓰는 파란 점 */
+/* 내 위치 (지도 앱들이 흔히 쓰는 파란 점이라 강조색과 따로 둔다) */
 .map-me {
   position: absolute;
   left: -8px;
@@ -411,10 +299,9 @@ p.text-error::before {
   width: 16px;
   height: 16px;
   border-radius: 999px;
-  background: theme('colors.primary');
+  background: #3182f6;
   border: 3px solid #fff;
-  /* 옅은 단색 원으로 위치 범위를 표시 */
-  box-shadow: 0 0 0 6px rgba(59, 111, 212, 0.16);
+  box-shadow: 0 0 0 7px rgba(49, 130, 246, 0.18), 0 1px 4px rgba(0, 0, 0, 0.25);
   pointer-events: none;
 }
 /* 줌 단계별로 보이는 이름 (PlaceMap이 컨테이너에 map-z-* 클래스를 붙인다) */

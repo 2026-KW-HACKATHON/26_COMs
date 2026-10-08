@@ -28,8 +28,8 @@ export default function RootLayout() {
         <Header currentPath={currentPath} goBack={goBack} />
 
         <main
-          className={`flex-1 flex flex-col relative w-full max-w-[430px] mx-auto pt-[var(--header-space)] bg-white sm:border-x sm:border-gray-200 ${
-            fullBleed ? '' : 'px-4 sm:px-5 pb-[calc(var(--nav-space)+1.5rem)]'
+          className={`flex-1 flex flex-col relative w-full max-w-[430px] mx-auto pt-14 ${
+            fullBleed ? '' : 'px-4 sm:px-5 pb-[calc(var(--nav-space)+2rem)]'
           }`}
         >
           <Outlet />

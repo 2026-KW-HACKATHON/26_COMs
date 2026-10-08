@@ -1,7 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
   <!-- 여백 없이 꽉 채운 정사각형: 안드로이드(마스커블)·iOS가 각자 모양으로 잘라 쓴다 -->
-  <rect width="512" height="512" fill="#3B6FD4"/>
+  <rect width="512" height="512" fill="#3182F6"/>
   <!-- 장소(핀) + 5초 영상(재생) -->
   <path fill="#fff" d="M256 104c-66.3 0-120 53.7-120 120 0 88 120 184 120 184s120-96 120-184c0-66.3-53.7-120-120-120z"/>
-  <path fill="#3B6FD4" stroke="#3B6FD4" stroke-width="16" stroke-linejoin="round" d="M240 184 308 224 240 264z"/>
+  <path fill="#3182F6" stroke="#3182F6" stroke-width="16" stroke-linejoin="round" d="M240 184 308 224 240 264z"/>
 </svg>

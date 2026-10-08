@@ -41,28 +41,35 @@ export default function RecallCard() {
   };
 
   return (
-    <section className="row-x relative flex gap-3 py-3.5 border-b border-gray-200 bg-gray-50">
-      <button onClick={() => navigate(`/video/${c.id}`)} className="relative w-16 h-20 shrink-0 rounded-md overflow-hidden bg-gray-100 border border-gray-200 pressable" type="button" aria-label="영상 보기">
+    <section className="relative p-3 rounded-3xl bg-primary-fixed/60 flex gap-3">
+      <button onClick={() => navigate(`/video/${c.id}`)} className="relative w-20 h-[6.5rem] shrink-0 rounded-2xl overflow-hidden bg-gray-100 pressable" type="button" aria-label="영상 보기">
         <CapsuleThumb thumbnail={c.thumbnail} />
-        <span className="absolute inset-0 flex items-center justify-center">
-          <span className="media-play material-symbols-rounded icon-fill text-[22px]">play_arrow</span>
+        <span className="absolute inset-0 flex items-center justify-center bg-black/15 text-white">
+          <span className="material-symbols-rounded icon-fill text-[28px]">play_arrow</span>
         </span>
       </button>
-      <div className="flex-1 min-w-0 flex flex-col">
-        <p className="text-label-sm font-semibold text-primary">{recall.label} 오늘</p>
-        <p className="text-label-lg font-bold text-on-surface truncate pr-8">{c.placeName}</p>
+      <div className="flex-1 min-w-0 flex flex-col py-0.5">
+        <p className="text-label-sm font-bold text-primary flex items-center gap-0.5">
+          <span className="material-symbols-rounded icon-fill text-[14px]">history</span>
+          {recall.label} 오늘
+        </p>
+        <p className="text-label-lg font-bold text-on-surface truncate pr-6">{c.placeName}</p>
         <p className="text-label-sm text-on-surface-variant truncate">{withText}</p>
-        <div className="mt-auto pt-1.5 flex items-center gap-4 text-label-md font-semibold">
-          <button onClick={() => navigate(`/video/${c.id}`)} className="h-8 text-gray-700" type="button">
+        <div className="mt-auto pt-2 flex gap-1.5">
+          <button onClick={() => navigate(`/video/${c.id}`)} className="h-9 px-3 rounded-full bg-white text-gray-700 text-label-md font-semibold pressable" type="button">
             다시 보기
           </button>
-          <button onClick={() => navigate(`/leave?place=${encodeURIComponent(c.placeId)}`)} className="h-8 text-primary" type="button">
+          <button
+            onClick={() => navigate(`/leave?place=${encodeURIComponent(c.placeId)}`)}
+            className="h-9 px-3 rounded-full bg-primary text-on-primary text-label-md font-bold pressable"
+            type="button"
+          >
             또 가서 남기기
           </button>
         </div>
       </div>
-      <button onClick={dismiss} className="absolute top-2 right-[calc(var(--page-x)-0.5rem)] w-9 h-9 text-gray-400 flex items-center justify-center" type="button" aria-label="닫기">
-        <span className="material-symbols-rounded text-[20px]">close</span>
+      <button onClick={dismiss} className="absolute top-2 right-2 w-7 h-7 rounded-full bg-white/70 text-gray-500 flex items-center justify-center" type="button" aria-label="닫기">
+        <span className="material-symbols-rounded text-[18px]">close</span>
       </button>
     </section>
   );
