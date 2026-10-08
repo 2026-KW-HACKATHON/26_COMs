@@ -20,11 +20,11 @@ export default function Ranking() {
     const url = `${window.location.origin}/ranking`;
     const top = ranking?.[0];
     const text = top
-      ? `월계1동 동네 랭킹 1위는 ${top.place.name}! 우리 동네 단골 가게에서 5초 영상을 남겨 보세요`
-      : '월계1동 단골 가게에서 5초 영상을 남겨 보세요';
+      ? `월계1동 동네 랭킹 1위는 ${top.place.name}! 우리 동네 가게에 5초를 남겨 보세요`
+      : '월계1동 가게에 5초를 남겨 보세요';
     try {
       if (navigator.share) {
-        await navigator.share({ title: '기억캡슐 동네 랭킹', text, url });
+        await navigator.share({ title: '왔다감 동네 랭킹', text, url });
       } else {
         await navigator.clipboard.writeText(`${text}\n${url}`);
         flash('링크를 복사했어요');
@@ -43,7 +43,7 @@ export default function Ranking() {
       <section className="mb-5">
         <p className="text-label-md font-bold text-primary">노원구 월계1동</p>
         <h2 className="text-headline-md text-on-surface">동네 사람들이 다시 찾는 가게</h2>
-        <p className="mt-1 text-body-sm text-on-surface-variant">5초 영상으로 남긴 방문이 많은 순서예요. 다시 찾아갈수록 순위가 올라가요.</p>
+        <p className="mt-1 text-body-sm text-on-surface-variant">5초를 남긴 방문이 많은 순서예요. 다시 찾아갈수록 순위가 올라가요.</p>
       </section>
 
       <div className="flex p-1 mb-2 rounded-xl bg-surface-container" role="tablist" aria-label="기간">

@@ -1,6 +1,6 @@
 import type { Profile } from './social';
 
-// 장소에 남기는 기억은 "5초 영상" 하나다.
+// 가게에 남기는 것은 "5초 영상" 하나다.
 export const CLIP_SECONDS = 5;
 
 /** 기기 저장(IndexedDB)은 파일(Blob) 그대로, 서버 저장은 재생용 URL */

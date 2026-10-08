@@ -10,7 +10,7 @@ self.addEventListener('push', (event) => {
   }
   const url = typeof data.url === 'string' && data.url.startsWith('/') ? data.url : '/notifications';
   const tasks = [
-    self.registration.showNotification(data.title || '기억캡슐', {
+    self.registration.showNotification(data.title || '왔다감', {
       body: data.body || '',
       icon: '/pwa-192x192.png',
       tag: data.tag,
