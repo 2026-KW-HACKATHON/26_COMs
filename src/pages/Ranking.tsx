@@ -20,11 +20,11 @@ export default function Ranking() {
     const url = `${window.location.origin}/ranking`;
     const top = ranking?.[0];
     const text = top
-      ? `월계1동 동네 랭킹 1위는 ${top.place.name}! 우리 동네 단골 가게에서 5초 영상을 남겨 보세요`
-      : '월계1동 단골 가게에서 5초 영상을 남겨 보세요';
+      ? `월계1동 동네 랭킹 1위는 ${top.place.name}! 우리 동네 가게에 5초를 남겨 보세요`
+      : '월계1동 가게에 5초를 남겨 보세요';
     try {
       if (navigator.share) {
-        await navigator.share({ title: '기억캡슐 동네 랭킹', text, url });
+        await navigator.share({ title: '왔다감 동네 랭킹', text, url });
       } else {
         await navigator.clipboard.writeText(`${text}\n${url}`);
         flash('링크를 복사했어요');
@@ -43,7 +43,7 @@ export default function Ranking() {
       <section className="app-card p-5">
         <p className="text-label-md font-bold text-primary">노원구 월계1동</p>
         <h2 className="text-headline-md text-on-surface">동네 사람들이 다시 찾는 가게</h2>
-        <p className="mt-1 text-body-sm text-on-surface-variant">5초 영상으로 남긴 방문이 많은 순서예요. 다시 찾아갈수록 순위가 올라가요.</p>
+        <p className="mt-1 text-body-sm text-on-surface-variant">5초를 남긴 방문이 많은 순서예요. 다시 찾아갈수록 순위가 올라가요.</p>
       </section>
 
       <div className="flex p-1 rounded-full bg-white border border-gray-100 shadow-[0_10px_24px_rgba(15,23,42,0.06)]" role="tablist" aria-label="기간">
@@ -82,7 +82,7 @@ export default function Ranking() {
             <span className="text-[30px]">🏆</span>
           </div>
           <p className="mt-2 text-body-md">
-            {days === null ? '아직 남긴 기록이 없어요.' : `${RANKING_PERIODS.find((p) => p.days === days)?.label} 동안 남긴 기록이 없어요.`}
+            {days === null ? '아직 다녀간 사람이 없어요.' : `${RANKING_PERIODS.find((p) => p.days === days)?.label} 동안 다녀간 사람이 없어요.`}
             <br />첫 번째 단골이 되어 보세요!
           </p>
         </div>
@@ -100,7 +100,7 @@ export default function Ranking() {
                 <span className="flex-1 min-w-0">
                   <span className="block text-label-lg font-bold text-on-surface truncate">{r.place.name}</span>
                   <span className="block text-label-sm text-on-surface-variant truncate">
-                    {[placeSubtitle(r.place), `${r.people}명이 다녀갔어요`, r.verifiedVisits > 0 && `현장 인증 ${r.verifiedVisits}번`].filter(Boolean).join(' · ')}
+                    {[placeSubtitle(r.place), `${r.people}명이 다녀갔어요`].filter(Boolean).join(' · ')}
                   </span>
                 </span>
                 <span className="shrink-0 flex flex-col items-end">
@@ -120,7 +120,7 @@ export default function Ranking() {
 
       <p className="mt-4 text-label-sm text-on-surface-variant">
         영상에 나온 사람(태그된 친구 포함)이 그날 다녀간 것을 방문 한 번으로 세요. 같은 날 여러 개를 남겨도 한 번이고, 단골은 다른 날 두 번 이상 온
-        사람이에요. 현장 인증은 앱에서 촬영할 때 가게에서 100m 안이었던 방문이에요. 영상과 누가 남겼는지는 공개되지 않아요.
+        사람이에요. 영상과 누가 남겼는지는 공개되지 않아요.
       </p>
 
       <div className="mt-2 grid grid-cols-2 gap-2">

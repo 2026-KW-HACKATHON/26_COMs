@@ -2,10 +2,12 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import Avatar from '../components/Avatar';
 import CapsuleVideo from '../components/CapsuleVideo';
+import LikeButton from '../components/LikeButton';
 import NudgeButton from '../components/NudgeButton';
 import { getPlace, placeSubtitle } from '../data/places';
 import { useAuth } from '../hooks/useAuth';
 import { useFriendships } from '../hooks/useFriendships';
+import { useLike } from '../hooks/useLike';
 import { SOCIAL_ENABLED, deleteCapsule, getCapsule, setVisibility } from '../lib/capsuleStore';
 import { formatDate } from '../lib/format';
 import { removeMyTag } from '../lib/social';
@@ -20,6 +22,7 @@ export default function VideoDetail() {
   // undefined: 불러오는 중, null: 없음
   const [capsule, setCapsule] = useState<Capsule | null | undefined>(undefined);
   const [busy, setBusy] = useState(false);
+  const like = useLike(capsule);
 
   useEffect(() => {
     if (!id) return;
@@ -114,8 +117,13 @@ export default function VideoDetail() {
         src={capsule.video}
         start={capsule.clipStart}
         duration={capsule.clipDuration}
+        onLike={like.like}
         className="w-full aspect-[3/4] rounded-[28px] shadow-[0_18px_40px_rgba(15,23,42,0.12)]"
       />
+
+      <div className="flex items-center -my-2.5">
+        <LikeButton like={like} />
+      </div>
 
       <div className="flex flex-col gap-1 px-0.5">
         <h2 className="text-headline-md text-on-surface">{capsule.placeName}</h2>
@@ -127,12 +135,6 @@ export default function VideoDetail() {
         <p className="text-label-md text-on-surface-variant flex items-center gap-1">
           <span className="material-symbols-rounded text-[16px]">event</span>
           {formatDate(capsule.createdAt)}에 남김
-          {capsule.verified && (
-            <span className="ml-1.5 flex items-center gap-0.5 font-semibold text-primary">
-              <span className="material-symbols-rounded icon-fill text-[16px]">verified</span>
-              현장 인증
-            </span>
-          )}
         </p>
         {capsule.tags.length > 0 && (
           <div className="mt-2 flex flex-wrap items-center gap-1.5">
@@ -184,7 +186,7 @@ export default function VideoDetail() {
           <span className="flex-1 min-w-0">
             <span className="block text-label-lg font-bold text-on-surface">동네에 공개</span>
             <span className="block text-label-sm text-on-surface-variant">
-              {capsule.visibility === 'town' ? '동네 피드와 가게에 떠요. 태그된 친구는 친구에게만 보여요' : '지금은 친구와 태그된 사람만 봐요'}
+              {capsule.visibility === 'town' ? '동네 사람 누구나 피드와 가게에서 봐요. 함께한 친구 이름은 친구에게만 보여요' : '지금은 친구와 태그된 사람만 봐요'}
             </span>
           </span>
           <span className={`w-11 h-6 shrink-0 rounded-full p-0.5 transition-colors ${capsule.visibility === 'town' ? 'bg-primary' : 'bg-gray-300'}`}>

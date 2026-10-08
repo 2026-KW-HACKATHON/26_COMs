@@ -131,7 +131,7 @@ export async function GET(request: Request): Promise<Response> {
       const withText = names.length ? `${names[0]}님${names.length > 1 ? ` 외 ${names.length - 1}명` : ''}과 함께 남긴` : '그날 남긴';
       const payload = JSON.stringify({
         title: `${label} 오늘, ${c.place_name}`,
-        body: `${withText} 5초가 열렸어요. 다시 가 볼까요?`,
+        body: `${withText} 5초예요. 다시 가 볼까요?`,
         url: `/video/${c.id}`,
         tag: `recall-${c.id}`,
       });

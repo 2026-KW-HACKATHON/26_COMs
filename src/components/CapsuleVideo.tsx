@@ -2,6 +2,9 @@ import { useEffect, useRef, useState } from 'react';
 import { attachSrc } from '../lib/video';
 import { CLIP_SECONDS, type Media } from '../types/capsule';
 
+/** 이 안에 다시 톡 치면 두 번 톡(하트)으로 본다 */
+const DOUBLE_TAP_MS = 300;
+
 interface CapsuleVideoProps {
   /** 영상 파일 또는 서버 URL */
   src: Media;
@@ -12,15 +15,20 @@ interface CapsuleVideoProps {
   autoPlay?: boolean;
   /** 틀을 꽉 채우도록 잘라서 보여 준다 (피드). 기본은 영상 전체가 보이게 */
   cover?: boolean;
+  /** 영상을 두 번 톡 치면 가운데 큰 하트가 떴다 사라지고 불린다 (주면 한 번 톡의 재생·멈춤은 두 번 톡이 아닌지 보고 나서) */
+  onLike?: () => void;
   className?: string;
 }
 
 /** 원본 영상의 [start, start + duration] 구간만 반복 재생하는 플레이어 */
-export default function CapsuleVideo({ src, start = 0, duration = CLIP_SECONDS, autoPlay = true, cover = false, className = '' }: CapsuleVideoProps) {
+export default function CapsuleVideo({ src, start = 0, duration = CLIP_SECONDS, autoPlay = true, cover = false, onLike, className = '' }: CapsuleVideoProps) {
   const ref = useRef<HTMLVideoElement>(null);
   const [playing, setPlaying] = useState(false);
   const [muted, setMuted] = useState(true);
   const [progress, setProgress] = useState(0);
+  // 두 번 톡: 마지막 톡 시각과 미뤄 둔 재생·멈춤. burst는 큰 하트 애니메이션을 다시 재생하는 키
+  const tap = useRef({ at: 0, timer: 0 });
+  const [burst, setBurst] = useState(0);
 
   useEffect(() => {
     const el = ref.current;
@@ -85,6 +93,11 @@ export default function CapsuleVideo({ src, start = 0, duration = CLIP_SECONDS, 
     if (ref.current) ref.current.muted = muted;
   }, [muted]);
 
+  useEffect(() => {
+    const t = tap.current;
+    return () => clearTimeout(t.timer);
+  }, []);
+
   const togglePlay = () => {
     const el = ref.current;
     if (!el) return;
@@ -92,12 +105,27 @@ export default function CapsuleVideo({ src, start = 0, duration = CLIP_SECONDS, 
     else el.pause();
   };
 
+  const handleTap = () => {
+    if (!onLike) return togglePlay();
+    const t = tap.current;
+    if (Date.now() - t.at < DOUBLE_TAP_MS) {
+      clearTimeout(t.timer);
+      t.at = 0;
+      setBurst((n) => n + 1);
+      onLike();
+      return;
+    }
+    t.at = Date.now();
+    t.timer = window.setTimeout(togglePlay, DOUBLE_TAP_MS);
+  };
+
   return (
-    <div className={`relative overflow-hidden bg-black ${className}`}>
-      <video ref={ref} muted playsInline loop className={`w-full h-full ${cover ? 'object-cover' : 'object-contain'}`} onClick={togglePlay} />
+    // touch-manipulation: 두 번 톡이 화면 확대로 먹히지 않게
+    <div className={`relative overflow-hidden bg-black touch-manipulation ${className}`}>
+      <video ref={ref} muted playsInline loop className={`w-full h-full ${cover ? 'object-cover' : 'object-contain'}`} onClick={handleTap} />
 
       {!playing && (
-        <button onClick={togglePlay} className="absolute inset-0 flex items-center justify-center" type="button" aria-label="재생">
+        <button onClick={handleTap} className="absolute inset-0 flex items-center justify-center" type="button" aria-label="재생">
           <span className="w-14 h-14 rounded-full bg-black/45 backdrop-blur text-white flex items-center justify-center">
             <span className="material-symbols-rounded text-[34px] icon-fill">play_arrow</span>
           </span>
@@ -116,6 +144,12 @@ export default function CapsuleVideo({ src, start = 0, duration = CLIP_SECONDS, 
       <div className="absolute bottom-0 inset-x-0 h-1 bg-white/25">
         <div className="h-full bg-primary" style={{ width: `${progress * 100}%` }} />
       </div>
+
+      {burst > 0 && (
+        <span key={burst} className="like-burst absolute inset-0 flex items-center justify-center pointer-events-none" aria-hidden>
+          <span className="material-symbols-rounded icon-fill text-[96px] text-white drop-shadow-lg">favorite</span>
+        </span>
+      )}
     </div>
   );
 }

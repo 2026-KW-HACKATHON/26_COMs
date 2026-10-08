@@ -10,9 +10,9 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       manifest: {
-        name: '기억캡슐',
-        short_name: '기억캡슐',
-        description: '월계1동 가게에 5초 영상으로 추억을 남기는 지도 기반 기록 서비스',
+        name: '왔다감',
+        short_name: '왔다감',
+        description: '동네 가게에 남기는 5초. 월계1동 가게에서 그 자리에서 찍은 5초 영상을 지도에 남겨요',
         lang: 'ko',
         theme_color: '#ffffff',
         background_color: '#ffffff',

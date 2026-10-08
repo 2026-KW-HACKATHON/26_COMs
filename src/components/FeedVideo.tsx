@@ -8,7 +8,7 @@ import CapsuleVideo from './CapsuleVideo';
  * (앨범 영상은 원본이 수십 MB라 목록 전체를 한꺼번에 불러오지 않는다. 한 번 불러온 영상은 다시 붙였다 떼지 않는다:
  *  같은 파일을 다시 연결하면 브라우저가 불러오다 멈추는 경우가 있다)
  */
-export default function FeedVideo({ capsule, className = '' }: { capsule: Capsule; className?: string }) {
+export default function FeedVideo({ capsule, onLike, className = '' }: { capsule: Capsule; onLike?: () => void; className?: string }) {
   const ref = useRef<HTMLDivElement>(null);
   const [active, setActive] = useState(false);
   const [loaded, setLoaded] = useState(false);
@@ -32,7 +32,15 @@ export default function FeedVideo({ capsule, className = '' }: { capsule: Capsul
     <div ref={ref} className={`relative overflow-hidden bg-surface-container ${className}`}>
       {loaded ? (
         <div className="absolute inset-0">
-          <CapsuleVideo src={capsule.video} start={capsule.clipStart} duration={capsule.clipDuration} autoPlay={active} cover className="w-full h-full" />
+          <CapsuleVideo
+            src={capsule.video}
+            start={capsule.clipStart}
+            duration={capsule.clipDuration}
+            autoPlay={active}
+            cover
+            onLike={onLike}
+            className="w-full h-full"
+          />
         </div>
       ) : (
         <>

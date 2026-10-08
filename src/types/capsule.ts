@@ -1,6 +1,6 @@
 import type { Profile } from './social';
 
-// 장소에 남기는 기억은 "5초 영상" 하나다.
+// 가게에 남기는 것은 "5초 영상" 하나다.
 export const CLIP_SECONDS = 5;
 
 /** 기기 저장(IndexedDB)은 파일(Blob) 그대로, 서버 저장은 재생용 URL */
@@ -22,7 +22,7 @@ export interface Capsule {
   placeName: string;
   lat: number;
   lng: number;
-  /** 원본 영상. 앨범 영상이 5초보다 길면 clipStart부터 clipDuration만큼만 재생한다. */
+  /** 원본 영상. clipStart부터 clipDuration만큼만 재생한다 (예전 앨범 영상은 5초보다 길 수 있다) */
   video: Media;
   clipStart: number;
   clipDuration: number;
@@ -30,7 +30,11 @@ export interface Capsule {
   thumbnail: Media | null;
   createdAt: number;
   visibility: Visibility;
-  /** 현장 인증: 앱에서 촬영할 때 가게 근처였는지 */
+  /** 하트 수 */
+  likeCount: number;
+  /** 내가 하트를 눌렀는지 */
+  liked: boolean;
+  /** 예전 현장 인증 기록 (지금은 화면에 쓰지 않고, 새 영상은 늘 false) */
   verified: boolean;
 }
 
@@ -59,5 +63,4 @@ export interface NewCapsule {
   /** 태그할 친구 id (서버 저장일 때만 쓰임) */
   tagIds: string[];
   visibility: Visibility;
-  verified: boolean;
 }

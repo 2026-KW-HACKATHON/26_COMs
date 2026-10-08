@@ -23,7 +23,7 @@ export default function FriendTagPicker({ friends, selected, onChange }: FriendT
     // 여기서 친구 화면으로 이동하면 촬영한 영상이 사라지므로 링크 없이 안내만 한다
     return (
       <p className="text-label-md text-on-surface-variant">
-        아직 친구가 없어요. 영상을 남긴 뒤 마이로그 &gt; 친구에서 추가할 수 있어요.
+        아직 친구가 없어요. 영상을 남긴 뒤 MY &gt; 친구에서 추가할 수 있어요.
       </p>
     );
   }

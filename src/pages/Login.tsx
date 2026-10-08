@@ -92,12 +92,13 @@ export default function Login() {
         <div className="w-20 h-20 rounded-[24px] instagram-gradient flex items-center justify-center shadow-[0_16px_34px_rgba(225,48,108,0.28)]">
           <img src="/pwa-192x192.png" alt="" className="w-14 h-14 rounded-[18px]" />
         </div>
-        <div>
+        <div className="flex flex-col items-center gap-1">
           <p className="text-[11px] font-semibold tracking-[0.22em] uppercase text-gray-500">Welcome back</p>
-          <h2 className="mt-1 text-headline-md text-on-surface">동네의 5초를 함께 남겨요</h2>
+          <h2 className="text-headline-lg text-on-surface">왔다감</h2>
+          <p className="text-label-lg font-bold text-primary">동네 가게에 남기는 5초</p>
         </div>
         <p className="text-body-md text-on-surface-variant leading-relaxed">
-          로그인하면 영상이 내 계정에 저장되고,
+          로그인하면 가게에서 찍은 5초가 내 지도에 쌓이고,
           <br />
           친구를 태그하거나 서로의 지도를 볼 수 있어요.
         </p>

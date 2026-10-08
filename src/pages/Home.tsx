@@ -120,7 +120,7 @@ export default function Home() {
       ? `${PERIOD_LABEL} 동안 동네 사람들이 다녀간 곳이에요`
       : !town && mySummary.visited
         ? `월계1동 ${mySummary.total}곳 중 ${mySummary.visited}곳 가 봤어요`
-        : '건물을 눌러 그곳의 5초를 남겨 보세요';
+        : '가 본 가게를 눌러 5초를 남겨 보세요';
 
   return (
     <div className="relative w-full h-[calc(100dvh-7.5rem)]">
@@ -179,7 +179,7 @@ export default function Home() {
               <span className="material-symbols-rounded text-[18px]">chevron_right</span>
             </button>
           ) : (
-            ranking && <p className="-mt-2 text-label-md text-on-surface-variant">{PERIOD_LABEL} 동안 남긴 사람이 없어요. 첫 기록을 남겨 보세요</p>
+            ranking && <p className="-mt-2 text-label-md text-on-surface-variant">{PERIOD_LABEL} 동안 다녀간 사람이 없어요. 처음으로 남겨 보세요</p>
           )}
 
           {/* 내 방문: 단골이면 별, 오래 안 갔으면 다시 가 보자고 */}
@@ -235,7 +235,7 @@ export default function Home() {
             type="button"
           >
             <span className="material-symbols-rounded text-[22px]">videocam</span>
-            여기에 5초 영상 남기기
+            여기에 5초 남기기
           </button>
         </div>
       ) : (

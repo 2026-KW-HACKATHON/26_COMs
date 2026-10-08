@@ -9,7 +9,7 @@ interface HeaderProps {
 }
 
 const SUB_TITLES: Record<string, string> = {
-  leave: '영상 남기기',
+  leave: '5초 남기기',
   video: '영상',
   login: '로그인',
   friends: '친구',
@@ -44,8 +44,7 @@ export default function Header({ currentPath, goBack }: HeaderProps) {
                 <span className="material-symbols-rounded text-[22px] icon-fill">camera_alt</span>
               </div>
               <div className="min-w-0">
-                <p className="text-[11px] font-semibold tracking-[0.18em] uppercase text-gray-500">Memory Capsule</p>
-                <span className="block text-[19px] font-extrabold tracking-tight text-on-surface leading-none">기억캡슐</span>
+                <span className="block text-[19px] font-extrabold tracking-tight text-on-surface leading-none">왔다감</span>
               </div>
             </div>
             <div className={`flex items-center gap-2 ${showBell ? '' : 'mr-1'}`}>

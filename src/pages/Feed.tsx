@@ -2,10 +2,12 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import Avatar from '../components/Avatar';
 import FeedVideo from '../components/FeedVideo';
+import LikeButton from '../components/LikeButton';
 import RecallCard from '../components/RecallCard';
 import { CATEGORY_EMOJI, getPlace, placeSubtitle } from '../data/places';
 import { useAuth } from '../hooks/useAuth';
 import { useFriendships } from '../hooks/useFriendships';
+import { useLike } from '../hooks/useLike';
 import { usePlaceRanking } from '../hooks/usePlaceRanking';
 import { SOCIAL_ENABLED, listFeed } from '../lib/capsuleStore';
 import { formatRelative } from '../lib/format';
@@ -150,6 +152,7 @@ interface FeedItemProps {
 
 function FeedItem({ capsule: c, me, stat, onOpen, onMap }: FeedItemProps) {
   const place = getPlace(c.placeId);
+  const like = useLike(c);
   const mine = !SOCIAL_ENABLED || c.userId === me;
   const name = mine ? '나' : (c.author?.displayName ?? '친구');
   const others = c.tags.filter((t) => t.id !== c.userId);
@@ -180,22 +183,17 @@ function FeedItem({ capsule: c, me, stat, onOpen, onMap }: FeedItemProps) {
                 동네 공개
               </>
             )}
-            {c.verified && (
-              <>
-                <span aria-hidden>·</span>
-                <span className="flex items-center gap-0.5 font-semibold text-primary">
-                  <span className="material-symbols-rounded icon-fill text-[14px]">verified</span>
-                  현장 인증
-                </span>
-              </>
-            )}
           </span>
         </span>
         <span className="material-symbols-rounded text-[20px] text-gray-400">more_horiz</span>
       </button>
 
       <div className="px-4">
-        <FeedVideo capsule={c} className="w-full aspect-[4/5] rounded-[24px] overflow-hidden" />
+        <FeedVideo capsule={c} onLike={like.like} className="w-full aspect-[4/5] rounded-[24px] overflow-hidden" />
+      </div>
+
+      <div className="flex items-center px-4 -my-1.5">
+        <LikeButton like={like} />
       </div>
 
       <button onClick={onMap} className="flex items-center gap-3 px-4 pb-4 pt-1 text-left pressable" type="button">

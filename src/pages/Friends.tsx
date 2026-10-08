@@ -65,7 +65,17 @@ export default function Friends() {
       reload();
     } catch (err) {
       console.error(err);
-      setError('처리하지 못했어요. 잠시 후 다시 시도해 주세요.');
+      const what =
+        action === 'request'
+          ? person.status === 'incoming'
+            ? '친구 요청을 수락하지'
+            : '친구 요청을 보내지'
+          : person.status === 'friend'
+            ? '친구를 끊지'
+            : person.status === 'incoming'
+              ? '요청을 거절하지'
+              : '요청을 취소하지';
+      setError(`${what} 못했어요. 잠시 후 다시 시도해 주세요.`);
     } finally {
       setBusyId(null);
     }

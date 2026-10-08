@@ -1,4 +1,4 @@
--- 기억캡슐 서버 저장소 설정
+-- 왔다감 서버 저장소 설정
 -- Supabase 대시보드 > SQL Editor에 전체를 붙여넣고 Run. 여러 번 실행해도 된다.
 -- 로그인(Google·카카오) 설정은 README의 "로그인 설정"을 따른다. 익명 로그인은 쓰지 않는다(켜져 있어도 차단됨).
 -- 정책 테스트: npm run test:db
@@ -8,6 +8,7 @@
 --         (태그된 친구는 동네 공개여도 원래 볼 수 있던 사람에게만 보인다).
 --   프로필: 나와 관계가 있는 사람(친구·요청 주고받은 사람·같은 영상에 함께 나온 사람)만 조회.
 --           모르는 사람은 search_profiles로 20명까지만 검색된다(전체 목록을 긁어갈 수 없음).
+--   하트: 영상을 볼 수 있는 사람이 누른다. 다른 사람에게는 개수(capsules.like_count)만 보이고 누가 눌렀는지는 본인만 안다.
 --   조르기: 같은 영상에 함께 나온 친구끼리만 보낼 수 있고, 보낸 사람·받은 사람만 본다.
 --   동네 랭킹: 가게별 방문 수(숫자)만 누구나 본다. 누가 남겼는지·영상은 공개하지 않는다 (place_ranking).
 
@@ -78,6 +79,39 @@ create table if not exists public.capsule_tags (
   primary key (capsule_id, user_id)
 );
 create index if not exists capsule_tags_user_idx on public.capsule_tags (user_id);
+
+-- 4a) 하트: 한 사람이 한 영상에 한 번. 개수는 아래 트리거가 capsules.like_count에 센다
+--     (하트 행은 본인 것만 보여서 다른 사람 하트를 세려면 서버가 대신 세어 둬야 한다)
+create table if not exists public.capsule_likes (
+  capsule_id uuid not null references public.capsules (id) on delete cascade,
+  user_id uuid not null default auth.uid() references public.profiles (id) on delete cascade,
+  created_at timestamptz not null default now(),
+  primary key (capsule_id, user_id)
+);
+create index if not exists capsule_likes_user_idx on public.capsule_likes (user_id);
+alter table public.capsules add column if not exists like_count integer not null default 0;
+
+create or replace function public.count_capsule_like()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  if tg_op = 'INSERT' then
+    update public.capsules set like_count = like_count + 1 where id = new.capsule_id;
+  else
+    -- 영상을 지울 때(cascade)는 영상 행이 이미 없어서 아무것도 바뀌지 않는다
+    update public.capsules set like_count = greatest(like_count - 1, 0) where id = old.capsule_id;
+  end if;
+  return null;
+end;
+$$;
+
+drop trigger if exists capsule_likes_count on public.capsule_likes;
+create trigger capsule_likes_count
+  after insert or delete on public.capsule_likes
+  for each row execute function public.count_capsule_like();
 
 -- 4b) 조르기: 같은 영상에 함께 나온(같이 간) 친구에게 "여기 또 가자" 알림. nudge_friend()로만 만든다
 create table if not exists public.nudges (
@@ -227,7 +261,7 @@ as $$
 $$;
 
 -- 7) 테이블 권한: 필요한 것만 (TRUNCATE 등 Supabase 기본 권한은 회수). 행 단위 허용은 아래 정책이 정한다
-revoke all on public.profiles, public.friendships, public.capsules, public.capsule_tags, public.nudges, public.push_subscriptions
+revoke all on public.profiles, public.friendships, public.capsules, public.capsule_tags, public.capsule_likes, public.nudges, public.push_subscriptions
   from anon, authenticated;
 grant select on public.profiles to authenticated;
 grant update (username, display_name) on public.profiles to authenticated;
@@ -239,13 +273,16 @@ grant insert (id, user_id, place_id, place_name, lat, lng, video_path, thumbnail
   on public.capsules to authenticated;
 grant update (visibility) on public.capsules to authenticated;
 grant select, insert, delete on public.capsule_tags to authenticated;
+-- 하트는 영상 id만 보낸다 (누른 사람·시각은 서버가 정하고, 개수는 트리거만 바꾼다)
+grant select, delete on public.capsule_likes to authenticated;
+grant insert (capsule_id) on public.capsule_likes to authenticated;
 grant select on public.nudges to authenticated;
 grant update (read_at) on public.nudges to authenticated;
 grant select, delete on public.push_subscriptions to authenticated;
 -- 알림 서버(api/push.ts·api/recall.ts)가 secret key(service_role)로 읽고 쓴다. 최근 Supabase 프로젝트는 SQL로 만든 테이블에
 -- 이 권한을 자동으로 주지 않아서 직접 준다 (service_role은 행 보안 정책을 건너뛰는 관리자 키라 앱에는 들어가지 않는다)
 grant select, insert, update, delete
-  on public.profiles, public.friendships, public.capsules, public.capsule_tags, public.nudges, public.push_subscriptions
+  on public.profiles, public.friendships, public.capsules, public.capsule_tags, public.capsule_likes, public.nudges, public.push_subscriptions
   to service_role;
 
 -- 8) 행 보안 정책
@@ -253,6 +290,7 @@ alter table public.profiles enable row level security;
 alter table public.friendships enable row level security;
 alter table public.capsules enable row level security;
 alter table public.capsule_tags enable row level security;
+alter table public.capsule_likes enable row level security;
 alter table public.nudges enable row level security;
 alter table public.push_subscriptions enable row level security;
 
@@ -261,7 +299,7 @@ do $$
 declare
   t text;
 begin
-  foreach t in array array['profiles', 'friendships', 'capsules', 'capsule_tags', 'nudges', 'push_subscriptions'] loop
+  foreach t in array array['profiles', 'friendships', 'capsules', 'capsule_tags', 'capsule_likes', 'nudges', 'push_subscriptions'] loop
     execute format('drop policy if exists %I on public.%I', t || ': 익명 계정 차단', t);
     execute format(
       'create policy %I on public.%I as restrictive for all to authenticated
@@ -354,6 +392,21 @@ create policy "capsule_tags: 작성자·태그된 본인 삭제" on public.capsu
     user_id = (select auth.uid())
     or exists (select 1 from public.capsules c where c.id = capsule_id and c.user_id = (select auth.uid()))
   );
+
+-- 하트: 본인 하트만 조회·취소, 누르기는 본인 이름으로 내가 볼 수 있는 영상에만 (영상 조회 정책을 그대로 따른다)
+drop policy if exists "capsule_likes: 본인 조회" on public.capsule_likes;
+create policy "capsule_likes: 본인 조회" on public.capsule_likes
+  for select to authenticated using (user_id = (select auth.uid()));
+drop policy if exists "capsule_likes: 볼 수 있는 영상에 누르기" on public.capsule_likes;
+create policy "capsule_likes: 볼 수 있는 영상에 누르기" on public.capsule_likes
+  for insert to authenticated
+  with check (
+    user_id = (select auth.uid())
+    and exists (select 1 from public.capsules c where c.id = capsule_id)
+  );
+drop policy if exists "capsule_likes: 본인 취소" on public.capsule_likes;
+create policy "capsule_likes: 본인 취소" on public.capsule_likes
+  for delete to authenticated using (user_id = (select auth.uid()));
 
 -- 조르기: 보낸 사람·받은 사람만 조회, 읽음 표시는 받은 사람만. 만들기는 nudge_friend()로만
 drop policy if exists "nudges: 당사자 조회" on public.nudges;
@@ -593,6 +646,7 @@ as $$
 $$;
 
 revoke execute on function public.handle_new_user() from public, anon, authenticated;
+revoke execute on function public.count_capsule_like() from public, anon, authenticated;
 revoke execute on function public.is_friend(uuid) from public, anon;
 revoke execute on function public.my_friend_ids() from public, anon;
 revoke execute on function public.my_tagged_capsule_ids() from public, anon;
