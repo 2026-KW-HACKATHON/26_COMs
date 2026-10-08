@@ -113,7 +113,7 @@ export default function MyLog() {
           <p className="mt-2 text-body-md">{tab === 'mine' ? '아직 남긴 영상이 없어요.' : '친구가 나를 태그한 영상이 여기에 모여요.'}</p>
           {tab === 'mine' && (
             <button onClick={() => navigate('/leave')} className="mt-5 h-12 px-6 rounded-xl bg-primary text-on-primary text-label-lg font-bold pressable" type="button">
-              첫 영상 남기기
+              첫 5초 남기기
             </button>
           )}
         </div>

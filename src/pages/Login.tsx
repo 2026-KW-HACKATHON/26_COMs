@@ -90,9 +90,12 @@ export default function Login() {
     <div className="flex flex-col items-center w-full pt-10 pb-6 gap-8">
       <div className="flex flex-col items-center text-center gap-3">
         <img src="/pwa-192x192.png" alt="" className="w-20 h-20 rounded-[22px]" />
-        <h2 className="text-headline-md text-on-surface">동네의 5초를 함께 남겨요</h2>
+        <div className="flex flex-col items-center gap-1">
+          <h2 className="text-headline-lg text-on-surface">왔다감</h2>
+          <p className="text-label-lg font-bold text-primary">동네 가게에 남기는 5초</p>
+        </div>
         <p className="text-body-md text-on-surface-variant leading-relaxed">
-          로그인하면 영상이 내 계정에 저장되고,
+          로그인하면 가게에서 찍은 5초가 내 지도에 쌓이고,
           <br />
           친구를 태그하거나 서로의 지도를 볼 수 있어요.
         </p>
