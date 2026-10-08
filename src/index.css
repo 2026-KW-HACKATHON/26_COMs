@@ -216,6 +216,19 @@
   background: theme('colors.gray.900');
   color: #fff;
 }
+/* 내 위치 (지도 앱들이 흔히 쓰는 파란 점이라 강조색과 따로 둔다) */
+.map-me {
+  position: absolute;
+  left: -8px;
+  top: -8px;
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  background: #3182f6;
+  border: 3px solid #fff;
+  box-shadow: 0 0 0 7px rgba(49, 130, 246, 0.18), 0 1px 4px rgba(0, 0, 0, 0.25);
+  pointer-events: none;
+}
 /* 줌 단계별로 보이는 이름 (PlaceMap이 컨테이너에 map-z-* 클래스를 붙인다) */
 .map-z-low .map-label-place,
 .map-z-low .map-label-road:not(.map-label-major),

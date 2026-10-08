@@ -12,14 +12,22 @@ export interface Fix {
   accuracy: number;
 }
 
+interface FixOptions {
+  timeoutMs?: number;
+  /** GPS까지 켜서 정확하게 (느리다). 지도 첫 화면처럼 대략이면 되는 곳은 끈다 */
+  highAccuracy?: boolean;
+  /** 이만큼 지난 위치까지는 새로 잡지 않고 쓴다 */
+  maxAgeMs?: number;
+}
+
 /** 지금 기기 위치. 권한을 거절했거나 위치를 못 잡으면 null */
-export function getFix(timeoutMs = 10_000): Promise<Fix | null> {
+export function getFix({ timeoutMs = 10_000, highAccuracy = true, maxAgeMs = 30_000 }: FixOptions = {}): Promise<Fix | null> {
   if (!('geolocation' in navigator)) return Promise.resolve(null);
   return new Promise((resolve) =>
     navigator.geolocation.getCurrentPosition(
       (p) => resolve({ lat: p.coords.latitude, lng: p.coords.longitude, accuracy: p.coords.accuracy }),
       () => resolve(null),
-      { enableHighAccuracy: true, timeout: timeoutMs, maximumAge: 30_000 },
+      { enableHighAccuracy: highAccuracy, timeout: timeoutMs, maximumAge: maxAgeMs },
     ),
   );
 }

@@ -69,7 +69,10 @@ export default function Privacy() {
             ['Google Fonts', '아이콘 글꼴 내려받기 (접속 정보만 전달)'],
           ]}
         />
-        <p>지도는 OpenStreetMap 데이터를 앱 안에 넣어 그려서, 지도를 볼 때 외부로 위치를 보내지 않습니다.</p>
+        <p>
+          지도는 OpenStreetMap 데이터를 앱 안에 넣어 그려서, 지도를 볼 때 외부로 위치를 보내지 않습니다. 지도를 열면 기기 위치로 내 주변을 확대해서 보여 주는데, 이 위치도
+          기기 안에서만 쓰고 서버에 보내거나 저장하지 않습니다.
+        </p>
       </Section>
 
       <Section title="6. 기기에 저장하는 것">
