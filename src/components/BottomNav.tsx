@@ -55,11 +55,11 @@ export default function BottomNav({ currentPath }: BottomNavProps) {
       <div className="max-w-[430px] mx-auto h-16 grid grid-cols-5">
         {TABS_LEFT.map(tab)}
 
-        <Link to="/leave" className="flex flex-col items-center justify-center gap-0.5 text-[11px] font-semibold text-primary" aria-current={section === 'leave' ? 'page' : undefined}>
-          <span className="w-12 h-8 rounded-full bg-primary text-on-primary flex items-center justify-center pressable">
-            <span className="material-symbols-rounded text-[24px]">add</span>
+        {/* 가운데는 글자 없이 동그란 + 버튼 (화면 읽기 프로그램에는 이름을 알려 준다) */}
+        <Link to="/leave" className="flex items-center justify-center" aria-label="5초 남기기" aria-current={section === 'leave' ? 'page' : undefined}>
+          <span className="w-12 h-12 rounded-full bg-primary text-on-primary flex items-center justify-center pressable">
+            <span className="material-symbols-rounded text-[30px]">add</span>
           </span>
-          남기기
         </Link>
 
         {TABS_RIGHT.map(tab)}
