@@ -66,6 +66,10 @@
   .nudge-wiggle {
     animation: nudge-wiggle 0.5s ease-in-out;
   }
+  /* 홈 지도의 친구 칩: 펼치면 친구 목록이 왼쪽에서 밀려 나온다 */
+  .accordion-in {
+    animation: accordion-in 0.22s ease-out both;
+  }
   /* 하트: 누르면 톡 커졌다 돌아온다. 영상을 두 번 톡 치면 가운데 큰 하트가 커졌다 사라진다 */
   .like-pop {
     animation: like-pop 0.35s cubic-bezier(0.2, 0.9, 0.3, 1.3);
@@ -76,6 +80,7 @@
   @media (prefers-reduced-motion: reduce) {
     .nudge-drop,
     .nudge-wiggle,
+    .accordion-in,
     .like-pop {
       animation: none;
     }
@@ -83,6 +88,17 @@
     .like-burst {
       animation: like-fade 0.8s ease-out both;
     }
+  }
+}
+
+@keyframes accordion-in {
+  from {
+    transform: translateX(-12px);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
   }
 }
 

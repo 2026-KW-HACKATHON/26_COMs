@@ -151,7 +151,7 @@ function GroupBoard({ group, me }: { group: Group; me: string }) {
       </section>
 
       <div className="relative h-[55vh] min-h-[300px] max-h-[520px] rounded-3xl overflow-hidden bg-gray-100">
-        <PlaceMap selectedId={selectedId} onSelect={(p) => setSelectedId(p.id)} videoCount={videoCount} owners={owners} fitPlaceIds={landIds} className="absolute inset-0" />
+        <PlaceMap selectedId={selectedId} onSelect={(p) => setSelectedId(p.id)} videoCount={videoCount} owners={owners} fitPlaceIds={landIds} showMyLocation={false} className="absolute inset-0" />
 
         {focus && (
           <button

@@ -28,6 +28,8 @@ interface PlaceMapProps {
   owners?: Map<string, PlaceOwner>;
   /** 이 가게들이 모두 보이게 맞춘다 (그룹 지도: 그룹원들의 땅). 목록이 바뀔 때마다 다시 맞추고, 주면 내 위치로 옮기지 않는다 */
   fitPlaceIds?: string[];
+  /** 내 위치(파란 점)를 보여 주고 동네 안이면 그곳으로 옮긴다. 기본은 켬 (그룹 지도는 끔) */
+  showMyLocation?: boolean;
   className?: string;
 }
 
@@ -71,15 +73,24 @@ interface GlowOptions extends L.PathOptions {
   gradient?: readonly [string, string];
 }
 
-/** 테두리는 얇게(고해상도 화면에서 1픽셀 남짓), 색은 단계별 그라데이션(땅 주인이 있으면 주인 색)으로 채운다 */
+/**
+ * 건물 테두리 두께(px): 가게 없는 건물 < 가게(누를 수 있음) < 다녀간 가게 < 고른 가게.
+ * 가게 없는 건물은 바탕 레이어에서 BUILDING_STROKE로 그린다
+ */
+const BUILDING_STROKE = 0.5;
+const STROKE = { store: 1, visited: 2.2, selected: 3 };
+
+/** 가게는 진한 회색 면에 진한 테두리, 다녀간 가게는 단계별 그라데이션(땅 주인이 있으면 주인 색)에 두꺼운 테두리 */
 function storeStyle(count: number, selected: boolean, owner?: TerritoryColor): GlowOptions {
   const heat = MAP_COLORS.heat[heatLevel(count)];
   const base: GlowOptions = owner
-    ? { fillColor: owner.main, gradient: owner.fill, fillOpacity: 1, color: owner.main, opacity: 0.6, weight: 0.6 }
+    ? { fillColor: owner.main, gradient: owner.fill, fillOpacity: 1, color: owner.stroke, opacity: 1, weight: STROKE.visited }
     : count
-      ? { fillColor: heat[1], gradient: heat, fillOpacity: 1, color: MAP_COLORS.heatStroke, opacity: 0.3, weight: 0.6 }
-      : { fillColor: MAP_COLORS.store, fillOpacity: 1, color: MAP_COLORS.storeStroke, opacity: 1, weight: 0.6 };
-  return selected ? { ...base, color: MAP_COLORS.selected, opacity: 1, weight: 2, ...(count || owner ? {} : { fillColor: '#B0B8C1' }) } : base;
+      ? { fillColor: heat[1], gradient: heat, fillOpacity: 1, color: MAP_COLORS.heatStroke, opacity: 0.9, weight: STROKE.visited }
+      : { fillColor: MAP_COLORS.store, fillOpacity: 1, color: MAP_COLORS.storeStroke, opacity: 1, weight: STROKE.store };
+  return selected
+    ? { ...base, color: MAP_COLORS.selected, opacity: 1, weight: STROKE.selected, ...(count || owner ? {} : { fillColor: MAP_COLORS.storeSelected }) }
+    : base;
 }
 
 function glowStyle(count: number, owner?: TerritoryColor): GlowOptions {
@@ -154,7 +165,7 @@ function summaryName(places: Place[]) {
   return places.length > 1 ? `${places[0].name} 외 ${places.length - 1}` : places[0].name;
 }
 
-export default function PlaceMap({ selectedId, onSelect, videoCount, marks, owners, fitPlaceIds, className = '' }: PlaceMapProps) {
+export default function PlaceMap({ selectedId, onSelect, videoCount, marks, owners, fitPlaceIds, showMyLocation = true, className = '' }: PlaceMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const rendererRef = useRef<L.Canvas | null>(null);
@@ -162,6 +173,8 @@ export default function PlaceMap({ selectedId, onSelect, videoCount, marks, owne
   const onSelectRef = useRef(onSelect);
   const selectedIdRef = useRef(selectedId);
   const fitsPlacesRef = useRef(fitPlaceIds !== undefined);
+  // 바탕 지도는 처음 한 번만 그려서 처음 값을 쓴다
+  const showMyLocationRef = useRef(showMyLocation);
   const fittedKeyRef = useRef('');
 
   useEffect(() => {
@@ -208,7 +221,7 @@ export default function PlaceMap({ selectedId, onSelect, videoCount, marks, owne
     // 가게가 없는 건물은 전부 한 레이어 (가게가 있는 건물은 아래 effect에서 따로)
     L.polygon(
       data.buildings.filter((b) => !b.places.length).map((b) => [b.ring]),
-      { renderer, interactive: false, fillColor: MAP_COLORS.building, fillOpacity: 1, color: MAP_COLORS.buildingStroke, weight: 0.5, fillRule: 'nonzero' },
+      { renderer, interactive: false, fillColor: MAP_COLORS.building, fillOpacity: 1, color: MAP_COLORS.buildingStroke, weight: BUILDING_STROKE, fillRule: 'nonzero' },
     ).addTo(map);
     L.polygon(data.boundary, { renderer, interactive: false, fill: false, color: MAP_COLORS.boundary, weight: 1.5 }).addTo(map);
 
@@ -246,7 +259,7 @@ export default function PlaceMap({ selectedId, onSelect, videoCount, marks, owne
     resize.observe(el);
 
     // 내 위치가 동네 안이면 그곳을 가게 이름이 보이는 만큼 확대해서 보여 준다 (위치는 기기 안에서만 쓴다).
-    // 위치를 잡기 전에 지도를 움직였거나 가게를 골랐으면 그대로 둔다
+    // 위치를 잡기 전에 지도를 움직였거나 가게를 골랐으면 그대로 둔다. 내 위치를 끈 지도(그룹 지도)는 위치를 묻지도 않는다
     let alive = true;
     let touched = false;
     const touch = () => {
@@ -256,7 +269,7 @@ export default function PlaceMap({ selectedId, onSelect, videoCount, marks, owne
     el.addEventListener('wheel', touch, { passive: true });
     el.addEventListener('touchstart', touch, { passive: true });
     const askedAt = performance.now();
-    void getFix().then((fix) => {
+    void (showMyLocationRef.current ? getFix() : Promise.resolve(null)).then((fix) => {
       if (!alive || !fix) return;
       const here = L.latLng(fix.lat, fix.lng);
       if (!view.contains(here)) return;

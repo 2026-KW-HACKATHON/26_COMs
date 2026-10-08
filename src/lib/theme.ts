@@ -12,12 +12,14 @@ export const MAP_COLORS = {
   rail: '#C2C8D0',
   water: '#D6E6F5',
   green: '#E4EEE6',
-  /** 가게가 없는 건물 */
-  building: '#E1E4E9',
-  buildingStroke: '#D3D8DE',
-  /** 가게가 있는 건물 */
-  store: '#D0D5DC',
-  storeStroke: '#B3BAC4',
+  /** 가게가 없는 건물 (누를 수 없음): 바탕에 묻히게 옅은 회색 */
+  building: '#E6E8EC',
+  buildingStroke: '#DCDFE4',
+  /** 가게가 있는 건물 (누를 수 있음): 옅은 건물·흰 길과 확실히 구별되게 진한 회색 면 + 더 진한 테두리 */
+  store: '#A7B0BB',
+  storeStroke: '#4E5968',
+  /** 고른 가게 (아직 안 간 곳) */
+  storeSelected: '#8B95A1',
   /**
    * 영상이 있는 건물: 영상(방문) 수에 따라 5단계. 단계마다 [왼쪽 위, 오른쪽 아래] 두 색의 그라데이션으로 칠한다
    * (왼쪽 위는 하늘색으로 밝게, 오른쪽 아래는 파랑으로 진하게 → 빛을 받은 듯 입체적으로)
@@ -40,16 +42,18 @@ export interface TerritoryColor {
   main: string;
   /** 왼쪽 위(연하게) → 오른쪽 아래(진하게) 그라데이션 */
   fill: readonly [string, string];
+  /** 다녀간 가게의 두꺼운 테두리 (주인 색보다 진하게) */
+  stroke: string;
   /** 아래로 번지는 빛 (rgb만) */
   glow: string;
 }
 
 const rgbOf = (hex: string) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+const toHex = (rgb: number[]) => `#${rgb.map((c) => Math.round(c).toString(16).padStart(2, '0')).join('')}`;
 /** 흰색과 섞어 연하게 */
-const tint = (hex: string, white: number) =>
-  `#${rgbOf(hex)
-    .map((c) => Math.round(c + (255 - c) * white).toString(16).padStart(2, '0'))
-    .join('')}`;
+const tint = (hex: string, white: number) => toHex(rgbOf(hex).map((c) => c + (255 - c) * white));
+/** 검은색과 섞어 진하게 */
+const shade = (hex: string, black: number) => toHex(rgbOf(hex).map((c) => c * (1 - black)));
 
 /**
  * 그룹원 색 (schema.sql의 group_members.color 번호 순서, 8개라 그룹은 8명까지).
@@ -57,6 +61,6 @@ const tint = (hex: string, white: number) =>
  * 지도 말풍선에 땅 주인 이름 첫 글자를 함께 붙여 색만으로 구분하지 않게 한다
  */
 export const GROUP_COLORS: TerritoryColor[] = ['#2A78D6', '#EB6834', '#1BAF7A', '#EDA100', '#E87BA4', '#008300', '#4A3AA7', '#E34948'].map(
-  (main) => ({ main, fill: [tint(main, 0.45), main], glow: rgbOf(main).join(', ') }),
+  (main) => ({ main, fill: [tint(main, 0.45), main], stroke: shade(main, 0.3), glow: rgbOf(main).join(', ') }),
 );
 export const groupColor = (index: number) => GROUP_COLORS[index] ?? GROUP_COLORS[0];
