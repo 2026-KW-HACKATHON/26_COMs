@@ -1,5 +1,5 @@
 import type { Capsule } from '../types/capsule';
-import { kstDay } from './ranking';
+import { kstDay } from './placeStats';
 
 /** 회상: 이만큼 전 오늘 남긴 영상을 다시 보여 준다 (오래된 추억이 먼저). api/recall.ts의 폰 알림과 같은 목록 */
 export const ANNIVERSARIES = [

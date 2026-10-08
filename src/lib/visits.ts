@@ -1,8 +1,8 @@
 import { PLACES, getPlace } from '../data/places';
 import type { Capsule } from '../types/capsule';
-import { kstDay } from './ranking';
+import { kstDay } from './placeStats';
 
-/** 다른 날 이만큼 가면 단골 (동네 랭킹의 단골과 같은 기준) */
+/** 다른 날 이만큼 가면 단골 (동네 지도의 단골과 같은 기준) */
 export const REGULAR_DAYS = 2;
 /** 마지막으로 간 지 이만큼 지나면 "오랜만이에요" */
 export const DUE_DAYS = 30;

@@ -10,7 +10,9 @@
 --           모르는 사람은 search_profiles로 20명까지만 검색된다(전체 목록을 긁어갈 수 없음).
 --   하트: 영상을 볼 수 있는 사람이 누른다. 다른 사람에게는 개수(capsules.like_count)만 보이고 누가 눌렀는지는 본인만 안다.
 --   조르기: 같은 영상에 함께 나온 친구끼리만 보낼 수 있고, 보낸 사람·받은 사람만 본다.
---   동네 랭킹: 가게별 방문 수(숫자)만 누구나 본다. 누가 남겼는지·영상은 공개하지 않는다 (place_ranking).
+--   동네 지도: 가게별 방문 수(숫자)만 누구나 본다. 누가 남겼는지·영상은 공개하지 않는다 (place_ranking).
+--   그룹: 친구를 초대해 만든다. 그룹원끼리는 서로의 가게별 방문 수(숫자)를 본다 (group_map). 영상·날짜는 공개하지 않는다.
+--         그룹원과 초대받은 사람끼리는 프로필이 보인다.
 
 -- 1) 프로필: 로그인하면 자동으로 만들어진다
 create table if not exists public.profiles (
@@ -143,6 +145,29 @@ create table if not exists public.push_subscriptions (
 );
 create index if not exists push_subscriptions_user_idx on public.push_subscriptions (user_id);
 
+-- 4d) 그룹: 친구를 초대해서 만드는 모임. 그룹 지도에는 그룹원 모두의 가게 방문이 모이고, 가게마다 가장 많이 간
+--     그룹원의 색으로 칠해진다(group_map). 만들기·초대·수락·나가기는 아래 RPC로만
+create table if not exists public.groups (
+  id uuid primary key default gen_random_uuid(),
+  name text not null check (char_length(name) between 1 and 20 and name = btrim(name)),
+  created_by uuid references public.profiles (id) on delete set null,
+  created_at timestamptz not null default now()
+);
+
+-- 그룹원(member)과 초대받은 사람(invited). 색은 그룹 안에서 겹치지 않는 번호(0~7, 앱의 GROUP_COLORS 순서)라서
+-- 한 그룹은 초대 중인 사람을 포함해 8명까지
+create table if not exists public.group_members (
+  group_id uuid not null references public.groups (id) on delete cascade,
+  user_id uuid not null references public.profiles (id) on delete cascade,
+  status text not null default 'invited' check (status in ('invited', 'member')),
+  color smallint not null check (color between 0 and 7),
+  invited_by uuid references public.profiles (id) on delete set null,
+  created_at timestamptz not null default now(),
+  primary key (group_id, user_id),
+  unique (group_id, color)
+);
+create index if not exists group_members_user_idx on public.group_members (user_id);
+
 -- 5) 새 로그인 사용자의 프로필 생성. 아이디는 임시로 "user_<무작위>"를 주고, 앱이 첫 로그인 때 직접 정하게 한다.
 --    이메일 앞부분을 아이디·이름으로 쓰면 검색으로 남의 이메일 주소를 알아낼 수 있어서 이메일은 쓰지 않는다.
 --    여기서 오류가 나면 가입(=로그인) 자체가 실패하므로 아이디가 겹쳐도 절대 실패하지 않게 한다.
@@ -257,17 +282,35 @@ as $$
           or c.id in (select public.my_tagged_capsule_ids()))
     )
     -- 동네 공개 영상의 작성자 (태그된 사람은 공개하지 않는다)
-    or exists (select 1 from public.capsules c where c.user_id = target and c.visibility = 'town');
+    or exists (select 1 from public.capsules c where c.user_id = target and c.visibility = 'town')
+    -- 같은 그룹의 그룹원·초대받은 사람
+    or exists (
+      select 1 from public.group_members mine
+      join public.group_members theirs on theirs.group_id = mine.group_id
+      where mine.user_id = auth.uid() and theirs.user_id = target
+    );
+$$;
+
+-- 내가 들어가 있거나 초대받은 그룹 id. 그룹 정책이 group_members를 다시 읽으며 무한 반복되지 않도록 security definer
+create or replace function public.my_group_ids()
+returns setof uuid
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select m.group_id from public.group_members m where m.user_id = auth.uid();
 $$;
 
 -- 7) 테이블 권한: 필요한 것만 (TRUNCATE 등 Supabase 기본 권한은 회수). 행 단위 허용은 아래 정책이 정한다
-revoke all on public.profiles, public.friendships, public.capsules, public.capsule_tags, public.capsule_likes, public.nudges, public.push_subscriptions
+revoke all on public.profiles, public.friendships, public.capsules, public.capsule_tags, public.capsule_likes, public.nudges, public.push_subscriptions,
+  public.groups, public.group_members
   from anon, authenticated;
 grant select on public.profiles to authenticated;
 grant update (username, display_name) on public.profiles to authenticated;
 grant select, insert, delete on public.friendships to authenticated;
 grant update (status) on public.friendships to authenticated;
--- 작성 시각(created_at)은 서버가 정한다. 날짜를 지어내 동네 랭킹의 방문 수를 부풀릴 수 없게
+-- 작성 시각(created_at)은 서버가 정한다. 날짜를 지어내 동네 지도·그룹 지도의 방문 수를 부풀릴 수 없게
 grant select, delete on public.capsules to authenticated;
 grant insert (id, user_id, place_id, place_name, lat, lng, video_path, thumbnail_path, clip_start, clip_duration, visibility, verified)
   on public.capsules to authenticated;
@@ -279,10 +322,13 @@ grant insert (capsule_id) on public.capsule_likes to authenticated;
 grant select on public.nudges to authenticated;
 grant update (read_at) on public.nudges to authenticated;
 grant select, delete on public.push_subscriptions to authenticated;
+-- 그룹은 읽기만 (만들기·초대·수락·나가기는 RPC가 친구 관계·인원·색을 확인하며 한다)
+grant select on public.groups, public.group_members to authenticated;
 -- 알림 서버(api/push.ts·api/recall.ts)가 secret key(service_role)로 읽고 쓴다. 최근 Supabase 프로젝트는 SQL로 만든 테이블에
 -- 이 권한을 자동으로 주지 않아서 직접 준다 (service_role은 행 보안 정책을 건너뛰는 관리자 키라 앱에는 들어가지 않는다)
 grant select, insert, update, delete
-  on public.profiles, public.friendships, public.capsules, public.capsule_tags, public.capsule_likes, public.nudges, public.push_subscriptions
+  on public.profiles, public.friendships, public.capsules, public.capsule_tags, public.capsule_likes, public.nudges, public.push_subscriptions,
+    public.groups, public.group_members
   to service_role;
 
 -- 8) 행 보안 정책
@@ -293,13 +339,15 @@ alter table public.capsule_tags enable row level security;
 alter table public.capsule_likes enable row level security;
 alter table public.nudges enable row level security;
 alter table public.push_subscriptions enable row level security;
+alter table public.groups enable row level security;
+alter table public.group_members enable row level security;
 
 -- 익명 로그인 계정은 어떤 데이터에도 접근할 수 없다 (대시보드에서 실수로 켜도 안전하게)
 do $$
 declare
   t text;
 begin
-  foreach t in array array['profiles', 'friendships', 'capsules', 'capsule_tags', 'capsule_likes', 'nudges', 'push_subscriptions'] loop
+  foreach t in array array['profiles', 'friendships', 'capsules', 'capsule_tags', 'capsule_likes', 'nudges', 'push_subscriptions', 'groups', 'group_members'] loop
     execute format('drop policy if exists %I on public.%I', t || ': 익명 계정 차단', t);
     execute format(
       'create policy %I on public.%I as restrictive for all to authenticated
@@ -425,6 +473,14 @@ create policy "push_subscriptions: 본인 조회" on public.push_subscriptions
 drop policy if exists "push_subscriptions: 본인 삭제" on public.push_subscriptions;
 create policy "push_subscriptions: 본인 삭제" on public.push_subscriptions
   for delete to authenticated using (user_id = (select auth.uid()));
+
+-- 그룹: 그룹원과 초대받은 사람이 그룹 이름과 그룹원 목록을 본다
+drop policy if exists "groups: 그룹원·초대받은 사람 조회" on public.groups;
+create policy "groups: 그룹원·초대받은 사람 조회" on public.groups
+  for select to authenticated using (id in (select public.my_group_ids()));
+drop policy if exists "group_members: 같은 그룹 조회" on public.group_members;
+create policy "group_members: 같은 그룹 조회" on public.group_members
+  for select to authenticated using (group_id in (select public.my_group_ids()));
 
 -- 이전 버전의 정책 함수 (위 정책이 더 이상 쓰지 않음)
 drop function if exists public.can_view_capsule(uuid, uuid);
@@ -593,7 +649,7 @@ begin
 end;
 $$;
 
--- 동네 랭킹: 가게별 방문 수. 누가 남겼는지·영상은 드러내지 않고 숫자만 돌려줘서 로그인하지 않아도 볼 수 있다.
+-- 동네 지도: 가게별 방문 수(방문 많은 순). 누가 남겼는지·영상은 드러내지 않고 숫자만 돌려줘서 로그인하지 않아도 볼 수 있다.
 --   방문 = 영상에 나온 사람(작성자·태그된 친구) × 날짜(한국 시간). 한 사람이 같은 날 여러 개 남겨도 한 번이라
 --          영상을 몰아서 올려도 순위가 오르지 않고, 다른 날 다시 오면 오른다.
 --   단골 = 다른 날 두 번 이상 온 사람.
@@ -645,6 +701,224 @@ as $$
   limit 200;
 $$;
 
+-- 9a) 그룹 RPC
+
+-- 친구들을 그룹에 초대한다 (create_group·invite_to_group 안에서만 쓴다). 내 친구가 아니거나 이미 그룹에 있는 사람은 건너뛰고,
+-- 그룹 색(8개)이 모자라면(초대 중 포함 8명) 실패한다. 초대한 사람 수를 돌려준다
+create or replace function public.add_group_invites(target_group uuid, targets uuid[])
+returns integer
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  me uuid := auth.uid();
+  target uuid;
+  next_color smallint;
+  added integer := 0;
+begin
+  -- 동시에 초대해도 색이 겹치지 않게 그룹마다 한 번에 하나씩
+  perform pg_advisory_xact_lock(hashtext('group:' || target_group::text));
+  foreach target in array coalesce(targets, '{}'::uuid[]) loop
+    continue when target is null
+      or target = me
+      or not public.is_friend(target)
+      or exists (select 1 from public.group_members m where m.group_id = target_group and m.user_id = target);
+    select min(c)::smallint into next_color
+    from generate_series(0, 7) c
+    where c not in (select m.color from public.group_members m where m.group_id = target_group);
+    if next_color is null then
+      raise exception 'group is full';
+    end if;
+    insert into public.group_members (group_id, user_id, status, color, invited_by)
+    values (target_group, target, 'invited', next_color, me);
+    added := added + 1;
+  end loop;
+  return added;
+end;
+$$;
+
+-- 그룹 만들기: 이름(1~20자)을 정하고 친구들을 초대한다. 만든 사람은 바로 그룹원(첫 번째 색). 만든 그룹 id를 돌려준다
+create or replace function public.create_group(group_name text, invitees uuid[] default '{}')
+returns uuid
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  me uuid := auth.uid();
+  new_id uuid;
+begin
+  if me is null or coalesce((auth.jwt() ->> 'is_anonymous')::boolean, false) then
+    raise exception 'not authenticated';
+  end if;
+  insert into public.groups (name, created_by) values (btrim(group_name), me) returning id into new_id;
+  insert into public.group_members (group_id, user_id, status, color) values (new_id, me, 'member', 0);
+  perform public.add_group_invites(new_id, invitees);
+  return new_id;
+end;
+$$;
+
+-- 그룹원이 자기 친구를 더 초대한다. 초대한 사람 수를 돌려준다
+create or replace function public.invite_to_group(target_group uuid, targets uuid[])
+returns integer
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  if auth.uid() is null or coalesce((auth.jwt() ->> 'is_anonymous')::boolean, false)
+    or not exists (
+      select 1 from public.group_members m
+      where m.group_id = target_group and m.user_id = auth.uid() and m.status = 'member'
+    )
+  then
+    raise exception 'not a group member' using errcode = '42501';
+  end if;
+  return public.add_group_invites(target_group, targets);
+end;
+$$;
+
+-- 받은 초대 수락 (이미 그룹원이면 그대로)
+create or replace function public.accept_group_invite(target_group uuid)
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  if auth.uid() is null or coalesce((auth.jwt() ->> 'is_anonymous')::boolean, false) then
+    raise exception 'not authenticated';
+  end if;
+  update public.group_members set status = 'member'
+  where group_id = target_group and user_id = auth.uid() and status = 'invited';
+  if not found and not exists (
+    select 1 from public.group_members m
+    where m.group_id = target_group and m.user_id = auth.uid() and m.status = 'member'
+  ) then
+    raise exception 'no invitation' using errcode = '42501';
+  end if;
+end;
+$$;
+
+-- 그룹 나가기·초대 거절. 그룹원이 아무도 남지 않으면 그룹(남은 초대 포함)도 지운다
+create or replace function public.leave_group(target_group uuid)
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  if auth.uid() is null then
+    raise exception 'not authenticated';
+  end if;
+  perform pg_advisory_xact_lock(hashtext('group:' || target_group::text));
+  delete from public.group_members where group_id = target_group and user_id = auth.uid();
+  if found and not exists (
+    select 1 from public.group_members m where m.group_id = target_group and m.status = 'member'
+  ) then
+    delete from public.groups where id = target_group;
+  end if;
+end;
+$$;
+
+-- 아직 수락하지 않은 초대 취소 (그룹원 누구나)
+create or replace function public.cancel_group_invite(target_group uuid, target uuid)
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  if auth.uid() is null or coalesce((auth.jwt() ->> 'is_anonymous')::boolean, false)
+    or not exists (
+      select 1 from public.group_members m
+      where m.group_id = target_group and m.user_id = auth.uid() and m.status = 'member'
+    )
+  then
+    raise exception 'not a group member' using errcode = '42501';
+  end if;
+  delete from public.group_members where group_id = target_group and user_id = target and status = 'invited';
+end;
+$$;
+
+-- 내 그룹(초대받은 그룹 포함)과 각 그룹의 그룹원·초대받은 사람 (한 줄에 한 사람, 최근 만든 그룹부터 색 번호 순).
+-- 호출한 사용자 권한으로 실행되어 위 정책이 그대로 적용된다
+create or replace function public.list_groups()
+returns table (
+  group_id uuid, name text, created_at timestamptz,
+  user_id uuid, username text, display_name text, avatar_url text,
+  status text, color smallint, invited_by uuid
+)
+language sql
+stable
+set search_path = ''
+as $$
+  select g.id, g.name, g.created_at, p.id, p.username, p.display_name, p.avatar_url, m.status, m.color, m.invited_by
+  from public.group_members m
+  join public.groups g on g.id = m.group_id
+  join public.profiles p on p.id = m.user_id
+  order by g.created_at desc, g.id, m.color;
+$$;
+
+-- 그룹 지도: 그룹원별 가게 방문 수와 가게마다 땅 주인(가장 많이 간 그룹원). 그룹원만 부를 수 있다 (초대받은 사람은 수락한 뒤에).
+--   방문 = 영상에 나온(작성자·태그) 날 수, 한국 날짜 기준 (place_ranking과 같은 기준). 영상의 공개 범위와 상관없이 세지만
+--          숫자만 돌려주고 영상·날짜·시각은 드러내지 않는다 (그룹에 들어갈 때 앱이 안내한다).
+--   같은 횟수면 그 횟수에 먼저 닿은 사람이 땅을 지킨다(뺏으려면 더 많이 가야 한다).
+--   그래도 같으면(같은 영상에 함께 나온 경우) 그 가게 영상을 더 많이 찍은 사람
+create or replace function public.group_map(target_group uuid)
+returns table (place_id text, user_id uuid, visits integer, owner boolean)
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  with members as (
+    select m.user_id as person
+    from public.group_members m
+    where m.group_id = target_group
+      and m.status = 'member'
+      and coalesce((auth.jwt() ->> 'is_anonymous')::boolean, false) = false
+      and exists (
+        select 1 from public.group_members mine
+        where mine.group_id = target_group and mine.user_id = auth.uid() and mine.status = 'member'
+      )
+  ),
+  seen as (
+    select c.place_id, c.user_id as person, c.created_at, true as filmed
+    from public.capsules c
+    where c.user_id in (select members.person from members)
+    union all
+    select c.place_id, t.user_id, c.created_at, false
+    from public.capsule_tags t
+    join public.capsules c on c.id = t.capsule_id
+    where t.user_id in (select members.person from members)
+  ),
+  by_day as (
+    select s.place_id, s.person, (s.created_at at time zone 'Asia/Seoul')::date as day,
+      min(s.created_at) as first_at, count(*) filter (where s.filmed) as filmed
+    from seen s
+    group by s.place_id, s.person, (s.created_at at time zone 'Asia/Seoul')::date
+  ),
+  by_person as (
+    select d.place_id, d.person, count(*)::integer as visits,
+      -- 지금 횟수에 닿은 시각 = 마지막으로 간 날의 첫 영상
+      max(d.first_at) as reached_at,
+      sum(d.filmed) as filmed
+    from by_day d
+    group by d.place_id, d.person
+  ),
+  ranked as (
+    select b.*, row_number() over (
+      partition by b.place_id order by b.visits desc, b.reached_at, b.filmed desc, b.person
+    ) as pos
+    from by_person b
+  )
+  select r.place_id, r.person, r.visits, r.pos = 1
+  from ranked r
+  order by r.place_id, r.pos;
+$$;
+
 revoke execute on function public.handle_new_user() from public, anon, authenticated;
 revoke execute on function public.count_capsule_like() from public, anon, authenticated;
 revoke execute on function public.is_friend(uuid) from public, anon;
@@ -658,6 +932,15 @@ revoke execute on function public.remove_friend(uuid) from public, anon;
 revoke execute on function public.nudge_friend(uuid, uuid) from public, anon;
 revoke execute on function public.save_push_subscription(text, text, text) from public, anon;
 revoke execute on function public.place_ranking(integer) from public;
+revoke execute on function public.my_group_ids() from public, anon;
+revoke execute on function public.add_group_invites(uuid, uuid[]) from public, anon, authenticated;
+revoke execute on function public.create_group(text, uuid[]) from public, anon;
+revoke execute on function public.invite_to_group(uuid, uuid[]) from public, anon;
+revoke execute on function public.accept_group_invite(uuid) from public, anon;
+revoke execute on function public.leave_group(uuid) from public, anon;
+revoke execute on function public.cancel_group_invite(uuid, uuid) from public, anon;
+revoke execute on function public.list_groups() from public, anon;
+revoke execute on function public.group_map(uuid) from public, anon;
 grant execute on function public.is_friend(uuid) to authenticated;
 grant execute on function public.my_friend_ids() to authenticated;
 grant execute on function public.my_tagged_capsule_ids() to authenticated;
@@ -669,6 +952,14 @@ grant execute on function public.remove_friend(uuid) to authenticated;
 grant execute on function public.nudge_friend(uuid, uuid) to authenticated;
 grant execute on function public.save_push_subscription(text, text, text) to authenticated;
 grant execute on function public.place_ranking(integer) to anon, authenticated;
+grant execute on function public.my_group_ids() to authenticated;
+grant execute on function public.create_group(text, uuid[]) to authenticated;
+grant execute on function public.invite_to_group(uuid, uuid[]) to authenticated;
+grant execute on function public.accept_group_invite(uuid) to authenticated;
+grant execute on function public.leave_group(uuid) to authenticated;
+grant execute on function public.cancel_group_invite(uuid, uuid) to authenticated;
+grant execute on function public.list_groups() to authenticated;
+grant execute on function public.group_map(uuid) to authenticated;
 
 -- 10) 영상·썸네일 저장소: 비공개 버킷, 파일당 50MB(무료 요금제 한도)
 insert into storage.buckets (id, name, public, file_size_limit)

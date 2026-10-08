@@ -1,5 +1,5 @@
 import { FEED_PAGE, type Capsule, type FeedQuery, type NewCapsule, type Visibility } from '../types/capsule';
-import type { PlaceStat, RankingDays } from './ranking';
+import type { PlaceStat, StatDays } from './placeStats';
 import { PROFILE_COLUMNS, listFriendships, toProfile, type ProfileRow } from './social';
 import { isUuid, supabase } from './supabase';
 import { uuid } from './uuid';
@@ -245,8 +245,8 @@ export async function deleteCapsule(id: string): Promise<void> {
   if (row) await removeFiles([row.video_path, row.thumbnail_path]);
 }
 
-/** 동네 랭킹: 가게별 방문 수 (숫자만 공개되어 로그인하지 않아도 불러온다). days: 최근 며칠, null이면 전체 */
-export async function listPlaceStats(days: RankingDays): Promise<PlaceStat[]> {
+/** 동네 지도: 가게별 방문 수 (숫자만 공개되어 로그인하지 않아도 불러온다). days: 최근 며칠, null이면 전체 */
+export async function listPlaceStats(days: StatDays): Promise<PlaceStat[]> {
   const { data, error } = await client().rpc('place_ranking', days === null ? {} : { days });
   if (error) throw error;
   type Row = { place_id: string; visits: number; people: number; regulars: number; videos: number; verified_visits?: number };
