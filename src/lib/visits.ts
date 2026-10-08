@@ -13,6 +13,8 @@ export interface MyPlaceVisit {
   /** 다녀온 날 수 (같은 날 여러 개를 남겨도 하루) */
   days: number;
   lastAt: number;
+  /** 지금 횟수에 닿은 시각 = 마지막으로 간 날의 첫 영상 (칭호 순서를 정할 때 쓴다) */
+  reachedAt: number;
   /** 마지막으로 간 뒤 지난 날 수 (한국 날짜) */
   daysSince: number;
   regular: boolean;
@@ -21,19 +23,23 @@ export interface MyPlaceVisit {
 
 /** 내 지도의 기록으로 가게별 방문을 센다 (앱의 가게 목록에 있는 곳만) */
 export function myPlaceVisits(capsules: Capsule[], now = Date.now()): Map<string, MyPlaceVisit> {
-  const byPlace = new Map<string, { days: Set<number>; lastAt: number }>();
+  // 가게마다 다녀온 날 → 그날 첫 영상 시각
+  const byPlace = new Map<string, { days: Map<number, number>; lastAt: number }>();
   for (const c of capsules) {
     if (!getPlace(c.placeId)) continue;
-    const v = byPlace.get(c.placeId) ?? { days: new Set<number>(), lastAt: 0 };
-    v.days.add(kstDay(c.createdAt));
+    const v = byPlace.get(c.placeId) ?? { days: new Map<number, number>(), lastAt: 0 };
+    const day = kstDay(c.createdAt);
+    v.days.set(day, Math.min(v.days.get(day) ?? Infinity, c.createdAt));
     v.lastAt = Math.max(v.lastAt, c.createdAt);
     byPlace.set(c.placeId, v);
   }
   const today = kstDay(now);
   return new Map(
     [...byPlace].map(([placeId, v]) => {
+      const days = v.days.size;
       const daysSince = today - kstDay(v.lastAt);
-      return [placeId, { placeId, days: v.days.size, lastAt: v.lastAt, daysSince, regular: v.days.size >= REGULAR_DAYS, due: daysSince >= DUE_DAYS }];
+      const reachedAt = v.days.get(kstDay(v.lastAt))!;
+      return [placeId, { placeId, days, lastAt: v.lastAt, reachedAt, daysSince, regular: days >= REGULAR_DAYS, due: daysSince >= DUE_DAYS }];
     }),
   );
 }

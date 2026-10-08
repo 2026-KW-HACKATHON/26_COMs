@@ -13,6 +13,7 @@
 --   동네 지도: 가게별 방문 수(숫자)만 누구나 본다. 누가 남겼는지·영상은 공개하지 않는다 (place_ranking).
 --   그룹: 친구를 초대해 만든다. 그룹원끼리는 서로의 가게별 방문 수(숫자)를 본다 (group_map). 영상·날짜는 공개하지 않는다.
 --         그룹원과 초대받은 사람끼리는 프로필이 보인다.
+--   칭호: 나와 친구만 서로의 칭호(5번 이상 간 가게와 횟수)를 본다 (friend_titles). 영상·날짜는 공개하지 않는다.
 
 -- 1) 프로필: 로그인하면 자동으로 만들어진다
 create table if not exists public.profiles (
@@ -919,6 +920,57 @@ as $$
   order by r.place_id, r.pos;
 $$;
 
+-- 9b) 칭호: 한 가게에 간 횟수로 "가게 이름 + 등급" (브론즈 5 · 실버 10 · 골드 20 · 플래티넘 30 · 다이아몬드 50번, 등급은 앱이 정한다).
+--   방문 = 영상에 나온(작성자·태그) 날 수, 한국 날짜 기준 (place_ranking·group_map과 같은 기준). 전체 기간.
+--   나와 친구의 칭호만 돌려준다 (친구끼리만 서로의 칭호를 본다). 5번 이상 간 가게와 횟수만 돌려주고 영상·날짜는 드러내지 않는다.
+--   pos: 그 사람의 대표 칭호 순서 (많이 간 순, 같으면 그 횟수에 먼저 닿은 가게라서 새 가게가 따라와도 칭호가 바뀌지 않는다).
+--   가게 이름은 앱에 들어 있는 가게 목록에서 찾는다 (기록의 place_name은 사용자가 보낸 값이라 그대로 공개하지 않음)
+create or replace function public.friend_titles()
+returns table (user_id uuid, place_id text, visits integer, pos integer)
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  with people as (
+    select ids.person
+    from (
+      select auth.uid() as person
+      union
+      select public.my_friend_ids()
+    ) ids
+    where ids.person is not null
+      and coalesce((auth.jwt() ->> 'is_anonymous')::boolean, false) = false
+  ),
+  seen as (
+    select c.place_id, c.user_id as person, c.created_at
+    from public.capsules c
+    where c.user_id in (select people.person from people)
+    union all
+    select c.place_id, t.user_id, c.created_at
+    from public.capsule_tags t
+    join public.capsules c on c.id = t.capsule_id
+    where t.user_id in (select people.person from people)
+  ),
+  by_day as (
+    select s.place_id, s.person, min(s.created_at) as first_at
+    from seen s
+    group by s.place_id, s.person, (s.created_at at time zone 'Asia/Seoul')::date
+  ),
+  by_person as (
+    select d.place_id, d.person, count(*)::integer as visits,
+      -- 지금 횟수에 닿은 시각 = 마지막으로 간 날의 첫 영상
+      max(d.first_at) as reached_at
+    from by_day d
+    group by d.place_id, d.person
+  )
+  select b.person, b.place_id, b.visits,
+    (row_number() over (partition by b.person order by b.visits desc, b.reached_at, b.place_id))::integer
+  from by_person b
+  where b.visits >= 5
+  order by b.person, 4;
+$$;
+
 revoke execute on function public.handle_new_user() from public, anon, authenticated;
 revoke execute on function public.count_capsule_like() from public, anon, authenticated;
 revoke execute on function public.is_friend(uuid) from public, anon;
@@ -941,6 +993,7 @@ revoke execute on function public.leave_group(uuid) from public, anon;
 revoke execute on function public.cancel_group_invite(uuid, uuid) from public, anon;
 revoke execute on function public.list_groups() from public, anon;
 revoke execute on function public.group_map(uuid) from public, anon;
+revoke execute on function public.friend_titles() from public, anon;
 grant execute on function public.is_friend(uuid) to authenticated;
 grant execute on function public.my_friend_ids() to authenticated;
 grant execute on function public.my_tagged_capsule_ids() to authenticated;
@@ -960,6 +1013,7 @@ grant execute on function public.leave_group(uuid) to authenticated;
 grant execute on function public.cancel_group_invite(uuid, uuid) to authenticated;
 grant execute on function public.list_groups() to authenticated;
 grant execute on function public.group_map(uuid) to authenticated;
+grant execute on function public.friend_titles() to authenticated;
 
 -- 10) 영상·썸네일 저장소: 비공개 버킷, 파일당 50MB(무료 요금제 한도)
 insert into storage.buckets (id, name, public, file_size_limit)

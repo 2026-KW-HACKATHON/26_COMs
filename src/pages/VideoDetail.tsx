@@ -4,8 +4,10 @@ import Avatar from '../components/Avatar';
 import CapsuleVideo from '../components/CapsuleVideo';
 import LikeButton from '../components/LikeButton';
 import NudgeButton from '../components/NudgeButton';
+import TitleBadge from '../components/TitleBadge';
 import { getPlace, placeSubtitle } from '../data/places';
 import { useAuth } from '../hooks/useAuth';
+import { useFriendTitles } from '../hooks/useFriendTitles';
 import { useFriendships } from '../hooks/useFriendships';
 import { useLike } from '../hooks/useLike';
 import { SOCIAL_ENABLED, deleteCapsule, getCapsule, setVisibility } from '../lib/capsuleStore';
@@ -19,6 +21,7 @@ export default function VideoDetail() {
   const navigate = useNavigate();
   const me = useAuth().session?.user.id ?? '';
   const { list: friendships } = useFriendships();
+  const titles = useFriendTitles();
   // undefined: 불러오는 중, null: 없음
   const [capsule, setCapsule] = useState<Capsule | null | undefined>(undefined);
   const [busy, setBusy] = useState(false);
@@ -57,6 +60,9 @@ export default function VideoDetail() {
     SOCIAL_ENABLED && (isMine || taggedMe)
       ? [capsule.author, ...capsule.tags].filter((p): p is Profile => !!p && p.id !== me && friendIds.has(p.id))
       : [];
+
+  // 칭호는 나와 친구 것만 온다 (동네 공개 영상의 모르는 작성자는 없음)
+  const authorTitle = titles.get(capsule.userId);
 
   const toggleVisibility = async () => {
     const next = capsule.visibility === 'town' ? 'friends' : 'town';
@@ -103,8 +109,11 @@ export default function VideoDetail() {
       {SOCIAL_ENABLED && capsule.author && (
         <div className="flex items-center gap-2.5 px-0.5">
           <Avatar profile={capsule.author} size={36} />
-          <div className="min-w-0">
-            <p className="text-label-lg text-on-surface font-bold truncate">{isMine ? '내가 남긴 영상' : capsule.author.displayName}</p>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-1.5 min-w-0">
+              <p className="min-w-0 text-label-lg text-on-surface font-bold truncate">{isMine ? '내가 남긴 영상' : capsule.author.displayName}</p>
+              {authorTitle && <TitleBadge title={authorTitle} className="max-w-[65%]" />}
+            </div>
             <p className="text-label-sm text-on-surface-variant truncate">
               @{capsule.author.username}
               {capsule.visibility === 'town' && ' · 동네 공개'}

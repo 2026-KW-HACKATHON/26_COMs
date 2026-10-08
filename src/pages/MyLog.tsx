@@ -1,14 +1,18 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Avatar from '../components/Avatar';
 import CapsuleThumb from '../components/CapsuleThumb';
+import MyTitlesCard from '../components/MyTitlesCard';
 import MyTownCard from '../components/MyTownCard';
+import TitleBadge from '../components/TitleBadge';
 import { useAuth } from '../hooks/useAuth';
 import { useCapsules } from '../hooks/useCapsules';
 import { useFriendships } from '../hooks/useFriendships';
 import { SOCIAL_ENABLED } from '../lib/capsuleStore';
 import { formatDate } from '../lib/format';
 import { isAutoUsername } from '../lib/social';
+import { myTitles } from '../lib/titles';
+import { myPlaceVisits } from '../lib/visits';
 import type { Capsule } from '../types/capsule';
 
 type Tab = 'mine' | 'tagged';
@@ -20,6 +24,9 @@ export default function MyLog() {
   const capsules = useCapsules();
   const { list: friendships } = useFriendships();
   const [tab, setTab] = useState<Tab>('mine');
+  const visits = useMemo(() => myPlaceVisits(capsules ?? []), [capsules]);
+  // 대표 칭호: 친구들에게도 이름 오른쪽에 보인다 (schema.sql의 friend_titles와 같은 순서)
+  const title = useMemo(() => myTitles(visits)[0] ?? null, [visits]);
 
   if (!capsules) return null;
 
@@ -50,7 +57,10 @@ export default function MyLog() {
           <section className="flex items-center gap-4 px-1">
             <Avatar profile={profile} size={64} />
             <div className="flex-1 min-w-0">
-              <h2 className="text-headline-md text-on-surface truncate">{profile?.displayName ?? '나'}</h2>
+              <div className="flex items-center gap-2 min-w-0">
+                <h2 className="min-w-0 text-headline-md text-on-surface truncate">{profile?.displayName ?? '나'}</h2>
+                {title && <TitleBadge title={title} size="md" className="max-w-[60%]" />}
+              </div>
               {profile && <p className="text-label-md text-on-surface-variant truncate">@{profile.username}</p>}
             </div>
           </section>
@@ -89,6 +99,7 @@ export default function MyLog() {
             </button>
           </div>
           <MyTownCard capsules={capsules} />
+          <MyTitlesCard visits={visits} />
           <div className="flex border-b border-gray-100">
             {tabButton('mine', '내 영상', mine.length)}
             {tabButton('tagged', '태그된 영상', tagged.length)}
@@ -97,6 +108,7 @@ export default function MyLog() {
       ) : (
         <>
           <MyTownCard capsules={capsules} />
+          <MyTitlesCard visits={visits} />
           <div className="flex items-baseline justify-between mt-2">
             <h2 className="text-headline-md text-on-surface">내 영상</h2>
             <span className="text-label-md text-on-surface-variant">{capsules.length}개</span>

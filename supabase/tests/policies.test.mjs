@@ -1403,3 +1403,91 @@ describe('R13 groups', () => {
     assert.deepEqual(await listGroups(pending[0]), []);
   });
 });
+
+// ---------------------------------------------------------------------------
+// R14 titles (칭호):
+//   A–B and A–C are friends (B and C are not). D sent A a request that is still pending. S is a stranger.
+//   Visits are counted per person per Korean day, like place_ranking and group_map; only places with 5+ visits are titles.
+describe('R14 titles', () => {
+  let h, A, B, C, D, S;
+  const titles = async (who) =>
+    (await h.q(who, 'select * from public.friend_titles()')).map((r) => [r.user_id, r.place_id, r.visits, r.pos]);
+  const backdate = (id, days) =>
+    h.q('admin', `update public.capsules set created_at = now() - make_interval(days => $2) where id = $1`, [id, days]);
+  const visit = async (who, place, daysAgo, tagged = []) => {
+    const c = await h.capsule(who, { place });
+    for (const t of tagged) await h.q(who, 'insert into public.capsule_tags (capsule_id, user_id) values ($1, $2)', [c.id, t]);
+    if (daysAgo) await backdate(c.id, daysAgo);
+    return c;
+  };
+
+  before(async () => {
+    h = await createDb();
+    A = await h.signUp({ email: 'ta.title@x.com' });
+    B = await h.signUp({ email: 'tb.title@x.com' });
+    C = await h.signUp({ email: 'tc.title@x.com' });
+    D = await h.signUp({ email: 'td.title@x.com' });
+    S = await h.signUp({ email: 'ts.title@x.com' });
+    await h.befriend(A, B);
+    await h.befriend(A, C);
+    await h.q(D, 'select public.request_friend($1)', [A]);
+
+    // p1: A가 4일 전부터 오늘까지 5번. 오늘 하나 더 남겨도 방문은 5번
+    for (const d of [4, 3, 2, 1, 0]) await visit(A, 'p1', d);
+    await visit(A, 'p1', 0);
+    // p2: B가 A를 태그해서 5일 전부터 어제까지 5번 → A·B 모두 5번. A는 p1보다 먼저 5번에 닿았다
+    for (const d of [5, 4, 3, 2, 1]) await visit(B, 'p2', d, [A]);
+    // p3: A가 4번 → 아직 칭호가 아니다
+    for (const d of [3, 2, 1, 0]) await visit(A, 'p3', d);
+    // p4: C가 5번, p5: 모르는 사람 S가 5번
+    for (const d of [4, 3, 2, 1, 0]) await visit(C, 'p4', d);
+    for (const d of [4, 3, 2, 1, 0]) await visit(S, 'p5', d);
+  });
+  after(() => h.close());
+
+  test('I see the titles of myself and my friends only; ties go to the place reached first', async () => {
+    // 사람 순서는 id 순이라 사람마다 묶어서 비교한다
+    const of = async (who, person) => (await titles(who)).filter((r) => r[0] === person);
+    const people = async (who) => [...new Set((await titles(who)).map((r) => r[0]))].sort();
+    assert.deepEqual(await of(A, A), [
+      [A, 'p2', 5, 1],
+      [A, 'p1', 5, 2],
+    ]);
+    assert.deepEqual(await of(A, B), [[B, 'p2', 5, 1]]);
+    assert.deepEqual(await of(A, C), [[C, 'p4', 5, 1]]);
+    assert.deepEqual(await people(A), sorted([A, B, C]));
+    // B와 C는 친구가 아니라서 서로의 칭호가 보이지 않는다
+    assert.deepEqual(await people(B), sorted([A, B]));
+    assert.deepEqual(await people(C), sorted([A, C]));
+    assert.deepEqual(await of(B, A), await of(A, A));
+  });
+
+  test('pending requests and strangers do not see titles', async () => {
+    assert.deepEqual(await titles(D), []);
+    assert.deepEqual(await titles(S), [[S, 'p5', 5, 1]]);
+  });
+
+  test('anon cannot call it; anonymous sign-ins get nothing', async () => {
+    await assert.rejects(h.q('anon', 'select * from public.friend_titles()'), DENIED);
+    assert.deepEqual(await titles({ id: A, anonymous: true }), []);
+  });
+
+  test('a new visit day moves the title up; the same day again does not', async () => {
+    await visit(A, 'p3', 0);
+    assert.deepEqual((await titles(A)).filter((r) => r[0] === A && r[1] === 'p3'), []);
+    await visit(A, 'p3', 6);
+    assert.deepEqual((await titles(A)).filter((r) => r[0] === A && r[1] === 'p3'), [[A, 'p3', 5, 3]]);
+    await visit(A, 'p1', 7);
+    assert.deepEqual((await titles(A)).filter((r) => r[0] === A), [
+      [A, 'p1', 6, 1],
+      [A, 'p2', 5, 2],
+      [A, 'p3', 5, 3],
+    ]);
+  });
+
+  test('after unfriending, the titles disappear', async () => {
+    await h.q(A, 'select public.remove_friend($1)', [C]);
+    assert.deepEqual((await titles(A)).filter((r) => r[0] === C), []);
+    assert.deepEqual((await titles(C)).filter((r) => r[0] === A), []);
+  });
+});
