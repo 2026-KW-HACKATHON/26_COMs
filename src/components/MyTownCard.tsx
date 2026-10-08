@@ -13,7 +13,7 @@ export default function MyTownCard({ capsules }: { capsules: Capsule[] }) {
 
   return (
     <div className="flex flex-col gap-3 mb-4">
-      <button onClick={() => openOnMap()} className="w-full p-4 rounded-2xl bg-surface-container-low text-left pressable" type="button">
+      <button onClick={() => openOnMap()} className="w-full p-4 rounded-[28px] app-card text-left pressable" type="button">
         <span className="flex items-baseline justify-between">
           <span className="text-label-lg font-bold text-on-surface">내 동네 지도</span>
           <span className="text-label-md text-on-surface-variant">
@@ -33,7 +33,7 @@ export default function MyTownCard({ capsules }: { capsules: Capsule[] }) {
       </button>
 
       {summary.due.length > 0 && (
-        <section className="p-4 rounded-2xl bg-primary-fixed">
+        <section className="p-4 rounded-[28px] bg-primary-fixed/60 border border-white/60 shadow-[0_14px_30px_rgba(225,48,108,0.08)]">
           <h3 className="text-label-lg font-bold text-on-surface">다시 갈 때 됐어요</h3>
           <p className="text-label-sm text-on-surface-variant">{DUE_DAYS}일 넘게 안 간 곳이에요</p>
           <ul className="mt-2 flex flex-col">
@@ -42,7 +42,7 @@ export default function MyTownCard({ capsules }: { capsules: Capsule[] }) {
               return (
                 <li key={v.placeId}>
                   <button onClick={() => openOnMap(v.placeId)} className="w-full flex items-center gap-2.5 py-1.5 text-left pressable" type="button">
-                    <span className="w-9 h-9 shrink-0 rounded-full bg-surface flex items-center justify-center text-[18px]">{CATEGORY_EMOJI[place.category] ?? '📍'}</span>
+                    <span className="w-9 h-9 shrink-0 rounded-full bg-white flex items-center justify-center text-[18px] border border-white/80 shadow-[0_8px_16px_rgba(15,23,42,0.08)]">{CATEGORY_EMOJI[place.category] ?? '📍'}</span>
                     <span className="flex-1 min-w-0">
                       <span className="block text-label-lg font-bold text-on-surface truncate">{place.name}</span>
                       <span className="block text-label-sm text-on-surface-variant">

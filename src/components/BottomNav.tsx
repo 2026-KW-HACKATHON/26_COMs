@@ -30,18 +30,20 @@ export default function BottomNav({ currentPath }: BottomNavProps) {
   };
 
   return (
-    <nav className="fixed bottom-0 inset-x-0 z-50 bg-surface border-t border-gray-100 pb-safe">
-      <div className="max-w-md mx-auto h-16 grid grid-cols-5">
+    <nav className="fixed bottom-0 inset-x-0 z-50 pb-safe">
+      <div className="max-w-[430px] mx-auto px-3 pb-3">
+        <div className="h-18 grid grid-cols-5 items-end rounded-[28px] app-surface px-2 py-2">
         {TABS_LEFT.map(tab)}
 
         <Link to="/leave" className="flex flex-col items-center justify-center gap-0.5 text-[11px] font-semibold text-primary">
-          <span className="w-12 h-8 rounded-full bg-primary text-on-primary flex items-center justify-center pressable">
-            <span className="material-symbols-rounded text-[24px]">add</span>
+          <span className="w-12 h-12 rounded-full instagram-gradient text-white flex items-center justify-center shadow-[0_12px_26px_rgba(225,48,108,0.3)] pressable">
+            <span className="material-symbols-rounded text-[24px] icon-fill">add</span>
           </span>
           남기기
         </Link>
 
         {TABS_RIGHT.map(tab)}
+        </div>
       </div>
     </nav>
   );

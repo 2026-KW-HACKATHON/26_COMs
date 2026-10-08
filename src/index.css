@@ -5,6 +5,10 @@
 @layer base {
   html {
     -webkit-text-size-adjust: 100%;
+    background:
+      radial-gradient(circle at top left, rgba(225, 48, 108, 0.14), transparent 34%),
+      radial-gradient(circle at top right, rgba(245, 133, 41, 0.12), transparent 28%),
+      linear-gradient(180deg, #fff7fb 0%, #f7f8fc 22%, #f8fafc 100%);
   }
   body {
     @apply bg-surface text-on-surface antialiased;
@@ -13,9 +17,31 @@
     overflow-wrap: anywhere;
     overscroll-behavior-y: none;
     -webkit-tap-highlight-color: transparent;
+    min-height: 100vh;
   }
   button {
     -webkit-tap-highlight-color: transparent;
+  }
+}
+
+@layer components {
+  .app-shell {
+    @apply relative w-full min-h-screen text-on-surface;
+    background:
+      radial-gradient(circle at top, rgba(225, 48, 108, 0.08), transparent 24%),
+      linear-gradient(180deg, rgba(255, 255, 255, 0.76), rgba(255, 255, 255, 0.94));
+  }
+  .app-surface {
+    @apply bg-white/90 backdrop-blur-xl border border-white/70 shadow-[0_20px_50px_rgba(15,23,42,0.06)];
+  }
+  .app-card {
+    @apply bg-white rounded-[28px] border border-gray-100 shadow-[0_18px_45px_rgba(15,23,42,0.08)];
+  }
+  .app-chip {
+    @apply inline-flex items-center gap-1 rounded-full border border-gray-200 bg-white px-3 py-1.5 text-[12px] font-semibold text-gray-700;
+  }
+  .instagram-gradient {
+    background: linear-gradient(135deg, #f58529 0%, #dd2a7b 48%, #8134af 100%);
   }
 }
 
