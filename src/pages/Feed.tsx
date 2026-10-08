@@ -2,7 +2,6 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import Avatar from '../components/Avatar';
 import FeedVideo from '../components/FeedVideo';
-import FilmDate from '../components/FilmDate';
 import LikeButton from '../components/LikeButton';
 import RecallCard from '../components/RecallCard';
 import { CATEGORY_EMOJI, getPlace, placeSubtitle } from '../data/places';
@@ -90,15 +89,15 @@ export default function Feed() {
   const selectScope = (s: Scope) => setSearchParams(s === 'town' ? { tab: 'town' } : {}, { replace: true });
 
   return (
-    <div className="flex flex-col w-full pt-4 pb-8 gap-5">
+    <div className="flex flex-col w-full pt-3 pb-8 gap-4">
       {SOCIAL_ENABLED && (
-        <div className="flex p-1 rounded-full bg-surface-container" role="tablist" aria-label="피드">
+        <div className="flex p-1 rounded-full bg-white/90 border border-gray-100 shadow-[0_10px_26px_rgba(15,23,42,0.06)]" role="tablist" aria-label="피드">
           {SCOPES.map((s) => (
             <button
               key={s.value}
               onClick={() => selectScope(s.value)}
-              className={`flex-1 h-9 rounded-full text-label-md font-semibold transition-all ${
-                scope === s.value ? 'bg-surface text-on-surface shadow-float' : 'text-gray-500'
+              className={`flex-1 h-10 rounded-full text-label-md font-semibold transition-all ${
+                scope === s.value ? 'bg-white text-on-surface shadow-[0_8px_22px_rgba(15,23,42,0.08)]' : 'text-gray-500'
               }`}
               type="button"
               role="tab"
@@ -111,8 +110,8 @@ export default function Feed() {
       )}
       {/* 기념일(일주일·한 달·100일·1년 전 오늘)에 남긴 내 영상 */}
       {scope === 'friends' && <RecallCard />}
-      <div className="px-1">
-        <h2 className="mb-1 font-serif text-[24px] font-bold leading-snug text-on-surface">{scopeInfo.title}</h2>
+      <div className="px-1 pt-1">
+        <h2 className="mb-1 text-headline-md text-on-surface">{scopeInfo.title}</h2>
         <p className="text-body-sm text-on-surface-variant">{scopeInfo.description}</p>
       </div>
 
@@ -123,7 +122,7 @@ export default function Feed() {
       ) : items.length === 0 ? (
         <EmptyFeed scope={scope} noFriends={SOCIAL_ENABLED && friendIds?.length === 0} onTown={() => selectScope('town')} />
       ) : (
-        <div className="flex flex-col gap-6">
+        <div className="flex flex-col gap-7">
           {items.map((c) => (
             <FeedItem key={c.id} capsule={c} me={me} stat={rankOf.get(c.placeId)} onOpen={() => navigate(`/video/${c.id}`)} onMap={() => openOnMap(c)} />
           ))}
@@ -131,7 +130,7 @@ export default function Feed() {
             <button
               onClick={loadMore}
               disabled={loadingMore}
-              className="h-12 rounded-2xl btn-paper text-label-lg flex items-center justify-center gap-1 pressable disabled:opacity-50"
+              className="h-12 rounded-xl bg-surface-container text-gray-700 text-label-lg flex items-center justify-center gap-1 pressable disabled:opacity-50"
               type="button"
             >
               {loadingMore ? '불러오는 중…' : '더 보기'}
@@ -167,8 +166,8 @@ function FeedItem({ capsule: c, me, stat, onOpen, onMap }: FeedItemProps) {
         : `${first.displayName}님과 함께`;
 
   return (
-    <article className="flex flex-col app-card p-2.5">
-      <button onClick={onOpen} className="flex items-center gap-3 text-left px-1.5 pt-1 pb-2.5" type="button">
+    <article className="flex flex-col gap-3 app-card overflow-hidden">
+      <button onClick={onOpen} className="flex items-center gap-3 text-left px-4 pt-4" type="button">
         {SOCIAL_ENABLED && <Avatar profile={c.author} size={36} />}
         <span className="flex-1 min-w-0">
           <span className="block text-label-lg text-on-surface truncate">
@@ -189,18 +188,16 @@ function FeedItem({ capsule: c, me, stat, onOpen, onMap }: FeedItemProps) {
         <span className="material-symbols-rounded text-[20px] text-gray-400">more_horiz</span>
       </button>
 
-      {/* 영상 오른쪽 아래에 필름 카메라처럼 남긴 날짜를 찍는다 */}
-      <div className="relative">
-        <FeedVideo capsule={c} onLike={like.like} className="w-full aspect-[4/5] rounded-[18px]" />
-        <FilmDate at={c.createdAt} className="bottom-3.5 right-3.5" />
+      <div className="px-4">
+        <FeedVideo capsule={c} onLike={like.like} className="w-full aspect-[4/5] rounded-[24px] overflow-hidden" />
       </div>
 
-      <div className="flex items-center px-1.5 pt-1">
+      <div className="flex items-center px-4 -my-1.5">
         <LikeButton like={like} />
       </div>
 
-      <button onClick={onMap} className="flex items-center gap-3 p-2.5 pr-3 rounded-[18px] bg-surface-container-low text-left pressable" type="button">
-        <span className="w-10 h-10 shrink-0 rounded-full bg-surface flex items-center justify-center text-[20px] shadow-card">
+      <button onClick={onMap} className="flex items-center gap-3 px-4 pb-4 pt-1 text-left pressable" type="button">
+        <span className="w-10 h-10 shrink-0 rounded-full bg-surface flex items-center justify-center text-[20px]">
           {(place && CATEGORY_EMOJI[place.category]) ?? '📍'}
         </span>
         <span className="flex-1 min-w-0">
@@ -225,15 +222,15 @@ function EmptyFeed({ scope, noFriends, onTown }: { scope: Scope; noFriends: bool
   const title = town ? '아직 동네에 공개된 영상이 없어요' : findFriends ? '친구를 추가하면 친구가 다녀온 가게가 여기에 떠요' : '아직 남긴 영상이 없어요';
   const hint = town ? "영상을 남길 때 '동네 모두'를 고르면 여기에 떠요." : findFriends ? '같은 동네 친구를 찾아 보세요.' : '가게에서 5초를 남기면 친구들 피드에 떠요.';
   return (
-    <div className="flex flex-col items-center text-center py-12 px-6 app-card text-on-surface-variant">
-      <div className="w-16 h-16 rounded-full bg-primary-fixed text-primary flex items-center justify-center">
-        <span className="material-symbols-rounded text-[32px] icon-fill">{town ? 'location_city' : findFriends ? 'group_add' : 'dynamic_feed'}</span>
+    <div className="flex flex-col items-center text-center py-14 px-6 app-card text-on-surface-variant">
+      <div className="w-16 h-16 rounded-full instagram-gradient flex items-center justify-center text-white shadow-[0_16px_30px_rgba(225,48,108,0.24)]">
+        <span className="material-symbols-rounded text-[34px] icon-fill">{town ? 'location_city' : findFriends ? 'group_add' : 'dynamic_feed'}</span>
       </div>
-      <p className="mt-4 font-serif text-[17px] font-bold text-on-surface">{title}</p>
+      <p className="mt-2 text-body-md text-on-surface">{title}</p>
       <p className="mt-1 text-label-md">{hint}</p>
       <button
         onClick={() => navigate(findFriends ? '/friends' : '/leave')}
-        className="mt-5 h-12 px-6 rounded-2xl bg-sunset shadow-glow text-label-lg font-bold pressable"
+        className="mt-5 h-12 px-6 rounded-full instagram-gradient text-white text-label-lg font-bold pressable shadow-[0_12px_24px_rgba(225,48,108,0.26)]"
         type="button"
       >
         {findFriends ? '친구 찾기' : '5초 남기기'}
@@ -249,14 +246,14 @@ function EmptyFeed({ scope, noFriends, onTown }: { scope: Scope; noFriends: bool
 
 function FeedSkeleton() {
   return (
-    <div className="flex flex-col w-full gap-6 animate-pulse" aria-label="불러오는 중">
+    <div className="flex flex-col w-full gap-7 animate-pulse" aria-label="불러오는 중">
       {[0, 1].map((i) => (
-        <div key={i} className="flex flex-col gap-2.5 app-card p-2.5">
-          <div className="flex items-center gap-2.5 px-1.5 pt-1">
-            <span className="w-9 h-9 rounded-full bg-surface-container" />
-            <span className="w-32 h-4 rounded-full bg-surface-container" />
+        <div key={i} className="flex flex-col gap-3 app-card overflow-hidden p-4">
+          <div className="flex items-center gap-2.5">
+            <span className="w-9 h-9 rounded-full bg-gray-100" />
+            <span className="w-32 h-4 rounded-full bg-gray-100" />
           </div>
-          <div className="w-full aspect-[4/5] rounded-[18px] bg-surface-container" />
+          <div className="w-full aspect-[4/5] rounded-[24px] bg-gray-100" />
         </div>
       ))}
     </div>

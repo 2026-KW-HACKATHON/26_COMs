@@ -29,7 +29,7 @@ export default function FriendMapSelector({ me, friends, selectedId, onSelect, t
         내 지도
       </button>
       <button onClick={onSelectTown} className={chip(town)} type="button" aria-pressed={town}>
-        <span className="w-7 h-7 rounded-full bg-sunset flex items-center justify-center">
+        <span className="w-7 h-7 rounded-full bg-primary text-on-primary flex items-center justify-center">
           <span className="material-symbols-rounded icon-fill text-[17px]">local_fire_department</span>
         </span>
         동네

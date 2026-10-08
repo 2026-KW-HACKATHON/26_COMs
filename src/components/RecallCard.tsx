@@ -4,7 +4,6 @@ import { useAuth } from '../hooks/useAuth';
 import { useCapsules } from '../hooks/useCapsules';
 import { findRecall } from '../lib/recall';
 import CapsuleThumb from './CapsuleThumb';
-import FilmDate from './FilmDate';
 
 const DISMISS_KEY = 'recall-dismissed';
 
@@ -42,32 +41,31 @@ export default function RecallCard() {
   };
 
   return (
-    <section className="relative p-4 pr-3 rounded-3xl bg-memory flex gap-4 overflow-hidden">
-      {/* 그날의 5초를 살짝 기울어진 폴라로이드로 */}
-      <button onClick={() => navigate(`/video/${c.id}`)} className="polaroid w-[5.75rem] shrink-0 self-start -rotate-3 mt-1 ml-0.5 pb-5 pressable" type="button" aria-label="영상 보기">
-        <span className="polaroid-photo block aspect-[3/4]">
-          <CapsuleThumb thumbnail={c.thumbnail} />
-          <FilmDate at={c.createdAt} className="bottom-1.5 right-1.5 text-[9px]" />
+    <section className="relative mb-5 p-3 rounded-[28px] bg-white border border-gray-100 shadow-[0_18px_40px_rgba(15,23,42,0.08)] flex gap-3">
+      <button onClick={() => navigate(`/video/${c.id}`)} className="relative w-20 h-[6.5rem] shrink-0 rounded-[20px] overflow-hidden bg-gray-100 pressable" type="button" aria-label="영상 보기">
+        <CapsuleThumb thumbnail={c.thumbnail} />
+        <span className="absolute inset-0 flex items-center justify-center bg-black/15 text-white">
+          <span className="material-symbols-rounded icon-fill text-[28px]">play_arrow</span>
         </span>
       </button>
       <div className="flex-1 min-w-0 flex flex-col py-0.5">
-        <p className="eyebrow">{recall.label} 오늘</p>
-        <p className="mt-0.5 font-serif text-[19px] font-bold leading-snug text-on-surface truncate pr-6">{c.placeName}</p>
+        <p className="text-label-sm font-bold text-primary">{recall.label} 오늘</p>
+        <p className="text-label-lg font-bold text-on-surface truncate pr-6">{c.placeName}</p>
         <p className="text-label-sm text-on-surface-variant truncate">{withText}</p>
-        <div className="mt-auto pt-3 flex gap-1.5">
-          <button onClick={() => navigate(`/video/${c.id}`)} className="h-9 px-3 rounded-full btn-paper text-label-md font-semibold pressable" type="button">
+        <div className="mt-auto pt-2 flex gap-1.5">
+          <button onClick={() => navigate(`/video/${c.id}`)} className="h-9 px-3 rounded-full bg-gray-100 text-gray-700 text-label-md font-semibold pressable" type="button">
             다시 보기
           </button>
           <button
             onClick={() => navigate(`/leave?place=${encodeURIComponent(c.placeId)}`)}
-            className="h-9 px-3 rounded-full bg-sunset shadow-glow text-label-md font-bold pressable"
+            className="h-9 px-3 rounded-full instagram-gradient text-white text-label-md font-bold pressable"
             type="button"
           >
             또 가서 남기기
           </button>
         </div>
       </div>
-      <button onClick={dismiss} className="absolute top-2.5 right-2.5 w-7 h-7 rounded-full bg-surface/70 text-gray-500 flex items-center justify-center" type="button" aria-label="닫기">
+      <button onClick={dismiss} className="absolute top-2 right-2 w-7 h-7 rounded-full bg-gray-100 text-gray-500 flex items-center justify-center" type="button" aria-label="닫기">
         <span className="material-symbols-rounded text-[18px]">close</span>
       </button>
     </section>

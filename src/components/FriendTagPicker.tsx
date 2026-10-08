@@ -48,7 +48,7 @@ export default function FriendTagPicker({ friends, selected, onChange }: FriendT
         </div>
       )}
 
-      <div className="flex items-center gap-2 px-4 h-12 rounded-2xl bg-surface border border-gray-200 focus-within:border-primary transition-colors">
+      <div className="flex items-center gap-2 px-4 h-12 rounded-xl bg-surface-container">
         <span className="material-symbols-rounded text-[20px] text-gray-400">alternate_email</span>
         <input
           value={query}

@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import Avatar from '../components/Avatar';
 import CapsuleVideo from '../components/CapsuleVideo';
-import FilmDate from '../components/FilmDate';
 import LikeButton from '../components/LikeButton';
 import NudgeButton from '../components/NudgeButton';
 import { getPlace, placeSubtitle } from '../data/places';
@@ -102,7 +101,7 @@ export default function VideoDetail() {
   return (
     <div className="flex flex-col w-full pb-8 pt-3 gap-4">
       {SOCIAL_ENABLED && capsule.author && (
-        <div className="flex items-center gap-2.5 px-1">
+        <div className="flex items-center gap-2.5 app-card p-3.5 rounded-[28px]">
           <Avatar profile={capsule.author} size={36} />
           <div className="min-w-0">
             <p className="text-label-lg text-on-surface font-bold truncate">{isMine ? '내가 남긴 영상' : capsule.author.displayName}</p>
@@ -114,26 +113,20 @@ export default function VideoDetail() {
         </div>
       )}
 
-      {/* 흰 인화지에 뽑은 사진처럼 테두리를 두르고, 구석에 남긴 날짜를 찍는다 */}
-      <div className="app-card p-2">
-        <div className="relative">
-          <CapsuleVideo
-            src={capsule.video}
-            start={capsule.clipStart}
-            duration={capsule.clipDuration}
-            onLike={like.like}
-            className="w-full aspect-[3/4] rounded-[18px]"
-          />
-          <FilmDate at={capsule.createdAt} className="bottom-4 right-4 text-[13px]" />
-        </div>
-      </div>
+      <CapsuleVideo
+        src={capsule.video}
+        start={capsule.clipStart}
+        duration={capsule.clipDuration}
+        onLike={like.like}
+        className="w-full aspect-[3/4] rounded-[28px] shadow-[0_18px_40px_rgba(15,23,42,0.12)]"
+      />
 
-      <div className="flex items-center -my-2.5 px-1">
+      <div className="flex items-center -my-2.5">
         <LikeButton like={like} />
       </div>
 
-      <div className="flex flex-col gap-1 px-1">
-        <h2 className="font-serif text-[26px] font-bold leading-snug text-on-surface">{capsule.placeName}</h2>
+      <div className="flex flex-col gap-1 px-0.5">
+        <h2 className="text-headline-md text-on-surface">{capsule.placeName}</h2>
         {place && (
           <p className="text-label-md text-on-surface-variant">
             {[placeSubtitle(place), place.address].filter(Boolean).join(' · ')}
@@ -147,7 +140,7 @@ export default function VideoDetail() {
           <div className="mt-2 flex flex-wrap items-center gap-1.5">
             <span className="material-symbols-rounded text-[16px] text-on-surface-variant">group</span>
             {capsule.tags.map((t) => (
-              <span key={t.id} className="h-7 pl-0.5 pr-2.5 rounded-full btn-paper text-label-sm flex items-center gap-1">
+              <span key={t.id} className="h-7 pl-0.5 pr-2.5 rounded-full bg-white border border-gray-100 text-gray-700 text-label-sm flex items-center gap-1 shadow-[0_8px_16px_rgba(15,23,42,0.05)]">
                 <Avatar profile={t} size={24} />
                 <span className="font-bold">@{t.username}</span>
               </span>
@@ -157,13 +150,11 @@ export default function VideoDetail() {
       </div>
 
       {companions.length > 0 && (
-        <section className="rounded-3xl bg-memory px-4 pt-4 pb-2">
-          <div className="flex items-center gap-2.5">
-            <span className="w-9 h-9 shrink-0 rounded-full bg-surface flex items-center justify-center shadow-card">
-              <span className="material-symbols-rounded icon-fill text-[20px] text-primary">waving_hand</span>
-            </span>
+        <section className="rounded-[28px] bg-primary-fixed/60 px-4 pt-3.5 pb-2 border border-white/70 shadow-[0_12px_24px_rgba(225,48,108,0.08)]">
+          <div className="flex items-center gap-2">
+            <span className="material-symbols-rounded icon-fill text-[22px] text-primary">waving_hand</span>
             <div>
-              <h3 className="font-serif text-[17px] font-bold text-on-surface">여기 또 가자고 조르기</h3>
+              <h3 className="text-label-lg font-bold text-on-surface">여기 또 가자고 조르기</h3>
               <p className="text-label-sm text-on-surface-variant">같이 간 친구에게 알림이 가요</p>
             </div>
           </div>
@@ -186,7 +177,7 @@ export default function VideoDetail() {
         <button
           onClick={toggleVisibility}
           disabled={busy}
-          className="flex items-center gap-3 px-4 py-3.5 app-card text-left pressable disabled:opacity-60"
+          className="flex items-center gap-3 px-4 py-3.5 rounded-[28px] bg-white border border-gray-100 text-left pressable disabled:opacity-60 shadow-[0_10px_22px_rgba(15,23,42,0.05)]"
           type="button"
           role="switch"
           aria-checked={capsule.visibility === 'town'}
@@ -207,7 +198,7 @@ export default function VideoDetail() {
       <div className="grid grid-cols-2 gap-2.5">
         <button
           onClick={() => navigate(mapPath, { state: { placeId: capsule.placeId } })}
-          className="h-12 rounded-2xl btn-paper text-label-lg flex items-center justify-center gap-1.5 pressable"
+          className="h-12 rounded-full bg-white border border-gray-100 text-gray-700 text-label-lg flex items-center justify-center gap-1.5 pressable shadow-[0_10px_22px_rgba(15,23,42,0.05)]"
           type="button"
         >
           <span className="material-symbols-rounded text-[20px] text-gray-500">map</span> 지도에서 보기
@@ -216,7 +207,7 @@ export default function VideoDetail() {
           <button
             onClick={handleDelete}
             disabled={busy}
-            className="h-12 rounded-2xl bg-error-container text-on-error-container text-label-lg flex items-center justify-center gap-1.5 pressable disabled:opacity-50"
+            className="h-12 rounded-full bg-error-container text-on-error-container text-label-lg flex items-center justify-center gap-1.5 pressable disabled:opacity-50"
             type="button"
           >
             <span className="material-symbols-rounded text-[20px]">delete</span> 삭제
@@ -225,7 +216,7 @@ export default function VideoDetail() {
           <button
             onClick={handleUntag}
             disabled={busy}
-            className="h-12 rounded-2xl btn-paper text-label-lg flex items-center justify-center gap-1.5 pressable disabled:opacity-50"
+            className="h-12 rounded-full bg-white border border-gray-100 text-gray-700 text-label-lg flex items-center justify-center gap-1.5 pressable disabled:opacity-50 shadow-[0_10px_22px_rgba(15,23,42,0.05)]"
             type="button"
           >
             <span className="material-symbols-rounded text-[20px]">label_off</span> 내 태그 빼기

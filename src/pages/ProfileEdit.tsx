@@ -28,7 +28,7 @@ export default function ProfileEdit() {
         <p className="text-body-md text-on-surface-variant">프로필을 불러오지 못했어요. 잠시 후 다시 열어 주세요.</p>
       )}
 
-      <button onClick={handleSignOut} className="h-12 rounded-2xl btn-paper text-gray-600 text-label-lg pressable" type="button">
+      <button onClick={handleSignOut} className="h-12 rounded-full bg-white border border-gray-100 text-gray-600 text-label-lg pressable shadow-[0_10px_22px_rgba(15,23,42,0.05)]" type="button">
         로그아웃
       </button>
     </div>
@@ -74,7 +74,7 @@ function ProfileForm({ profile }: { profile: Profile }) {
     <form onSubmit={handleSubmit} className="flex flex-col gap-4 app-card p-5">
       {setup && (
         <div className="flex flex-col gap-1">
-          <h2 className="font-serif text-[22px] font-bold text-on-surface">아이디를 정해 주세요</h2>
+          <h2 className="text-headline-md text-on-surface">아이디를 정해 주세요</h2>
           <p className="text-body-md text-on-surface-variant">친구가 이 아이디로 나를 찾고 영상에 태그해요.</p>
         </div>
       )}
@@ -90,13 +90,13 @@ function ProfileForm({ profile }: { profile: Profile }) {
           value={displayName}
           onChange={(e) => setDisplayName(e.target.value)}
           maxLength={30}
-          className="h-14 px-4 rounded-2xl bg-surface border border-gray-200 outline-none focus:border-primary text-[16px] text-on-surface transition-colors"
+          className="h-14 px-4 rounded-full bg-white border border-gray-200 outline-none focus:border-primary text-[16px] text-on-surface transition-colors"
         />
       </label>
 
       <label className="flex flex-col gap-1.5">
         <span className="text-label-md text-on-surface-variant">아이디 (친구가 나를 찾고 태그할 때 써요)</span>
-        <div className="h-14 px-4 rounded-2xl bg-surface border border-gray-200 focus-within:border-primary flex items-center gap-1 transition-colors">
+        <div className="h-14 px-4 rounded-full bg-white border border-gray-200 focus-within:border-primary flex items-center gap-1 transition-colors">
           <span className="text-[16px] text-gray-400">@</span>
           <input
             value={username}
@@ -118,7 +118,7 @@ function ProfileForm({ profile }: { profile: Profile }) {
 
       <button
         disabled={!canSave}
-        className="h-14 rounded-2xl bg-sunset shadow-glow text-[17px] font-bold pressable"
+        className="h-14 rounded-full instagram-gradient text-white text-[17px] font-bold pressable disabled:bg-gray-200 disabled:text-gray-400"
         type="submit"
       >
         {saving ? '저장 중…' : setup ? '시작하기' : '저장'}

@@ -5,15 +5,13 @@
 @layer base {
   html {
     -webkit-text-size-adjust: 100%;
-    background-color: theme('colors.paper');
+    background:
+      radial-gradient(circle at top left, rgba(225, 48, 108, 0.14), transparent 34%),
+      radial-gradient(circle at top right, rgba(245, 133, 41, 0.12), transparent 28%),
+      linear-gradient(180deg, #fff7fb 0%, #f7f8fc 22%, #f8fafc 100%);
   }
   body {
-    @apply text-on-surface antialiased;
-    /* 따뜻한 종이색 바탕: 위쪽에 노을빛이 아주 옅게 번지고, 종이 결(노이즈)이 살짝 비친다 */
-    background:
-      radial-gradient(120% 420px at 50% -120px, rgba(255, 160, 110, 0.16), transparent 70%),
-      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .45 0 0 0 0 .32 0 0 0 0 .2 0 0 0 .05 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"),
-      theme('colors.paper');
+    @apply bg-surface text-on-surface antialiased;
     /* 한글은 단어 중간에서 줄바꿈하지 않는다 */
     word-break: keep-all;
     overflow-wrap: anywhere;
@@ -24,135 +22,26 @@
   button {
     -webkit-tap-highlight-color: transparent;
   }
-  ::selection {
-    background: theme('colors.primary-fixed-dim');
-  }
 }
 
 @layer components {
   .app-shell {
     @apply relative w-full min-h-screen text-on-surface;
+    background:
+      radial-gradient(circle at top, rgba(225, 48, 108, 0.08), transparent 24%),
+      linear-gradient(180deg, rgba(255, 255, 255, 0.76), rgba(255, 255, 255, 0.94));
   }
-  /* 머리줄·아래 탭: 종이색 반투명 + 흐림, 내용과는 머리카락 같은 선으로만 나눈다 */
   .app-surface {
-    background: rgba(250, 246, 241, 0.86);
-    -webkit-backdrop-filter: blur(14px) saturate(140%);
-    backdrop-filter: blur(14px) saturate(140%);
+    @apply bg-white/90 backdrop-blur-xl border border-white/70 shadow-[0_20px_50px_rgba(15,23,42,0.06)];
   }
-  /* 카드: 종이 위에 올려 둔 흰 인화지 */
   .app-card {
-    @apply bg-surface rounded-3xl shadow-card;
-    border: 1px solid rgba(120, 86, 52, 0.07);
+    @apply bg-white rounded-[28px] border border-gray-100 shadow-[0_18px_45px_rgba(15,23,42,0.08)];
   }
   .app-chip {
-    @apply inline-flex items-center gap-1 rounded-full bg-surface px-3 py-1.5 text-[12px] font-semibold text-gray-700;
-    border: 1px solid rgba(120, 86, 52, 0.1);
+    @apply inline-flex items-center gap-1 rounded-full border border-gray-200 bg-white px-3 py-1.5 text-[12px] font-semibold text-gray-700;
   }
-  /* 주요 버튼·강조 면: 해 질 녘 하늘처럼 왼쪽 위가 밝은 주황 → 진한 주황 */
-  .bg-sunset {
-    color: #fff;
-    background:
-      radial-gradient(130% 120% at 0% 0%, rgba(255, 168, 108, 0.9) 0%, rgba(255, 168, 108, 0) 55%),
-      linear-gradient(135deg, #f7663a 0%, #ee4f27 55%, #d9401d 100%);
-  }
-  .bg-sunset:disabled {
-    background: theme('colors.gray.200');
-    color: theme('colors.gray.400');
-    box-shadow: none;
-  }
-  /* 기억 카드(회상·다시 갈 곳·조르기): 노을이 비친 살구빛 종이 */
-  .bg-memory {
-    background:
-      radial-gradient(90% 120% at 100% 0%, rgba(255, 196, 160, 0.45), transparent 60%),
-      linear-gradient(160deg, #fff6ef 0%, #ffece0 100%);
-    border: 1px solid rgba(242, 85, 44, 0.1);
-  }
-  /* 보조 버튼: 흰 종이 + 얇은 갈색 선 */
-  .btn-paper {
-    @apply bg-surface text-gray-800;
-    border: 1px solid rgba(120, 86, 52, 0.14);
-    box-shadow: 0 1px 2px rgba(74, 44, 20, 0.05);
-  }
-  /* 폴라로이드: 흰 테두리, 아래 여백이 넓다 (사진 아래에 손글씨) */
-  .polaroid {
-    @apply bg-surface shadow-photo;
-    padding: 6px 6px 0;
-    border-radius: 6px;
-  }
-  .polaroid-photo {
-    position: relative;
-    overflow: hidden;
-    border-radius: 3px;
-    background: theme('colors.gray.200');
-  }
-  /* 사진 안쪽 테두리를 살짝 어둡게 (필름 사진의 비네팅) */
-  .polaroid-photo::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    box-shadow: inset 0 0 28px rgba(60, 30, 10, 0.18);
-  }
-  /* 필름 카메라가 사진 구석에 찍던 주황 날짜 ('26 10 08) */
-  .film-date {
-    font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
-    font-variant-numeric: tabular-nums;
-    font-weight: 700;
-    font-size: 12px;
-    line-height: 1;
-    letter-spacing: 0.08em;
-    color: #ffab5e;
-    text-shadow: 0 0 1px #ff7a2e, 0 0 6px rgba(255, 110, 40, 0.75);
-    opacity: 0.95;
-    white-space: nowrap;
-  }
-  /* 촬영 버튼 위의 뷰파인더 모서리 */
-  .viewfinder {
-    position: absolute;
-    inset: 14px;
-    pointer-events: none;
-    --c: rgba(255, 255, 255, 0.7);
-    --l: 18px;
-    background:
-      linear-gradient(var(--c), var(--c)) top left / var(--l) 2px,
-      linear-gradient(var(--c), var(--c)) top left / 2px var(--l),
-      linear-gradient(var(--c), var(--c)) top right / var(--l) 2px,
-      linear-gradient(var(--c), var(--c)) top right / 2px var(--l),
-      linear-gradient(var(--c), var(--c)) bottom left / var(--l) 2px,
-      linear-gradient(var(--c), var(--c)) bottom left / 2px var(--l),
-      linear-gradient(var(--c), var(--c)) bottom right / var(--l) 2px,
-      linear-gradient(var(--c), var(--c)) bottom right / 2px var(--l);
-    background-repeat: no-repeat;
-  }
-  /* 앱 이름: 형광펜으로 한 번 그은 듯한 주황 밑줄 */
-  .wordmark {
-    position: relative;
-    display: inline-block;
-    font-family: theme('fontFamily.hand');
-    line-height: 1;
-    z-index: 0;
-  }
-  .wordmark::after {
-    content: '';
-    position: absolute;
-    left: -2%;
-    right: -4%;
-    bottom: 8%;
-    height: 34%;
-    z-index: -1;
-    border-radius: 999px 6px 999px 8px;
-    background: rgba(242, 85, 44, 0.28);
-    transform: rotate(-2deg);
-  }
-  /* 작은 머리말 (회상 카드의 '한 달 전 오늘' 등) */
-  .eyebrow {
-    @apply text-label-sm font-bold text-primary;
-    letter-spacing: 0.04em;
-  }
-  /* 점선 구분선 (필름 가장자리·티켓 절취선) */
-  .dashed-rule {
-    height: 0;
-    border-top: 1.5px dashed theme('colors.gray.300');
+  .instagram-gradient {
+    background: linear-gradient(135deg, #f58529 0%, #dd2a7b 48%, #8134af 100%);
   }
 }
 
@@ -341,7 +230,7 @@
   line-height: 1.2;
   font-size: 11px;
   font-weight: 600;
-  text-shadow: 0 0 2px #fffdf9, 0 0 2px #fffdf9, 0 0 3px #fffdf9, 0 0 4px #fffdf9;
+  text-shadow: 0 0 2px #fff, 0 0 2px #fff, 0 0 3px #fff, 0 0 4px #fff;
 }
 .map-label .material-symbols-rounded {
   font-size: 13px;
@@ -371,7 +260,7 @@
   font-size: 12px;
   font-weight: 700;
   text-shadow: none;
-  box-shadow: 0 1px 6px rgba(74, 44, 20, 0.18);
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.14);
   transform: translate(-50%, calc(-100% - 4px));
 }
 .map-pill b {

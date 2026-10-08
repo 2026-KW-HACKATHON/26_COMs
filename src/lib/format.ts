@@ -5,12 +5,6 @@ export function formatDate(ts: number) {
   return `${d.getFullYear()}.${pad(d.getMonth() + 1)}.${pad(d.getDate())}`;
 }
 
-/** 필름 카메라 날짜 도장: '26 10 08 */
-export function formatFilmDate(ts: number) {
-  const d = new Date(ts);
-  return `'${String(d.getFullYear()).slice(2)} ${pad(d.getMonth() + 1)} ${pad(d.getDate())}`;
-}
-
 export function formatSeconds(sec: number) {
   const m = Math.floor(sec / 60);
   return `${m}:${(sec % 60).toFixed(1).padStart(4, '0')}`;

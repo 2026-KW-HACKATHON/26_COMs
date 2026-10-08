@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { Link, Navigate, useLocation, useSearchParams } from 'react-router-dom';
-import FilmDate from '../components/FilmDate';
 import { useAuth } from '../hooks/useAuth';
 import { SOCIAL_ENABLED } from '../lib/capsuleStore';
 import { isAutoUsername, isKakaoInAppBrowser, safeNextPath, signInWith, type LoginProvider } from '../lib/social';
@@ -38,33 +37,6 @@ function GoogleSymbol() {
       <path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2A12 12 0 0 1 24 36c-5.2 0-9.6-3.3-11.3-7.9l-6.5 5C9.5 39.6 16.2 44 24 44z" />
       <path fill="#1976D2" d="M43.6 20.1H42V20H24v8h11.3a12 12 0 0 1-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.6-.4-3.9z" />
     </svg>
-  );
-}
-
-const DAY = 86400000;
-
-/** 첫 화면 그림: 동네 가게에서 남긴 5초들이 폴라로이드로 겹쳐 놓여 있다 */
-const POLAROIDS = [
-  { emoji: '🍜', caption: '분식집', daysAgo: 30, photo: 'linear-gradient(160deg, #ffc9a3, #d9663f)', place: 'left-[6%] top-7 -rotate-[9deg]' },
-  { emoji: '☕', caption: '모퉁이 카페', daysAgo: 0, photo: 'linear-gradient(160deg, #f5d6b8, #9c5a3c)', place: 'left-1/2 top-0 -translate-x-1/2 rotate-[3deg] z-10' },
-  { emoji: '🍗', caption: '통닭집', daysAgo: 7, photo: 'linear-gradient(160deg, #ffe0a6, #e0873a)', place: 'right-[6%] top-9 rotate-[10deg]' },
-];
-
-function PolaroidCollage() {
-  // 그림의 날짜는 오늘을 기준으로 (한 달 전 · 오늘 · 일주일 전)
-  const [now] = useState(() => Date.now());
-  return (
-    <div className="relative w-full h-52" aria-hidden>
-      {POLAROIDS.map((p) => (
-        <div key={p.caption} className={`polaroid absolute w-[7.5rem] ${p.place}`}>
-          <div className="polaroid-photo aspect-[4/5] flex items-center justify-center text-[44px]" style={{ background: p.photo }}>
-            {p.emoji}
-            <FilmDate at={now - p.daysAgo * DAY} className="bottom-1.5 right-1.5 text-[9px]" />
-          </div>
-          <p className="font-hand text-[19px] leading-none text-center text-gray-700 pt-1.5 pb-2">{p.caption}</p>
-        </div>
-      ))}
-    </div>
   );
 }
 
@@ -116,11 +88,14 @@ export default function Login() {
 
   return (
     <div className="flex flex-col items-center w-full pt-8 pb-6 gap-8">
-      <div className="flex flex-col items-center text-center gap-4 w-full">
-        <PolaroidCollage />
-        <div className="flex flex-col items-center gap-2">
-          <h2 className="wordmark text-[64px] text-on-surface">왔다감</h2>
-          <p className="font-serif text-[19px] font-bold text-primary">동네 가게에 남기는 5초</p>
+      <div className="flex flex-col items-center text-center gap-4 w-full app-card px-6 py-8">
+        <div className="w-20 h-20 rounded-[24px] instagram-gradient flex items-center justify-center shadow-[0_16px_34px_rgba(225,48,108,0.28)]">
+          <img src="/pwa-192x192.png" alt="" className="w-14 h-14 rounded-[18px]" />
+        </div>
+        <div className="flex flex-col items-center gap-1">
+          <p className="text-[11px] font-semibold tracking-[0.22em] uppercase text-gray-500">Welcome back</p>
+          <h2 className="text-headline-lg text-on-surface">왔다감</h2>
+          <p className="text-label-lg font-bold text-primary">동네 가게에 남기는 5초</p>
         </div>
         <p className="text-body-md text-on-surface-variant leading-relaxed">
           로그인하면 가게에서 찍은 5초가 내 지도에 쌓이고,
@@ -133,7 +108,7 @@ export default function Login() {
         <button
           onClick={() => login('kakao')}
           disabled={busy}
-          className="relative h-14 rounded-2xl bg-[#FEE500] text-black/85 text-[16px] font-bold flex items-center justify-center gap-2 disabled:opacity-60 pressable"
+          className="relative h-14 rounded-full bg-[#FEE500] text-black/85 text-[16px] font-bold flex items-center justify-center gap-2 disabled:opacity-60 pressable shadow-[0_12px_24px_rgba(254,229,0,0.2)]"
           type="button"
         >
           <span className="absolute left-4">
@@ -144,7 +119,7 @@ export default function Login() {
         <button
           onClick={() => login('google')}
           disabled={busy || inKakaoTalk}
-          className="relative h-14 rounded-2xl btn-paper text-on-surface text-[16px] font-bold flex items-center justify-center gap-2 disabled:opacity-60 pressable"
+          className="relative h-14 rounded-full bg-white border border-gray-200 text-on-surface text-[16px] font-bold flex items-center justify-center gap-2 disabled:opacity-60 pressable shadow-[0_12px_24px_rgba(15,23,42,0.06)]"
           type="button"
         >
           <span className="absolute left-4">
