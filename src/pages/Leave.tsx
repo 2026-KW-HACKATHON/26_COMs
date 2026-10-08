@@ -107,16 +107,16 @@ export default function Leave() {
   }
 
   return (
-    <div className="flex flex-col w-full pb-8 pt-2 gap-4">
+    <div className="flex flex-col w-full pb-8">
       {/* 고른 가게 (누르면 지도로 돌아가 바꾼다) */}
-      <section className="pb-5">
-        <div className="app-card rounded-xl pl-4 pr-2 py-3 flex items-center gap-3">
-          <span className="w-10 h-10 shrink-0 rounded-full bg-gray-100 flex items-center justify-center text-[20px] border border-gray-100">{CATEGORY_EMOJI[place.category] ?? '📍'}</span>
+      <section className="py-3">
+        <div className="flex items-center gap-3">
+          <span className="w-6 shrink-0 text-center text-[20px]">{CATEGORY_EMOJI[place.category] ?? '📍'}</span>
           <div className="flex-1 flex flex-col min-w-0">
             <span className="text-label-lg text-on-surface font-bold truncate">{place.name}</span>
             <span className="text-label-sm text-on-surface-variant truncate">{[placeSubtitle(place), place.address].filter(Boolean).join(' · ')}</span>
           </div>
-          <button onClick={changePlace} className="h-9 shrink-0 px-3 rounded-md fill-neutral border border-gray-200 text-gray-700 text-label-md font-semibold pressable" type="button">
+          <button onClick={changePlace} className="h-10 shrink-0 px-3.5 rounded-lg fill-neutral text-gray-700 text-label-md font-semibold pressable" type="button">
             바꾸기
           </button>
         </div>
@@ -144,7 +144,7 @@ export default function Leave() {
         ) : (
           <button
             onClick={() => setRecorderOpen(true)}
-            className="h-40 rounded-xl fill-accent flex flex-col items-center justify-center gap-2 pressable text-white"
+            className="h-40 rounded-lg fill-accent flex flex-col items-center justify-center gap-2 pressable text-white"
             type="button"
           >
             <span className="w-14 h-14 rounded-full bg-white text-primary flex items-center justify-center">
@@ -196,7 +196,7 @@ export default function Leave() {
         <button
           onClick={handleLeave}
           disabled={!!missing || saving}
-          className="w-full h-14 rounded-lg fill-accent text-white text-[17px] font-bold flex items-center justify-center pressable disabled:bg-gray-200 disabled:text-gray-400"
+          className="w-full h-12 rounded-lg fill-accent text-white text-[16px] font-bold flex items-center justify-center pressable disabled:bg-gray-200 disabled:text-gray-400"
           type="button"
         >
           {saving ? '남기는 중…' : '남기기'}
@@ -230,7 +230,7 @@ function PickPlace({ pickId, onPick, onChoose }: { pickId: string | null; onPick
       </div>
 
       {picked ? (
-        <div className="absolute bottom-3 inset-x-3 z-10 surface-float rounded-xl p-5 shadow-sheet flex flex-col gap-4">
+        <div className="absolute bottom-0 inset-x-0 z-10 bg-white border-t border-gray-200 rounded-t-xl p-5 flex flex-col gap-4">
           <div className="flex items-start gap-3">
             <span className="w-11 h-11 shrink-0 rounded-full bg-surface-container flex items-center justify-center text-[22px]">
               {CATEGORY_EMOJI[picked.category] ?? '📍'}
@@ -265,7 +265,7 @@ function PickPlace({ pickId, onPick, onChoose }: { pickId: string | null; onPick
 
           <button
             onClick={() => onChoose(picked)}
-            className="h-14 rounded-lg fill-accent text-white text-[16px] font-bold flex items-center justify-center gap-1 pressable"
+            className="h-12 rounded-lg fill-accent text-white text-[16px] font-bold flex items-center justify-center gap-1 pressable"
             type="button"
           >
             이 가게에서 남기기
@@ -297,5 +297,5 @@ function StepTitle({ step, title }: { step: number; title: string }) {
 
 /** 토스식 굵은 구분선 (화면 끝까지) */
 function Divider() {
-  return <div className="h-2 -mx-5 bg-surface-container" />;
+  return <div className="bleed border-t border-gray-200" />;
 }

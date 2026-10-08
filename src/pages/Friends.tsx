@@ -8,8 +8,8 @@ import type { FriendStatus, ProfileWithStatus } from '../types/social';
 
 function PersonRow({ person, children }: { person: ProfileWithStatus; children: ReactNode }) {
   return (
-    <li className="flex items-center gap-3 py-3">
-      <Avatar profile={person} size={44} />
+    <li className="row-x flex items-center gap-3 py-3">
+      <Avatar profile={person} size={40} />
       <div className="flex-1 min-w-0">
         <p className="text-label-lg text-on-surface font-bold truncate">{person.displayName}</p>
         <p className="text-label-sm text-on-surface-variant truncate">@{person.username}</p>
@@ -149,7 +149,7 @@ export default function Friends() {
   return (
     <div className="flex flex-col w-full pb-8 pt-3 gap-5">
       {profile && (
-        <div className="flex items-center gap-3 px-4 py-3 rounded-xl app-card">
+        <div className="flex items-center gap-3 py-3 border-b border-gray-200">
           <span className="material-symbols-rounded text-gray-500 text-[22px]">badge</span>
           <div className="flex-1 min-w-0">
             <p className="text-label-sm text-on-surface-variant">내 아이디 (친구에게 알려 주세요)</p>
@@ -167,7 +167,7 @@ export default function Friends() {
       )}
 
       <section className="flex flex-col gap-2">
-        <div className="flex items-center gap-2 px-4 h-12 rounded-lg surface border border-gray-200">
+        <div className="flex items-center gap-2 px-3 h-11 rounded-lg bg-gray-100">
           <span className="material-symbols-rounded text-[22px] text-gray-400">search</span>
           <input
             value={query}
@@ -188,7 +188,7 @@ export default function Friends() {
           ) : shownResults.length === 0 ? (
             <p className="px-1 text-label-md text-on-surface-variant">찾는 사람이 없어요. 아이디를 다시 확인해 주세요.</p>
           ) : (
-            <ul className="px-1 divide-y divide-gray-100 surface border border-gray-200 rounded-xl overflow-hidden">
+            <ul className="bleed divide-y divide-gray-200 border-y border-gray-200">
               {shownResults.map((p) => (
                 <PersonRow key={p.id} person={p}>{actions(p)}</PersonRow>
               ))}
@@ -206,8 +206,8 @@ export default function Friends() {
         <>
           {incoming.length > 0 && (
             <section>
-              <h2 className="text-headline-sm text-on-surface">받은 요청 {incoming.length}</h2>
-              <ul className="divide-y divide-gray-100 surface border border-gray-200 rounded-xl overflow-hidden">
+              <h2 className="text-label-lg font-bold text-on-surface">받은 요청 {incoming.length}</h2>
+              <ul className="mt-2 bleed divide-y divide-gray-200 border-y border-gray-200">
                 {incoming.map((p) => (
                   <PersonRow key={p.id} person={p}>{actions(p)}</PersonRow>
                 ))}
@@ -216,11 +216,11 @@ export default function Friends() {
           )}
 
           <section>
-            <h2 className="text-headline-sm text-on-surface">친구 {friends.length}</h2>
+            <h2 className="text-label-lg font-bold text-on-surface">친구 {friends.length}</h2>
             {friends.length === 0 ? (
               <p className="mt-2 text-label-md text-on-surface-variant">친구를 추가하면 서로의 지도를 보고, 영상에 태그할 수 있어요.</p>
             ) : (
-              <ul className="divide-y divide-gray-100 surface border border-gray-200 rounded-xl overflow-hidden">
+              <ul className="mt-2 bleed divide-y divide-gray-200 border-y border-gray-200">
                 {friends.map((p) => (
                   <PersonRow key={p.id} person={p}>{actions(p)}</PersonRow>
                 ))}
@@ -230,8 +230,8 @@ export default function Friends() {
 
           {outgoing.length > 0 && (
             <section>
-              <h2 className="text-headline-sm text-on-surface">보낸 요청 {outgoing.length}</h2>
-              <ul className="divide-y divide-gray-100 surface border border-gray-200 rounded-xl overflow-hidden">
+              <h2 className="text-label-lg font-bold text-on-surface">보낸 요청 {outgoing.length}</h2>
+              <ul className="mt-2 bleed divide-y divide-gray-200 border-y border-gray-200">
                 {outgoing.map((p) => (
                   <PersonRow key={p.id} person={p}>{actions(p)}</PersonRow>
                 ))}

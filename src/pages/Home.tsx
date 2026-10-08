@@ -123,7 +123,7 @@ export default function Home() {
         : '가 본 가게를 눌러 5초를 남겨 보세요';
 
   return (
-    <div className="map-stage">
+    <div className="map-stage" data-bottom-bar={!selected && featured ? '' : undefined}>
       <PlaceMap
         selectedId={selectedId}
         onSelect={(p) => setSelectedId(p.id)}
@@ -148,7 +148,7 @@ export default function Home() {
       </div>
 
       {selected ? (
-        <div className="absolute bottom-3 inset-x-3 z-10 surface-float rounded-xl p-5 shadow-sheet flex flex-col gap-4">
+        <div className="absolute bottom-0 inset-x-0 z-10 bg-white border-t border-gray-200 rounded-t-xl p-5 flex flex-col gap-4">
           <div className="flex items-start gap-3">
             <span className="w-11 h-11 shrink-0 rounded-full bg-surface-container flex items-center justify-center text-[22px]">
               {CATEGORY_EMOJI[selected.category] ?? '📍'}
@@ -239,16 +239,16 @@ export default function Home() {
           </button>
         </div>
       ) : (
-        <div className="absolute bottom-7 inset-x-3 z-10 flex flex-col items-center gap-2 pointer-events-none">
-          <span className="px-4 py-2 rounded-lg surface-float text-gray-800 text-label-md font-semibold">{hint}</span>
+        <div className="absolute bottom-0 inset-x-0 z-10 flex flex-col items-center pointer-events-none">
+          <span className={`px-3.5 py-2 rounded-lg surface-float text-gray-800 text-label-md font-semibold mb-7`}>{hint}</span>
           {/* 동네 랭킹 1~3위를 돌아가며 보여 주고, 누르면 전체 랭킹 */}
           {featured && (
             <button
               onClick={() => navigate('/ranking')}
-              className="pointer-events-auto w-full h-16 pl-3 pr-2 rounded-lg surface-float shadow-sheet flex items-center gap-3 text-left pressable"
+              className="pointer-events-auto w-full h-14 px-4 bg-white border-t border-gray-200 flex items-center gap-3 text-left active:bg-gray-50"
               type="button"
             >
-              <span className="w-10 h-10 shrink-0 rounded-full bg-primary-fixed flex items-center justify-center text-[20px]">🏆</span>
+              <span className="shrink-0 text-[20px]">🏆</span>
               <span className="flex-1 min-w-0">
                 <span className="block text-label-sm text-on-surface-variant">동네 랭킹 · {PERIOD_LABEL}</span>
                 <span key={featured.placeId} className="block text-label-lg font-bold text-on-surface truncate ticker-in">

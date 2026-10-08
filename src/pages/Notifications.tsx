@@ -44,34 +44,34 @@ export default function Notifications() {
   }, [me, latest, refresh]);
 
   return (
-    <div className="flex flex-col w-full pb-8 pt-3 gap-4">
+    <div className="flex flex-col w-full pb-8">
+      <div className="bleed">
       <PushCard />
 
       {failed && !list ? (
-        <p className="py-10 text-center text-body-md text-on-surface-variant">알림을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.</p>
+        <p className="row-x py-10 text-center text-body-md text-on-surface-variant">알림을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.</p>
       ) : !list ? null : list.length === 0 ? (
-        <div className="flex flex-col items-center text-center py-14 px-6 app-card text-on-surface-variant">
-          <div className="w-16 h-16 rounded-full fill-tint flex items-center justify-center text-primary">
-            <span className="material-symbols-rounded text-[34px] icon-fill">notifications</span>
-          </div>
+        <div className="row-x flex flex-col items-center text-center py-14 text-on-surface-variant border-b border-gray-200">
+          <span className="material-symbols-rounded text-[28px] text-gray-400">notifications</span>
           <p className="mt-2 text-body-md text-on-surface">아직 받은 알림이 없어요</p>
           <p className="mt-1 text-label-md">같이 간 친구가 "또 가자"고 조르면 여기에 떠요.</p>
           <p className="text-label-md">나도 영상 화면에서 같이 간 친구를 조를 수 있어요.</p>
         </div>
       ) : (
-        <ul className="flex flex-col divide-y divide-gray-100 surface border border-gray-200 rounded-xl overflow-hidden">
+        <ul className="flex flex-col divide-y divide-gray-200 border-b border-gray-200">
           {list.map((n) => (
             <NudgeItem key={n.id} nudge={n} onOpen={() => n.capsuleId && navigate(`/video/${n.capsuleId}`)} />
           ))}
         </ul>
       )}
+      </div>
     </div>
   );
 }
 
 function NudgeItem({ nudge: n, onOpen }: { nudge: Nudge; onOpen: () => void }) {
   return (
-    <li className="flex items-center gap-2 py-3 px-4">
+    <li className="row-x flex items-center gap-2 py-3">
       <button onClick={onOpen} disabled={!n.capsuleId} className="flex-1 min-w-0 flex items-center gap-3 text-left" type="button">
         <span className="relative shrink-0">
           <Avatar profile={n.sender} size={44} />
@@ -127,7 +127,7 @@ function PushCard() {
 
   if (state === 'on') {
     return (
-      <div className="flex items-center gap-2 h-11 pl-3 pr-1.5 rounded-lg surface border border-gray-200">
+      <div className="row-x flex items-center gap-2 h-12 border-b border-gray-200 bg-gray-50">
         <span className="material-symbols-rounded icon-fill text-[20px] text-primary">notifications_active</span>
         <span className="flex-1 text-label-md text-gray-700">이 기기에서 폰 알림을 받고 있어요</span>
         <button onClick={() => toggle(false)} disabled={busy} className="h-8 px-3 rounded-md text-label-md font-semibold text-gray-500 bg-gray-100 pressable disabled:opacity-50" type="button">
@@ -145,8 +145,8 @@ function PushCard() {
   const { title, body } = copy[state];
 
   return (
-    <div className="flex items-center gap-3 p-4 rounded-xl surface border border-gray-200">
-      <span className="material-symbols-rounded icon-fill text-[28px] text-primary shrink-0">
+    <div className="row-x flex items-center gap-3 py-3.5 border-b border-gray-200 bg-gray-50">
+      <span className="material-symbols-rounded icon-fill text-[24px] text-primary shrink-0">
         {state === 'off' ? 'notifications_active' : state === 'denied' ? 'notifications_off' : 'add_to_home_screen'}
       </span>
       <div className="flex-1 min-w-0">
