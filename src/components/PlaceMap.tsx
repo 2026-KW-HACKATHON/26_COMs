@@ -47,11 +47,11 @@ function heatLevel(count: number) {
 
 /** 단계별 빛 번짐: 흐림 반경(px)과 진하기 */
 const GLOW = [
-  { blur: 5, alpha: 0.35 },
-  { blur: 8, alpha: 0.45 },
-  { blur: 11, alpha: 0.55 },
-  { blur: 15, alpha: 0.65 },
-  { blur: 20, alpha: 0.75 },
+  { blur: 5, alpha: 0.2 },
+  { blur: 8, alpha: 0.26 },
+  { blur: 11, alpha: 0.32 },
+  { blur: 15, alpha: 0.38 },
+  { blur: 20, alpha: 0.44 },
 ];
 
 /** 테두리는 얇게(고해상도 화면에서 1픽셀 남짓), 색은 단계별로 채운다 */
@@ -59,7 +59,7 @@ function storeStyle(count: number, selected: boolean): L.PathOptions {
   const base: L.PathOptions = count
     ? { fillColor: MAP_COLORS.heat[heatLevel(count)], fillOpacity: 1, color: MAP_COLORS.heatStroke, opacity: 0.3, weight: 0.6 }
     : { fillColor: MAP_COLORS.store, fillOpacity: 1, color: MAP_COLORS.storeStroke, opacity: 1, weight: 0.6 };
-  return selected ? { ...base, color: MAP_COLORS.selected, opacity: 1, weight: 2, ...(count ? {} : { fillColor: '#B0B8C1' }) } : base;
+  return selected ? { ...base, color: MAP_COLORS.selected, opacity: 1, weight: 2, ...(count ? {} : { fillColor: '#C3C9DC' }) } : base;
 }
 
 interface GlowOptions extends L.PathOptions {

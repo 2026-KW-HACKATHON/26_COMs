@@ -46,13 +46,13 @@ export default function Ranking() {
         <p className="mt-1 text-body-sm text-on-surface-variant">5초를 남긴 방문이 많은 순서예요. 다시 찾아갈수록 순위가 올라가요.</p>
       </section>
 
-      <div className="flex p-1 rounded-full bg-white border border-gray-100 shadow-[0_10px_24px_rgba(15,23,42,0.06)]" role="tablist" aria-label="기간">
+      <div className="flex p-1 rounded-full glass border border-white/80 shadow-[0_10px_24px_rgba(90,100,160,0.04)]" role="tablist" aria-label="기간">
         {RANKING_PERIODS.map((p) => (
           <button
             key={p.label}
             onClick={() => setDays(p.days)}
             className={`flex-1 h-10 rounded-full text-label-md font-semibold transition-all ${
-              days === p.days ? 'bg-white text-on-surface shadow-[0_8px_22px_rgba(15,23,42,0.08)]' : 'text-gray-500'
+              days === p.days ? 'silver-gradient text-on-surface shadow-[0_6px_16px_rgba(90,100,160,0.05)]' : 'text-gray-500'
             }`}
             type="button"
             role="tab"
@@ -78,7 +78,7 @@ export default function Ranking() {
         </ul>
       ) : ranking.length === 0 ? (
         <div className="mt-2 flex flex-col items-center text-center py-14 px-6 app-card text-on-surface-variant">
-          <div className="w-16 h-16 rounded-full instagram-gradient flex items-center justify-center text-white shadow-[0_16px_30px_rgba(225,48,108,0.24)]">
+          <div className="w-16 h-16 rounded-full pastel-gradient flex items-center justify-center text-primary">
             <span className="text-[30px]">🏆</span>
           </div>
           <p className="mt-2 text-body-md">
@@ -109,7 +109,7 @@ export default function Ranking() {
                     <span className="text-label-sm font-semibold"> 번</span>
                   </span>
                   {r.regulars > 0 && (
-                    <span className="mt-0.5 px-1.5 rounded-full instagram-gradient text-white text-[11px] font-bold leading-[18px]">단골 {r.regulars}명</span>
+                    <span className="mt-0.5 px-1.5 rounded-full pastel-gradient text-primary text-[11px] font-bold leading-[18px]">단골 {r.regulars}명</span>
                   )}
                 </span>
               </button>
@@ -124,11 +124,11 @@ export default function Ranking() {
       </p>
 
       <div className="mt-2 grid grid-cols-2 gap-2">
-        <button onClick={share} className="h-12 rounded-full bg-white border border-gray-100 text-gray-700 text-label-lg flex items-center justify-center gap-1.5 pressable shadow-[0_10px_22px_rgba(15,23,42,0.05)]" type="button">
+        <button onClick={share} className="h-12 rounded-full silver-gradient border border-gray-200/80 text-gray-700 text-label-lg flex items-center justify-center gap-1.5 pressable shadow-[0_10px_22px_rgba(90,100,160,0.04)]" type="button">
           <span className="material-symbols-rounded text-[20px] text-gray-500">ios_share</span>
           랭킹 공유하기
         </button>
-        <button onClick={() => navigate('/leave')} className="h-12 rounded-full instagram-gradient text-white text-label-lg font-bold flex items-center justify-center gap-1.5 pressable shadow-[0_12px_24px_rgba(225,48,108,0.26)]" type="button">
+        <button onClick={() => navigate('/leave')} className="h-12 rounded-full accent-gradient text-white text-label-lg font-bold flex items-center justify-center gap-1.5 pressable" type="button">
           <span className="material-symbols-rounded text-[20px]">videocam</span>
           5초 남기기
         </button>

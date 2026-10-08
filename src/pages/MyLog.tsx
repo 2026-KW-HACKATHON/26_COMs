@@ -68,7 +68,7 @@ export default function MyLog() {
           <div className="grid grid-cols-2 gap-2">
             <button
               onClick={() => navigate('/friends')}
-              className="relative h-12 rounded-full bg-white text-gray-700 text-label-lg flex items-center justify-center gap-1.5 pressable border border-gray-100 shadow-[0_10px_22px_rgba(15,23,42,0.05)]"
+              className="relative h-12 rounded-full silver-gradient text-gray-700 text-label-lg flex items-center justify-center gap-1.5 pressable border border-gray-200/80 shadow-[0_10px_22px_rgba(90,100,160,0.04)]"
               type="button"
             >
               <span className="material-symbols-rounded text-[20px] text-gray-500">group</span>
@@ -81,7 +81,7 @@ export default function MyLog() {
             </button>
             <button
               onClick={() => navigate('/profile')}
-              className="h-12 rounded-full bg-white text-gray-700 text-label-lg flex items-center justify-center gap-1.5 pressable border border-gray-100 shadow-[0_10px_22px_rgba(15,23,42,0.05)]"
+              className="h-12 rounded-full silver-gradient text-gray-700 text-label-lg flex items-center justify-center gap-1.5 pressable border border-gray-200/80 shadow-[0_10px_22px_rgba(90,100,160,0.04)]"
               type="button"
             >
               <span className="material-symbols-rounded text-[20px] text-gray-500">edit</span>
@@ -91,7 +91,7 @@ export default function MyLog() {
           <div>
             <MyTownCard capsules={capsules} />
           </div>
-          <div className="flex rounded-full bg-white p-1 border border-gray-100 shadow-[0_10px_22px_rgba(15,23,42,0.05)]">
+          <div className="flex rounded-full glass p-1 border border-white/80 shadow-[0_10px_22px_rgba(90,100,160,0.04)]">
             {tabButton('mine', '내 영상', mine.length)}
             {tabButton('tagged', '태그된 영상', tagged.length)}
           </div>
@@ -109,12 +109,12 @@ export default function MyLog() {
 
       {shown.length === 0 ? (
         <div className="flex flex-col items-center text-center py-14 px-6 app-card text-on-surface-variant">
-          <div className="w-16 h-16 rounded-full instagram-gradient flex items-center justify-center text-white shadow-[0_16px_30px_rgba(225,48,108,0.24)]">
+          <div className="w-16 h-16 rounded-full pastel-gradient flex items-center justify-center text-primary">
             <span className="material-symbols-rounded text-[34px] icon-fill">{tab === 'mine' ? 'videocam' : 'sell'}</span>
           </div>
           <p className="mt-2 text-body-md">{tab === 'mine' ? '아직 남긴 영상이 없어요.' : '친구가 나를 태그한 영상이 여기에 모여요.'}</p>
           {tab === 'mine' && (
-            <button onClick={() => navigate('/leave')} className="mt-5 h-12 px-6 rounded-full instagram-gradient text-white text-label-lg font-bold pressable shadow-[0_12px_24px_rgba(225,48,108,0.26)]" type="button">
+            <button onClick={() => navigate('/leave')} className="mt-5 h-12 px-6 rounded-full accent-gradient text-white text-label-lg font-bold pressable" type="button">
               첫 5초 남기기
             </button>
           )}
@@ -137,14 +137,14 @@ export default function MyLog() {
 function CapsuleCard({ capsule: c, showAuthor, onOpen }: { capsule: Capsule; showAuthor: boolean; onOpen: () => void }) {
   return (
     <button onClick={onOpen} className="flex flex-col text-left pressable" type="button">
-      <div className="relative w-full aspect-[3/4] rounded-[24px] overflow-hidden bg-white shadow-[0_12px_30px_rgba(15,23,42,0.08)] border border-gray-100">
+      <div className="relative w-full aspect-[3/4] rounded-[24px] overflow-hidden bg-white shadow-[0_12px_30px_rgba(90,100,160,0.06)] border border-gray-100">
         <CapsuleThumb thumbnail={c.thumbnail} />
-        <span className="absolute bottom-2 right-2 px-1.5 py-0.5 rounded-full bg-black/50 text-white text-[11px] flex items-center gap-0.5">
+        <span className="absolute bottom-2 right-2 px-1.5 py-0.5 rounded-full bg-white/80 backdrop-blur-sm text-gray-800 text-[11px] font-semibold flex items-center gap-0.5">
           <span className="material-symbols-rounded text-[12px]">play_arrow</span>
           {Math.round(c.clipDuration)}초
         </span>
         {c.tags.length > 0 && (
-          <span className="absolute bottom-2 left-2 px-1.5 py-0.5 rounded-full bg-black/50 text-white text-[11px] flex items-center gap-0.5">
+          <span className="absolute bottom-2 left-2 px-1.5 py-0.5 rounded-full bg-white/80 backdrop-blur-sm text-gray-800 text-[11px] font-semibold flex items-center gap-0.5">
             <span className="material-symbols-rounded text-[12px]">group</span>
             {c.tags.length}
           </span>

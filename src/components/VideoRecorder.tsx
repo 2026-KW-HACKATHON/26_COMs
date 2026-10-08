@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
 import { CLIP_SECONDS } from '../types/capsule';
-import { BRAND } from '../lib/theme';
 import { captureFrame, pickRecorderMimeType } from '../lib/video';
 
 interface VideoRecorderProps {
@@ -196,7 +195,7 @@ export default function VideoRecorder({ onRecorded, onClose }: VideoRecorderProp
           <span className="material-symbols-rounded text-[24px]">close</span>
         </button>
         <div className="px-3 py-1.5 rounded-full bg-black/40 backdrop-blur text-label-md flex items-center gap-1.5">
-          {recording && <span className="w-2 h-2 rounded-full bg-error animate-pulse" />}
+          {recording && <span className="w-2 h-2 rounded-full bg-[#F07C86] animate-pulse" />}
           {recording ? `${elapsed.toFixed(1)} / ${CLIP_SECONDS}.0초` : `최대 ${CLIP_SECONDS}초`}
         </div>
         <button
@@ -239,14 +238,14 @@ export default function VideoRecorder({ onRecorded, onClose }: VideoRecorderProp
                 cy="40"
                 r={RING_RADIUS}
                 fill="none"
-                stroke={BRAND}
+                stroke="#C9BFEE"
                 strokeWidth="5"
                 strokeLinecap="round"
                 strokeDasharray={RING_LENGTH}
                 strokeDashoffset={RING_LENGTH * (1 - elapsed / CLIP_SECONDS)}
               />
             </svg>
-            <span className={`bg-primary transition-all ${recording ? 'w-7 h-7 rounded-md' : 'w-14 h-14 rounded-full'}`} />
+            <span className={`silver-gradient shadow-[0_2px_10px_rgba(90,100,160,0.26)] transition-all ${recording ? 'w-7 h-7 rounded-md' : 'w-14 h-14 rounded-full'}`} />
           </button>
         </div>
       )}

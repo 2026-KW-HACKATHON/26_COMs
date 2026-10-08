@@ -1,25 +1,27 @@
 /** @type {import('tailwindcss').Config} */
 
-// 토스처럼 무채색 회색 단계 + 강조색 하나. 강조색을 바꾸려면 BRAND만 고치면 된다.
-// (지도 색은 src/lib/theme.ts에서 같은 값을 쓴다)
+// 부드러운 화이트 글라스 테마: 채도를 낮춘 푸른 회색 단계 + 차분한 페리윙클·라벤더 강조.
+// (지도 색은 src/lib/theme.ts, 그라데이션·유리 효과는 src/index.css에서 같은 값을 쓴다)
 const GRAY = {
-  50: '#F9FAFB',
-  100: '#F2F4F6',
-  200: '#E5E8EB',
-  300: '#D1D6DB',
-  400: '#B0B8C1',
-  500: '#8B95A1',
-  600: '#6B7684',
-  700: '#4E5968',
-  800: '#333D4B',
-  900: '#191F28',
+  50: '#F9FAFD',
+  100: '#F3F5FA',
+  200: '#E6E9F2',
+  300: '#D3D8E4',
+  400: '#A3AABB',
+  500: '#636C85',
+  600: '#525B72',
+  700: '#3E465C',
+  800: '#2C3346',
+  900: '#1F2537',
 };
+// 강조 = 차분한 페리윙클(흰 글씨 대비 4.9:1), 보조 강조 = 옅은 라벤더. 연한 강조 = 파스텔
 const BRAND = {
-  main: '#F2552C',
-  strong: '#D9430F',
-  weak: '#FFF1EC',
-  weaker: '#FFE2D7',
-  onWeak: '#C2400F',
+  main: '#5E68C4',
+  strong: '#4E57A8',
+  lavender: '#7A68C2',
+  weak: '#F0F2FB',
+  weaker: '#E4E7F7',
+  onWeak: '#4E56A8',
 };
 
 module.exports = {
@@ -37,7 +39,7 @@ module.exports = {
         'primary-fixed': BRAND.weak,
         'primary-fixed-dim': BRAND.weaker,
         'on-primary-fixed': BRAND.onWeak,
-        secondary: GRAY[600],
+        secondary: BRAND.lavender,
         'secondary-container': BRAND.weak,
 
         background: '#FFFFFF',
@@ -55,13 +57,14 @@ module.exports = {
         'on-surface-variant': GRAY[600],
         outline: GRAY[500],
         'outline-variant': GRAY[200],
-        'inverse-surface': GRAY[800],
+        // 선택된 칩·단계 번호 등
+        'inverse-surface': BRAND.main,
         'inverse-on-surface': '#FFFFFF',
 
-        error: '#F04452',
+        error: '#C2525D',
         'on-error': '#FFFFFF',
-        'error-container': '#FFEEEF',
-        'on-error-container': '#C9303D',
+        'error-container': '#FBF0F1',
+        'on-error-container': '#A8434D',
       },
       spacing: {
         'space-xs': '0.25rem',
@@ -105,8 +108,8 @@ module.exports = {
       },
       boxShadow: {
         // 지도 위에 뜨는 요소만 은은한 그림자를 쓴다
-        float: '0 2px 12px rgba(0, 0, 0, 0.08)',
-        sheet: '0 -2px 20px rgba(0, 0, 0, 0.06), 0 8px 24px rgba(0, 0, 0, 0.08)',
+        float: '0 1px 4px rgba(70, 80, 130, 0.05), 0 8px 24px rgba(90, 100, 160, 0.08)',
+        sheet: '0 -2px 20px rgba(90, 100, 160, 0.06), 0 12px 32px rgba(70, 80, 130, 0.09)',
       },
     },
   },

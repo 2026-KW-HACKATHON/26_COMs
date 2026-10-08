@@ -11,7 +11,7 @@ export default function PlaceSearch({ onPick }: PlaceSearchProps) {
   const results = q ? PLACES.filter((p) => p.name.includes(q) || placeSubtitle(p).includes(q)).slice(0, 6) : [];
 
   return (
-    <div className="bg-surface rounded-2xl shadow-float overflow-hidden">
+    <div className="glass-panel rounded-2xl shadow-float overflow-hidden">
       <div className="flex items-center gap-2 px-4 h-12">
         <span className="material-symbols-rounded text-[22px] text-gray-400">search</span>
         <input

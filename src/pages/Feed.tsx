@@ -91,13 +91,13 @@ export default function Feed() {
   return (
     <div className="flex flex-col w-full pt-3 pb-8 gap-4">
       {SOCIAL_ENABLED && (
-        <div className="flex p-1 rounded-full bg-white/90 border border-gray-100 shadow-[0_10px_26px_rgba(15,23,42,0.06)]" role="tablist" aria-label="피드">
+        <div className="flex p-1 rounded-full glass border border-white/80 shadow-[0_10px_26px_rgba(90,100,160,0.04)]" role="tablist" aria-label="피드">
           {SCOPES.map((s) => (
             <button
               key={s.value}
               onClick={() => selectScope(s.value)}
               className={`flex-1 h-10 rounded-full text-label-md font-semibold transition-all ${
-                scope === s.value ? 'bg-white text-on-surface shadow-[0_8px_22px_rgba(15,23,42,0.08)]' : 'text-gray-500'
+                scope === s.value ? 'silver-gradient text-on-surface shadow-[0_6px_16px_rgba(90,100,160,0.05)]' : 'text-gray-500'
               }`}
               type="button"
               role="tab"
@@ -223,14 +223,14 @@ function EmptyFeed({ scope, noFriends, onTown }: { scope: Scope; noFriends: bool
   const hint = town ? "영상을 남길 때 '동네 모두'를 고르면 여기에 떠요." : findFriends ? '같은 동네 친구를 찾아 보세요.' : '가게에서 5초를 남기면 친구들 피드에 떠요.';
   return (
     <div className="flex flex-col items-center text-center py-14 px-6 app-card text-on-surface-variant">
-      <div className="w-16 h-16 rounded-full instagram-gradient flex items-center justify-center text-white shadow-[0_16px_30px_rgba(225,48,108,0.24)]">
+      <div className="w-16 h-16 rounded-full pastel-gradient flex items-center justify-center text-primary">
         <span className="material-symbols-rounded text-[34px] icon-fill">{town ? 'location_city' : findFriends ? 'group_add' : 'dynamic_feed'}</span>
       </div>
       <p className="mt-2 text-body-md text-on-surface">{title}</p>
       <p className="mt-1 text-label-md">{hint}</p>
       <button
         onClick={() => navigate(findFriends ? '/friends' : '/leave')}
-        className="mt-5 h-12 px-6 rounded-full instagram-gradient text-white text-label-lg font-bold pressable shadow-[0_12px_24px_rgba(225,48,108,0.26)]"
+        className="mt-5 h-12 px-6 rounded-full accent-gradient text-white text-label-lg font-bold pressable"
         type="button"
       >
         {findFriends ? '친구 찾기' : '5초 남기기'}

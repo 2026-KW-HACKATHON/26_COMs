@@ -41,11 +41,11 @@ export default function RecallCard() {
   };
 
   return (
-    <section className="relative mb-5 p-3 rounded-[28px] bg-white border border-gray-100 shadow-[0_18px_40px_rgba(15,23,42,0.08)] flex gap-3">
+    <section className="relative mb-5 p-3 rounded-[28px] glass border border-white/80 shadow-[0_18px_40px_rgba(90,100,160,0.06)] flex gap-3">
       <button onClick={() => navigate(`/video/${c.id}`)} className="relative w-20 h-[6.5rem] shrink-0 rounded-[20px] overflow-hidden bg-gray-100 pressable" type="button" aria-label="영상 보기">
         <CapsuleThumb thumbnail={c.thumbnail} />
         <span className="absolute inset-0 flex items-center justify-center bg-black/15 text-white">
-          <span className="material-symbols-rounded icon-fill text-[28px]">play_arrow</span>
+          <span className="media-play material-symbols-rounded icon-fill text-[28px]">play_arrow</span>
         </span>
       </button>
       <div className="flex-1 min-w-0 flex flex-col py-0.5">
@@ -58,7 +58,7 @@ export default function RecallCard() {
           </button>
           <button
             onClick={() => navigate(`/leave?place=${encodeURIComponent(c.placeId)}`)}
-            className="h-9 px-3 rounded-full instagram-gradient text-white text-label-md font-bold pressable"
+            className="h-9 px-3 rounded-full accent-gradient text-white text-label-md font-bold pressable"
             type="button"
           >
             또 가서 남기기

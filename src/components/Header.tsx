@@ -40,7 +40,7 @@ export default function Header({ currentPath, goBack }: HeaderProps) {
         ) : (
           <>
             <div className="flex items-center gap-3 min-w-0">
-              <div className="w-10 h-10 rounded-full instagram-gradient flex items-center justify-center text-white shadow-[0_10px_24px_rgba(225,48,108,0.28)]">
+              <div className="w-10 h-10 rounded-full accent-gradient flex items-center justify-center text-white">
                 <span className="material-symbols-rounded text-[22px] icon-fill">camera_alt</span>
               </div>
               <div className="min-w-0">

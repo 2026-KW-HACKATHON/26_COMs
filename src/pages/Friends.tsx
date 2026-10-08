@@ -19,8 +19,8 @@ function PersonRow({ person, children }: { person: ProfileWithStatus; children: 
   );
 }
 
-const primaryButton = 'h-9 px-3.5 rounded-full instagram-gradient text-white text-label-md font-bold pressable disabled:opacity-50 shadow-[0_10px_20px_rgba(225,48,108,0.18)]';
-const secondaryButton = 'h-9 px-3.5 rounded-full bg-white border border-gray-200 text-gray-700 text-label-md font-semibold pressable disabled:opacity-50';
+const primaryButton = 'h-9 px-3.5 rounded-full accent-gradient text-white text-label-md font-bold pressable disabled:opacity-50';
+const secondaryButton = 'h-9 px-3.5 rounded-full silver-gradient border border-gray-200 text-gray-700 text-label-md font-semibold pressable disabled:opacity-50';
 
 export default function Friends() {
   const navigate = useNavigate();
@@ -167,7 +167,7 @@ export default function Friends() {
       )}
 
       <section className="flex flex-col gap-2">
-        <div className="flex items-center gap-2 px-4 h-12 rounded-full bg-white border border-gray-100 shadow-[0_10px_22px_rgba(15,23,42,0.05)]">
+        <div className="flex items-center gap-2 px-4 h-12 rounded-full glass border border-white/80 shadow-[0_10px_22px_rgba(90,100,160,0.04)]">
           <span className="material-symbols-rounded text-[22px] text-gray-400">search</span>
           <input
             value={query}
@@ -188,7 +188,7 @@ export default function Friends() {
           ) : shownResults.length === 0 ? (
             <p className="px-1 text-label-md text-on-surface-variant">찾는 사람이 없어요. 아이디를 다시 확인해 주세요.</p>
           ) : (
-            <ul className="px-1 divide-y divide-gray-100 bg-white border border-gray-100 rounded-[28px] overflow-hidden">
+            <ul className="px-1 divide-y divide-gray-100 glass border border-white/80 rounded-[28px] overflow-hidden">
               {shownResults.map((p) => (
                 <PersonRow key={p.id} person={p}>{actions(p)}</PersonRow>
               ))}
@@ -207,7 +207,7 @@ export default function Friends() {
           {incoming.length > 0 && (
             <section>
               <h2 className="text-headline-sm text-on-surface">받은 요청 {incoming.length}</h2>
-              <ul className="divide-y divide-gray-100 bg-white border border-gray-100 rounded-[28px] overflow-hidden">
+              <ul className="divide-y divide-gray-100 glass border border-white/80 rounded-[28px] overflow-hidden">
                 {incoming.map((p) => (
                   <PersonRow key={p.id} person={p}>{actions(p)}</PersonRow>
                 ))}
@@ -220,7 +220,7 @@ export default function Friends() {
             {friends.length === 0 ? (
               <p className="mt-2 text-label-md text-on-surface-variant">친구를 추가하면 서로의 지도를 보고, 영상에 태그할 수 있어요.</p>
             ) : (
-              <ul className="divide-y divide-gray-100 bg-white border border-gray-100 rounded-[28px] overflow-hidden">
+              <ul className="divide-y divide-gray-100 glass border border-white/80 rounded-[28px] overflow-hidden">
                 {friends.map((p) => (
                   <PersonRow key={p.id} person={p}>{actions(p)}</PersonRow>
                 ))}
@@ -231,7 +231,7 @@ export default function Friends() {
           {outgoing.length > 0 && (
             <section>
               <h2 className="text-headline-sm text-on-surface">보낸 요청 {outgoing.length}</h2>
-              <ul className="divide-y divide-gray-100 bg-white border border-gray-100 rounded-[28px] overflow-hidden">
+              <ul className="divide-y divide-gray-100 glass border border-white/80 rounded-[28px] overflow-hidden">
                 {outgoing.map((p) => (
                   <PersonRow key={p.id} person={p}>{actions(p)}</PersonRow>
                 ))}

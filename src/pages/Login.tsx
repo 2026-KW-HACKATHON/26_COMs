@@ -89,7 +89,7 @@ export default function Login() {
   return (
     <div className="flex flex-col items-center w-full pt-8 pb-6 gap-8">
       <div className="flex flex-col items-center text-center gap-4 w-full app-card px-6 py-8">
-        <div className="w-20 h-20 rounded-[24px] instagram-gradient flex items-center justify-center shadow-[0_16px_34px_rgba(225,48,108,0.28)]">
+        <div className="w-20 h-20 rounded-[24px] accent-gradient flex items-center justify-center">
           <img src="/pwa-192x192.png" alt="" className="w-14 h-14 rounded-[18px]" />
         </div>
         <div className="flex flex-col items-center gap-1">
@@ -108,7 +108,7 @@ export default function Login() {
         <button
           onClick={() => login('kakao')}
           disabled={busy}
-          className="relative h-14 rounded-full bg-[#FEE500] text-black/85 text-[16px] font-bold flex items-center justify-center gap-2 disabled:opacity-60 pressable shadow-[0_12px_24px_rgba(254,229,0,0.2)]"
+          className="relative h-14 rounded-full bg-[#FEE500] text-black/85 text-[16px] font-bold flex items-center justify-center gap-2 disabled:opacity-60 pressable shadow-[0_4px_10px_rgba(90,100,160,0.06),0_12px_26px_rgba(230,200,0,0.16)]"
           type="button"
         >
           <span className="absolute left-4">
@@ -119,7 +119,7 @@ export default function Login() {
         <button
           onClick={() => login('google')}
           disabled={busy || inKakaoTalk}
-          className="relative h-14 rounded-full bg-white border border-gray-200 text-on-surface text-[16px] font-bold flex items-center justify-center gap-2 disabled:opacity-60 pressable shadow-[0_12px_24px_rgba(15,23,42,0.06)]"
+          className="relative h-14 rounded-full silver-gradient text-on-surface text-[16px] font-bold flex items-center justify-center gap-2 disabled:opacity-60 pressable shadow-[0_12px_24px_rgba(90,100,160,0.04)]"
           type="button"
         >
           <span className="absolute left-4">
