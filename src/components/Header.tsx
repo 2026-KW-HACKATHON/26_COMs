@@ -19,8 +19,9 @@ const SUB_TITLES: Record<string, string> = {
 };
 
 export default function Header({ currentPath, goBack }: HeaderProps) {
-  const section = currentPath.split('/')[0];
-  const subTitle = SUB_TITLES[section];
+  const [section, sub] = currentPath.split('/');
+  // 그룹 목록은 아래 탭의 첫 화면이라 로고 머리줄, 그 안의 화면(새 그룹·그룹 지도)은 뒤로 가기 머리줄
+  const subTitle = section === 'groups' ? (sub === 'new' ? '새 그룹 만들기' : sub ? '그룹' : undefined) : SUB_TITLES[section];
   const loggedIn = !!useAuth().session;
   const { unread } = useNudges();
   const showBell = SOCIAL_ENABLED && loggedIn;

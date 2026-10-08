@@ -34,3 +34,29 @@ export const MAP_COLORS = {
   glow: '49, 130, 246',
   selected: '#191F28',
 };
+
+/** 그룹 지도에서 한 그룹원의 땅을 칠하는 색 */
+export interface TerritoryColor {
+  main: string;
+  /** 왼쪽 위(연하게) → 오른쪽 아래(진하게) 그라데이션 */
+  fill: readonly [string, string];
+  /** 아래로 번지는 빛 (rgb만) */
+  glow: string;
+}
+
+const rgbOf = (hex: string) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+/** 흰색과 섞어 연하게 */
+const tint = (hex: string, white: number) =>
+  `#${rgbOf(hex)
+    .map((c) => Math.round(c + (255 - c) * white).toString(16).padStart(2, '0'))
+    .join('')}`;
+
+/**
+ * 그룹원 색 (schema.sql의 group_members.color 번호 순서, 8개라 그룹은 8명까지).
+ * 이웃한 번호끼리 색약에서도 구분되는 순서로 검증한 팔레트. 연한 색은 바탕과 대비가 낮아서
+ * 지도 말풍선에 땅 주인 이름 첫 글자를 함께 붙여 색만으로 구분하지 않게 한다
+ */
+export const GROUP_COLORS: TerritoryColor[] = ['#2A78D6', '#EB6834', '#1BAF7A', '#EDA100', '#E87BA4', '#008300', '#4A3AA7', '#E34948'].map(
+  (main) => ({ main, fill: [tint(main, 0.45), main], glow: rgbOf(main).join(', ') }),
+);
+export const groupColor = (index: number) => GROUP_COLORS[index] ?? GROUP_COLORS[0];

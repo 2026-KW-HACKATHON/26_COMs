@@ -1,5 +1,5 @@
 import { FEED_PAGE, type Capsule, type FeedQuery, type NewCapsule, type Visibility } from '../types/capsule';
-import { computePlaceStats, type PlaceStat, type RankingDays } from './ranking';
+import { computePlaceStats, type PlaceStat, type StatDays } from './placeStats';
 import { uuid } from './uuid';
 
 // 기기 저장소: Supabase 설정이 없을 때 로그인 없이 이 브라우저의 IndexedDB에 저장한다 (친구·태그 없음).
@@ -114,8 +114,8 @@ export async function deleteCapsule(id: string): Promise<void> {
   await run('readwrite', (s) => s.delete(id));
 }
 
-/** 동네 랭킹 (기기 저장은 이 기기의 기록만으로 센다) */
-export async function listPlaceStats(days: RankingDays): Promise<PlaceStat[]> {
+/** 동네 지도 방문 수 (기기 저장은 이 기기의 기록만으로 센다) */
+export async function listPlaceStats(days: StatDays): Promise<PlaceStat[]> {
   const list = await listCapsules();
   return computePlaceStats(list.map((c) => ({ placeId: c.placeId, createdAt: c.createdAt, people: [c.userId], verified: c.verified })), days);
 }

@@ -66,10 +66,6 @@
   .nudge-wiggle {
     animation: nudge-wiggle 0.5s ease-in-out;
   }
-  /* 지도 아래 랭킹 카드: 1~3위가 바뀔 때 아래에서 올라온다 */
-  .ticker-in {
-    animation: ticker-in 0.35s ease-out both;
-  }
   /* 하트: 누르면 톡 커졌다 돌아온다. 영상을 두 번 톡 치면 가운데 큰 하트가 커졌다 사라진다 */
   .like-pop {
     animation: like-pop 0.35s cubic-bezier(0.2, 0.9, 0.3, 1.3);
@@ -80,7 +76,6 @@
   @media (prefers-reduced-motion: reduce) {
     .nudge-drop,
     .nudge-wiggle,
-    .ticker-in,
     .like-pop {
       animation: none;
     }
@@ -88,17 +83,6 @@
     .like-burst {
       animation: like-fade 0.8s ease-out both;
     }
-  }
-}
-
-@keyframes ticker-in {
-  from {
-    transform: translateY(8px);
-    opacity: 0;
-  }
-  to {
-    transform: none;
-    opacity: 1;
   }
 }
 
@@ -312,9 +296,7 @@
 .map-z-mid .map-label-place {
   display: none;
 }
-.map-z-low .map-pill:not(.map-pill-selected) span {
-  display: none;
-}
+/* 가게 이름이 안 보일 만큼 축소하면 말풍선(영상·방문 수, 땅 주인 표시)도 통째로 숨긴다. 고른 가게는 그대로 */
 .map-z-low .map-pill:not(.map-pill-selected) {
-  padding: 3px;
+  display: none;
 }

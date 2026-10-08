@@ -8,9 +8,9 @@ import PlaceSearch from '../components/PlaceSearch';
 import { useAuth } from '../hooks/useAuth';
 import { useCapsules } from '../hooks/useCapsules';
 import { useFriendships } from '../hooks/useFriendships';
-import { usePlaceRanking } from '../hooks/usePlaceRanking';
+import { useTownStats } from '../hooks/useTownStats';
 import { SOCIAL_ENABLED, listPlaceCapsules } from '../lib/capsuleStore';
-import { DEFAULT_RANKING_DAYS, MEDALS, RANKING_PERIODS } from '../lib/ranking';
+import { TOWN_PERIOD_LABEL } from '../lib/placeStats';
 import { isUuid } from '../lib/supabase';
 import { daysAgo, myPlaceVisits, summarizeVisits, type MyPlaceVisit } from '../lib/visits';
 import { placesInSameBuilding } from '../data/mapData';
@@ -18,9 +18,6 @@ import { CATEGORY_EMOJI, getPlace, placeSubtitle } from '../data/places';
 import type { Capsule } from '../types/capsule';
 
 const NO_CAPSULES: Capsule[] = [];
-const PERIOD_LABEL = RANKING_PERIODS.find((p) => p.days === DEFAULT_RANKING_DAYS)!.label;
-/** 아래 랭킹 카드가 1~3위를 돌아가며 보여 주는 간격 */
-const TICKER_MS = 3500;
 
 export default function Home() {
   const navigate = useNavigate();
@@ -53,14 +50,10 @@ export default function Home() {
     return counts;
   }, [shown]);
 
-  // 동네 랭킹: 동네 지도의 색·메달, 가게 시트의 순위, 아래 랭킹 카드에 쓴다
-  const ranking = usePlaceRanking(DEFAULT_RANKING_DAYS);
-  const rankOf = useMemo(() => new Map(ranking?.map((r) => [r.placeId, r])), [ranking]);
-  const townVisits = useMemo(() => new Map(ranking?.map((r) => [r.placeId, r.visits])), [ranking]);
-  const medals = useMemo(
-    () => new Map<string, PlaceMark>(ranking?.filter((r) => r.rank <= 3).map((r) => [r.placeId, { emoji: MEDALS[r.rank - 1] }])),
-    [ranking],
-  );
+  // 동네 방문 수: 동네 지도의 색과 가게 시트의 방문 수에 쓴다
+  const townStats = useTownStats();
+  const statOf = useMemo(() => new Map(townStats?.map((s) => [s.placeId, s])), [townStats]);
+  const townVisits = useMemo(() => new Map(townStats?.map((s) => [s.placeId, s.visits])), [townStats]);
 
   // 내 방문 (내 지도·동네 지도일 때 capsules는 내 기록): 단골은 별, 오래 안 간 곳은 "오랜만"
   const myVisits = useMemo(() => (viewingId ? new Map<string, MyPlaceVisit>() : myPlaceVisits(capsules ?? [])), [viewingId, capsules]);
@@ -72,15 +65,6 @@ export default function Home() {
       ),
     [myVisits],
   );
-  const [tick, setTick] = useState(0);
-  const tickerSize = Math.min(3, ranking?.length ?? 0);
-  useEffect(() => {
-    if (tickerSize < 2) return;
-    const timer = setInterval(() => setTick((t) => t + 1), TICKER_MS);
-    return () => clearInterval(timer);
-  }, [tickerSize]);
-  const featured = tickerSize ? ranking![tick % tickerSize] : null;
-
   // 동네 지도에서 가게를 고르면 그 가게에서 내가 볼 수 있는 영상(내 것·친구 것·동네 공개)을 모두 보여 준다
   const [placeVideos, setPlaceVideos] = useState<{ placeId: string; list: Capsule[] } | null>(null);
   useEffect(() => {
@@ -95,7 +79,7 @@ export default function Home() {
   }, [town, me, selectedId]);
 
   const selected = getPlace(selectedId);
-  const selectedStat = selectedId ? rankOf.get(selectedId) : undefined;
+  const selectedStat = selectedId ? statOf.get(selectedId) : undefined;
   const myVisit = selectedId ? myVisits.get(selectedId) : undefined;
   const selectedVideos =
     town && me
@@ -116,8 +100,8 @@ export default function Home() {
       : friendships === null
         ? '친구 지도를 불러오는 중…'
         : '친구의 지도만 볼 수 있어요'
-    : town && ranking?.length
-      ? `${PERIOD_LABEL} 동안 동네 사람들이 다녀간 곳이에요`
+    : town && townStats?.length
+      ? `${TOWN_PERIOD_LABEL} 동안 동네 사람들이 다녀간 곳이에요`
       : !town && mySummary.visited
         ? `월계1동 ${mySummary.total}곳 중 ${mySummary.visited}곳 가 봤어요`
         : '가 본 가게를 눌러 5초를 남겨 보세요';
@@ -128,7 +112,7 @@ export default function Home() {
         selectedId={selectedId}
         onSelect={(p) => setSelectedId(p.id)}
         videoCount={mapCount}
-        marks={town ? medals : viewingId ? undefined : myMarks}
+        marks={town || viewingId ? undefined : myMarks}
         className="absolute inset-0"
       />
 
@@ -164,22 +148,17 @@ export default function Home() {
             </button>
           </div>
 
-          {/* 동네에서 이 가게의 순위 (영상은 비공개, 숫자만) */}
+          {/* 동네 사람들의 방문 수 (영상은 비공개, 숫자만) */}
           {selectedStat ? (
-            <button
-              onClick={() => navigate('/ranking')}
-              className="-mt-1 flex items-center gap-2 px-3.5 py-2.5 rounded-2xl bg-primary-fixed text-on-primary-fixed text-label-md font-semibold text-left pressable"
-              type="button"
-            >
-              <span className="text-[17px] leading-none">{MEDALS[selectedStat.rank - 1] ?? '🏆'}</span>
+            <p className="-mt-1 flex items-center gap-2 px-3.5 py-2.5 rounded-2xl bg-primary-fixed text-on-primary-fixed text-label-md font-semibold">
+              <span className="material-symbols-rounded icon-fill text-[18px]">local_fire_department</span>
               <span className="flex-1 min-w-0 truncate">
-                동네 {selectedStat.rank}위 · {PERIOD_LABEL} {selectedStat.visits}번 방문
+                {TOWN_PERIOD_LABEL} 동네 사람들이 {selectedStat.visits}번 다녀갔어요
                 {selectedStat.regulars > 0 && ` · 단골 ${selectedStat.regulars}명`}
               </span>
-              <span className="material-symbols-rounded text-[18px]">chevron_right</span>
-            </button>
+            </p>
           ) : (
-            ranking && <p className="-mt-2 text-label-md text-on-surface-variant">{PERIOD_LABEL} 동안 다녀간 사람이 없어요. 처음으로 남겨 보세요</p>
+            townStats && <p className="-mt-2 text-label-md text-on-surface-variant">{TOWN_PERIOD_LABEL} 동안 다녀간 사람이 없어요. 처음으로 남겨 보세요</p>
           )}
 
           {/* 내 방문: 단골이면 별, 오래 안 갔으면 다시 가 보자고 */}
@@ -241,24 +220,6 @@ export default function Home() {
       ) : (
         <div className="absolute bottom-3 inset-x-3 z-10 flex flex-col items-center gap-2 pointer-events-none">
           <span className="px-4 py-2 rounded-full bg-inverse-surface/90 text-inverse-on-surface text-label-md font-semibold">{hint}</span>
-          {/* 동네 랭킹 1~3위를 돌아가며 보여 주고, 누르면 전체 랭킹 */}
-          {featured && (
-            <button
-              onClick={() => navigate('/ranking')}
-              className="pointer-events-auto w-full h-16 pl-3 pr-2 rounded-2xl bg-surface shadow-sheet flex items-center gap-3 text-left pressable"
-              type="button"
-            >
-              <span className="w-10 h-10 shrink-0 rounded-full bg-primary-fixed flex items-center justify-center text-[20px]">🏆</span>
-              <span className="flex-1 min-w-0">
-                <span className="block text-label-sm text-on-surface-variant">동네 랭킹 · {PERIOD_LABEL}</span>
-                <span key={featured.placeId} className="block text-label-lg font-bold text-on-surface truncate ticker-in">
-                  {MEDALS[featured.rank - 1] ?? `${featured.rank}위`} {featured.place.name}
-                  <span className="ml-1.5 text-primary">{featured.visits}번 방문</span>
-                </span>
-              </span>
-              <span className="material-symbols-rounded text-[22px] text-gray-400">chevron_right</span>
-            </button>
-          )}
         </div>
       )}
     </div>

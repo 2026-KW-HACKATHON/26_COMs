@@ -15,8 +15,8 @@ describe('schema loading', () => {
   test('schema.sql runs twice in a row without error', async () => {
     const h = await createDb({ runs: 2 });
     const policies = await h.q('admin', `select count(*)::int as n from pg_policies where schemaname in ('public', 'storage')`);
-    // 20 table policies + 7 "block anonymous" restrictive policies + 5 storage policies
-    assert.equal(policies[0].n, 32);
+    // 22 table policies + 9 "block anonymous" restrictive policies + 5 storage policies
+    assert.equal(policies[0].n, 36);
     await h.close();
   });
 
@@ -1199,5 +1199,207 @@ describe('R12 likes', () => {
     assert.equal(await count(A, pub.id), 1);
     assert.equal(await unlike(A, pub.id), 1);
     assert.equal(await count(A, pub.id), 0);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// R13 groups (그룹):
+//   A–B, A–C, B–D are friends (B and C are not). A makes a group and invites B, C and D (D is not A's friend).
+//   S is a stranger. Visits are counted per person per Korean day, like place_ranking.
+describe('R13 groups', () => {
+  let h, A, B, C, D, S, G;
+  const F = [];
+  const listGroups = (who) => h.q(who, 'select * from public.list_groups()');
+  const map = async (who, group = G) =>
+    (await h.q(who, 'select * from public.group_map($1)', [group])).map((r) => [r.place_id, r.user_id, r.visits, r.owner]);
+  const invite = (who, targets, group = G) => h.q(who, 'select public.invite_to_group($1, $2) as n', [group, targets]);
+  const members = async (group = G) =>
+    (await h.q('admin', 'select user_id, status, color from public.group_members where group_id = $1 order by color', [group])).map(
+      (r) => [r.user_id, r.status, r.color],
+    );
+  const backdate = (id, days) =>
+    h.q('admin', `update public.capsules set created_at = now() - make_interval(days => $2) where id = $1`, [id, days]);
+  const tag = (who, capsule, target) => h.q(who, 'insert into public.capsule_tags (capsule_id, user_id) values ($1, $2)', [capsule, target]);
+
+  before(async () => {
+    h = await createDb();
+    A = await h.signUp({ email: 'ga.group@x.com' });
+    B = await h.signUp({ email: 'gb.group@x.com' });
+    C = await h.signUp({ email: 'gc.group@x.com' });
+    D = await h.signUp({ email: 'gd.group@x.com' });
+    S = await h.signUp({ email: 'gs.group@x.com' });
+    await h.befriend(A, B);
+    await h.befriend(A, C);
+    await h.befriend(B, D);
+    for (let i = 0; i < 6; i++) {
+      F.push(await h.signUp({ email: `gf${i}.group@x.com` }));
+      await h.befriend(A, F[i]);
+    }
+
+    // p1: A는 3일 전·오늘(2번), B는 5일 전·어제(2번) → 같은 2번이지만 B가 먼저 2번에 닿아서 B의 땅
+    await backdate((await h.capsule(A, { place: 'p1' })).id, 3);
+    await h.capsule(A, { place: 'p1' });
+    await backdate((await h.capsule(B, { place: 'p1' })).id, 5);
+    await backdate((await h.capsule(B, { place: 'p1' })).id, 1);
+    // p2: A가 B를 태그한 영상 하나 → 둘 다 1번, 찍은 A의 땅. 같은 날 하나 더 남겨도 방문은 1번
+    const together = await h.capsule(A, { place: 'p2' });
+    await tag(A, together.id, B);
+    await h.capsule(A, { place: 'p2' });
+    // p3: C의 친구 공개 영상 (B와 C는 친구가 아니어도 그룹 지도에서는 숫자가 보인다)
+    await h.capsule(C, { place: 'p3' });
+    // p4: 그룹 밖 사람(S)의 방문은 세지 않는다
+    await h.capsule(S, { place: 'p4' });
+    // p5: 그룹 밖 D가 B를 태그 → B의 방문
+    const fromD = await h.capsule(D, { place: 'p5' });
+    await tag(D, fromD.id, B);
+
+    G = (await h.q(A, 'select public.create_group($1, $2) as id', ['  월계 맛집 탐험대 ', [B, C, D, A, S]]))[0].id;
+  });
+  after(() => h.close());
+
+  test('the creator is the first member; only their friends are invited, each with their own color', async () => {
+    assert.deepEqual(await members(), [
+      [A, 'member', 0],
+      [B, 'invited', 1],
+      [C, 'invited', 2],
+    ]);
+    assert.deepEqual(await h.q('admin', 'select name, created_by from public.groups where id = $1', [G]), [{ name: '월계 맛집 탐험대', created_by: A }]);
+  });
+
+  test('group names are 1–20 characters', async () => {
+    await assert.rejects(h.q(A, 'select public.create_group($1)', ['   ']), /check constraint/);
+    await assert.rejects(h.q(A, 'select public.create_group($1)', ['가'.repeat(21)]), /check constraint/);
+  });
+
+  test('anon and anonymous sign-ins cannot make or read groups', async () => {
+    await assert.rejects(h.q('anon', `select public.create_group('x')`), DENIED);
+    await assert.rejects(h.q('anon', 'select * from public.group_members'), DENIED);
+    await assert.rejects(h.q({ id: S, anonymous: true }, `select public.create_group('x')`), /not authenticated/);
+    assert.deepEqual(await map({ id: A, anonymous: true }), []);
+  });
+
+  test('members and invitees see the group and each other; strangers see nothing', async () => {
+    const rows = await listGroups(B);
+    assert.deepEqual(
+      rows.map((r) => [r.group_id, r.name, r.user_id, r.status, r.color, r.invited_by]),
+      [
+        [G, '월계 맛집 탐험대', A, 'member', 0, null],
+        [G, '월계 맛집 탐험대', B, 'invited', 1, A],
+        [G, '월계 맛집 탐험대', C, 'invited', 2, A],
+      ],
+    );
+    // B와 C는 친구가 아니어도 같은 그룹이라 서로의 프로필이 보인다
+    assert.equal(rows.find((r) => r.user_id === C).username, 'gc.group');
+    assert.equal((await h.q(B, 'select id from public.profiles where id = $1', [C])).length, 1);
+    assert.deepEqual(await listGroups(S), []);
+    assert.deepEqual(await listGroups(D), []);
+    assert.deepEqual(await h.q(S, 'select * from public.groups'), []);
+    assert.deepEqual(await h.q(D, 'select id from public.profiles where id = $1', [C]), []);
+  });
+
+  test('the map is only for members: invitees see it after accepting', async () => {
+    assert.deepEqual(await map(B), []);
+    assert.deepEqual(await map(S), []);
+    // 아직 A 혼자라 A의 방문만
+    assert.deepEqual(await map(A), [
+      ['p1', A, 2, true],
+      ['p2', A, 1, true],
+    ]);
+    await h.q(B, 'select public.accept_group_invite($1)', [G]);
+    await h.q(C, 'select public.accept_group_invite($1)', [G]);
+    await h.q(C, 'select public.accept_group_invite($1)', [G]); // 이미 그룹원이면 그대로
+    await assert.rejects(h.q(S, 'select public.accept_group_invite($1)', [G]), /no invitation/);
+  });
+
+  test('each place goes to the member with the most visit days; ties go to whoever got there first, then to who filmed', async () => {
+    const expected = [
+      ['p1', B, 2, true],
+      ['p1', A, 2, false],
+      ['p2', A, 1, true],
+      ['p2', B, 1, false],
+      ['p3', C, 1, true],
+      ['p5', B, 1, true],
+    ];
+    assert.deepEqual(await map(A), expected);
+    assert.deepEqual(await map(B), expected);
+    assert.deepEqual(await map(C), expected);
+  });
+
+  test('a new visit day takes the place over; the same day again does not', async () => {
+    await h.capsule(A, { place: 'p3' });
+    await h.capsule(A, { place: 'p3' });
+    // A 1번 = C 1번이면 먼저 닿은 C가 지킨다
+    assert.deepEqual((await map(B)).filter((r) => r[0] === 'p3'), [
+      ['p3', C, 1, true],
+      ['p3', A, 1, false],
+    ]);
+    await backdate((await h.capsule(A, { place: 'p3' })).id, 2);
+    assert.deepEqual((await map(B)).filter((r) => r[0] === 'p3'), [
+      ['p3', A, 2, true],
+      ['p3', C, 1, false],
+    ]);
+  });
+
+  test('only members invite, only their own friends, and at most 8 people with distinct colors', async () => {
+    await assert.rejects(invite(S, [F[0]]), /not a group member/);
+    await assert.rejects(invite({ id: A, anonymous: true }, [F[0]]), /not a group member/);
+    // B는 F들과 친구가 아니라 아무도 초대되지 않는다. D는 B의 친구라 B가 초대할 수 있다
+    assert.deepEqual(await invite(B, [F[0], F[1]]), [{ n: 0 }]);
+    assert.deepEqual(await invite(B, [D]), [{ n: 1 }]);
+    assert.deepEqual(await invite(A, [F[0], F[1], F[2], F[3]]), [{ n: 4 }]);
+    assert.equal((await members()).length, 8);
+    // 가득 차면 한 명도 초대되지 않는다 (일부만 들어가지 않음)
+    await assert.rejects(invite(A, [F[4], F[5]]), /group is full/);
+    assert.equal((await members()).length, 8);
+    assert.deepEqual(new Set((await members()).map((m) => m[2])).size, 8);
+  });
+
+  test('a member cancels a pending invite; the freed color goes to the next invitee', async () => {
+    const colorOf = async (id) => (await members()).find((m) => m[0] === id)?.[2];
+    const freed = await colorOf(F[3]);
+    await assert.rejects(h.q(S, 'select public.cancel_group_invite($1, $2)', [G, F[3]]), /not a group member/);
+    await h.q(C, 'select public.cancel_group_invite($1, $2)', [G, F[3]]);
+    // 그룹원은 초대 취소로 내보낼 수 없다
+    await h.q(C, 'select public.cancel_group_invite($1, $2)', [G, A]);
+    assert.equal(await colorOf(F[3]), undefined);
+    assert.equal(await colorOf(A), 0);
+    assert.deepEqual(await invite(A, [F[4]]), [{ n: 1 }]);
+    assert.equal(await colorOf(F[4]), freed);
+  });
+
+  test('nobody writes the tables directly or calls the internal invite helper', async () => {
+    await assert.rejects(h.q(S, 'insert into public.group_members (group_id, user_id, color) values ($1, $2, 7)', [G, S]), DENIED);
+    await assert.rejects(h.q(F[0], `update public.group_members set status = 'member' where user_id = $1`, [F[0]]), DENIED);
+    await assert.rejects(h.q(A, `update public.groups set name = 'x' where id = $1`, [G]), DENIED);
+    await assert.rejects(h.q(A, 'delete from public.groups where id = $1', [G]), DENIED);
+    await assert.rejects(h.q(A, 'select public.add_group_invites($1, $2)', [G, [F[5]]]), DENIED);
+  });
+
+  test('declining removes the invite; leaving removes my visits from the map', async () => {
+    await h.q(F[0], 'select public.leave_group($1)', [G]);
+    assert.equal((await members()).some((m) => m[0] === F[0]), false);
+    await h.q(C, 'select public.leave_group($1)', [G]);
+    assert.deepEqual(await map(C), []);
+    assert.deepEqual((await map(A)).filter((r) => r[1] === C), []);
+    assert.deepEqual(await listGroups(C), []);
+    // 그룹 밖 사람이 불러도 아무 일 없다
+    await h.q(S, 'select public.leave_group($1)', [G]);
+    assert.ok((await members()).length > 0);
+  });
+
+  test('re-running the schema keeps groups', async () => {
+    await h.db.exec(schemaSql());
+    assert.equal((await listGroups(A)).length, (await members()).length);
+  });
+
+  test('when the last member leaves, the group and its pending invites are deleted', async () => {
+    const pending = (await members()).filter((m) => m[1] === 'invited').map((m) => m[0]);
+    assert.ok(pending.length > 0);
+    await h.q(A, 'select public.leave_group($1)', [G]);
+    assert.ok((await members()).length > 0);
+    await h.q(B, 'select public.leave_group($1)', [G]);
+    assert.deepEqual(await members(), []);
+    assert.deepEqual(await h.q('admin', 'select id from public.groups where id = $1', [G]), []);
+    assert.deepEqual(await listGroups(pending[0]), []);
   });
 });

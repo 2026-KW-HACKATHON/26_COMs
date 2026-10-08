@@ -3,7 +3,7 @@ import L from 'leaflet';
 import { getMapData, type Building, type LatLng } from '../data/mapData';
 import { getPlace, type Place } from '../data/places';
 import { getFix } from '../lib/location';
-import { MAP_COLORS } from '../lib/theme';
+import { MAP_COLORS, type TerritoryColor } from '../lib/theme';
 
 /** 가게 이름표에 붙이는 표시: 앞에 이모지(메달·단골 별), 뒤에 짧은 글(오랜만) */
 export interface PlaceMark {
@@ -11,13 +11,23 @@ export interface PlaceMark {
   note?: string;
 }
 
+/** 그룹 지도의 땅 주인: 그 그룹원의 색과 말풍선에 넣을 글(이름 첫 글자) */
+export interface PlaceOwner {
+  color: TerritoryColor;
+  badge: string;
+}
+
 interface PlaceMapProps {
   selectedId: string | null;
   onSelect: (place: Place) => void;
-  /** 장소별 영상(동네 지도는 방문) 수. 많을수록 건물 색이 진해지고 빛이 번진다 */
+  /** 장소별 영상(동네 지도는 방문, 그룹 지도는 땅 주인의 방문) 수. 많을수록 건물 색이 진해지고 빛이 번진다 */
   videoCount?: Map<string, number>;
-  /** 가게별 이름표 표시 (동네 지도는 1~3위 메달, 내 지도는 단골·오랜만) */
+  /** 가게별 이름표 표시 (내 지도는 단골·오랜만) */
   marks?: Map<string, PlaceMark>;
+  /** 가게별 땅 주인 (그룹 지도). 있으면 영상 수 단계 대신 주인 색으로 칠하고 말풍선에 주인을 표시한다 */
+  owners?: Map<string, PlaceOwner>;
+  /** 이 가게들이 모두 보이게 맞춘다 (그룹 지도: 그룹원들의 땅). 목록이 바뀔 때마다 다시 맞추고, 주면 내 위치로 옮기지 않는다 */
+  fitPlaceIds?: string[];
   className?: string;
 }
 
@@ -55,23 +65,27 @@ const GLOW = [
 ];
 
 interface GlowOptions extends L.PathOptions {
-  glow?: { color: string; blur: number };
+  /** 번지는 빛: 그림자 색, 흐림 반경, 빛을 내는 도형을 채울 색 */
+  glow?: { color: string; blur: number; fill: string };
   /** 왼쪽 위 → 오른쪽 아래로 채울 두 색 (영상이 있는 건물) */
   gradient?: readonly [string, string];
 }
 
-/** 테두리는 얇게(고해상도 화면에서 1픽셀 남짓), 색은 단계별 그라데이션으로 채운다 */
-function storeStyle(count: number, selected: boolean): GlowOptions {
+/** 테두리는 얇게(고해상도 화면에서 1픽셀 남짓), 색은 단계별 그라데이션(땅 주인이 있으면 주인 색)으로 채운다 */
+function storeStyle(count: number, selected: boolean, owner?: TerritoryColor): GlowOptions {
   const heat = MAP_COLORS.heat[heatLevel(count)];
-  const base: GlowOptions = count
-    ? { fillColor: heat[1], gradient: heat, fillOpacity: 1, color: MAP_COLORS.heatStroke, opacity: 0.3, weight: 0.6 }
-    : { fillColor: MAP_COLORS.store, fillOpacity: 1, color: MAP_COLORS.storeStroke, opacity: 1, weight: 0.6 };
-  return selected ? { ...base, color: MAP_COLORS.selected, opacity: 1, weight: 2, ...(count ? {} : { fillColor: '#B0B8C1' }) } : base;
+  const base: GlowOptions = owner
+    ? { fillColor: owner.main, gradient: owner.fill, fillOpacity: 1, color: owner.main, opacity: 0.6, weight: 0.6 }
+    : count
+      ? { fillColor: heat[1], gradient: heat, fillOpacity: 1, color: MAP_COLORS.heatStroke, opacity: 0.3, weight: 0.6 }
+      : { fillColor: MAP_COLORS.store, fillOpacity: 1, color: MAP_COLORS.storeStroke, opacity: 1, weight: 0.6 };
+  return selected ? { ...base, color: MAP_COLORS.selected, opacity: 1, weight: 2, ...(count || owner ? {} : { fillColor: '#B0B8C1' }) } : base;
 }
 
-function glowStyle(count: number): GlowOptions {
+function glowStyle(count: number, owner?: TerritoryColor): GlowOptions {
   const { blur, alpha } = GLOW[heatLevel(count)];
-  return { interactive: false, stroke: false, glow: { color: `rgba(${MAP_COLORS.glow}, ${alpha})`, blur } };
+  const rgb = owner?.glow ?? MAP_COLORS.glow;
+  return { interactive: false, stroke: false, glow: { color: `rgba(${rgb}, ${alpha})`, blur, fill: `rgb(${rgb})` } };
 }
 
 /** Leaflet 캔버스 렌더러의 내부 함수 (빛 번짐을 그리려고 덮어쓴다) */
@@ -113,7 +127,7 @@ const GlowCanvas = L.Canvas.extend({
     ctx.globalAlpha = 1;
     ctx.shadowColor = glow.color;
     ctx.shadowBlur = glow.blur * CANVAS_SCALE;
-    ctx.fillStyle = `rgb(${MAP_COLORS.glow})`;
+    ctx.fillStyle = glow.fill;
     ctx.fill();
     ctx.restore();
   },
@@ -140,13 +154,15 @@ function summaryName(places: Place[]) {
   return places.length > 1 ? `${places[0].name} 외 ${places.length - 1}` : places[0].name;
 }
 
-export default function PlaceMap({ selectedId, onSelect, videoCount, marks, className = '' }: PlaceMapProps) {
+export default function PlaceMap({ selectedId, onSelect, videoCount, marks, owners, fitPlaceIds, className = '' }: PlaceMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const rendererRef = useRef<L.Canvas | null>(null);
   const dynamicRef = useRef<L.LayerGroup | null>(null);
   const onSelectRef = useRef(onSelect);
   const selectedIdRef = useRef(selectedId);
+  const fitsPlacesRef = useRef(fitPlaceIds !== undefined);
+  const fittedKeyRef = useRef('');
 
   useEffect(() => {
     onSelectRef.current = onSelect;
@@ -250,7 +266,7 @@ export default function PlaceMap({ selectedId, onSelect, videoCount, marks, clas
         keyboard: false,
         zIndexOffset: 900,
       }).addTo(map);
-      if (touched || selectedIdRef.current) return;
+      if (touched || selectedIdRef.current || fitsPlacesRef.current) return;
       if (performance.now() - askedAt < INSTANT_FIX_MS) map.setView(here, NAME_ZOOM, { animate: false });
       else map.flyTo(here, NAME_ZOOM, { duration: 0.8 });
     });
@@ -277,35 +293,44 @@ export default function PlaceMap({ selectedId, onSelect, videoCount, marks, clas
     const data = getMapData();
     const countOf = (p: Place) => videoCount?.get(p.id) ?? 0;
     const buildingCount = (b: Building) => b.places.reduce((s, p) => s + countOf(p), 0);
+    const ownerOf = (p: Place | undefined) => (p ? owners?.get(p.id) : undefined);
+    /** 건물에서 영상(방문)이 가장 많은 가게. 건물은 이 가게의 땅 주인 색으로 칠한다 */
+    const topPlace = (b: Building) => b.places.reduce<Place | undefined>((top, p) => (countOf(p) > (top ? countOf(top) : 0) ? p : top), undefined);
     /** 이름표 글: 이모지 + 이름 + 짧은 글 */
     const named = (p: Place | undefined, name: string) => {
       const mark = p && marks?.get(p.id);
       return `${mark?.emoji ? `${mark.emoji} ` : ''}${esc(name)}${mark?.note ? `<i>${esc(mark.note)}</i>` : ''}`;
     };
+    /** 말풍선 앞 동그라미: 땅 주인(주인 색 + 이름 첫 글자) 또는 영상 수 */
+    const bubble = (p: Place | undefined, count: number) => {
+      const owner = ownerOf(p);
+      return owner ? `<b style="background:${owner.color.main}">${esc(owner.badge)}</b>` : count ? `<b>${count}</b>` : '';
+    };
 
     // 빛 번짐을 먼저 모두 그려야 옆 건물을 덮지 않고 건물 아래로 깔린다 (약한 것부터)
     const glows = [
-      ...data.placeBuildings.map((b) => ({ count: buildingCount(b), make: (s: GlowOptions) => L.polygon(b.ring, { renderer, ...s }) })),
-      ...data.unmatched.map((p) => ({ count: countOf(p), make: (s: GlowOptions) => L.circleMarker([p.lat, p.lng], { renderer, radius: 5.5, ...s }) })),
+      ...data.placeBuildings.map((b) => ({ count: buildingCount(b), owner: ownerOf(topPlace(b)), make: (s: GlowOptions) => L.polygon(b.ring, { renderer, ...s }) })),
+      ...data.unmatched.map((p) => ({ count: countOf(p), owner: ownerOf(p), make: (s: GlowOptions) => L.circleMarker([p.lat, p.lng], { renderer, radius: 5.5, ...s }) })),
     ];
     glows
       .filter((g) => g.count > 0)
       .sort((a, b) => a.count - b.count)
-      .forEach((g) => g.make(glowStyle(g.count)).addTo(layer));
+      .forEach((g) => g.make(glowStyle(g.count, g.owner?.color)).addTo(layer));
 
     const draw = (b: Building) => {
       const count = buildingCount(b);
+      const top = topPlace(b);
       const selected = b.places.find((p) => p.id === selectedId);
-      L.polygon(b.ring, { renderer, ...storeStyle(count, !!selected) })
+      L.polygon(b.ring, { renderer, ...storeStyle(count, !!selected, ownerOf(top)?.color) })
         .on('click', (e: L.LeafletMouseEvent) => onSelectRef.current(nearestPlace(b.places, e.latlng)))
         .addTo(layer);
 
       if (selected) {
-        const own = countOf(selected);
-        layer.addLayer(label(b.center, `${own ? `<b>${own}</b>` : ''}<span>${named(selected, selected.name)}</span>`, `map-pill map-pill-selected ${own ? '' : 'map-pill-plain'}`, 1000));
+        const dot = bubble(selected, countOf(selected));
+        layer.addLayer(label(b.center, `${dot}<span>${named(selected, selected.name)}</span>`, `map-pill map-pill-selected ${dot ? '' : 'map-pill-plain'}`, 1000));
       } else if (count) {
         const withVideo = b.places.filter((p) => countOf(p)).sort((x, y) => countOf(y) - countOf(x));
-        layer.addLayer(label(b.center, `<b>${count}</b><span>${named(withVideo[0], summaryName(withVideo))}</span>`, 'map-pill', 500 + count));
+        layer.addLayer(label(b.center, `${bubble(top, count)}<span>${named(top, summaryName(withVideo))}</span>`, 'map-pill', 500 + count));
       } else {
         layer.addLayer(label(b.center, esc(summaryName(b.places)), 'map-label-place'));
       }
@@ -320,17 +345,33 @@ export default function PlaceMap({ selectedId, onSelect, videoCount, marks, clas
     for (const p of data.unmatched) {
       const count = countOf(p);
       const selected = p.id === selectedId;
-      L.circleMarker([p.lat, p.lng], { renderer, radius: selected ? 7 : 5.5, ...storeStyle(count, selected) })
+      L.circleMarker([p.lat, p.lng], { renderer, radius: selected ? 7 : 5.5, ...storeStyle(count, selected, ownerOf(p)?.color) })
         .on('click', () => onSelectRef.current(p))
         .addTo(layer);
       if (selected || count) {
-        const html = `${count ? `<b>${count}</b>` : ''}<span>${named(p, p.name)}</span>`;
-        layer.addLayer(label([p.lat, p.lng], html, `map-pill ${selected ? 'map-pill-selected' : ''} ${count ? '' : 'map-pill-plain'}`, selected ? 1000 : 500 + count));
+        const dot = bubble(p, count);
+        const html = `${dot}<span>${named(p, p.name)}</span>`;
+        layer.addLayer(label([p.lat, p.lng], html, `map-pill ${selected ? 'map-pill-selected' : ''} ${dot ? '' : 'map-pill-plain'}`, selected ? 1000 : 500 + count));
       } else {
         layer.addLayer(label([p.lat, p.lng], esc(p.name), 'map-label-place map-label-dot'));
       }
     }
-  }, [selectedId, videoCount, marks]);
+  }, [selectedId, videoCount, marks, owners]);
+
+  // 맞출 가게 목록이 바뀌면(처음 불러옴, 그룹원 한 명만 보기) 그 가게들이 모두 보이게
+  const fitKey = fitPlaceIds?.join(',') ?? '';
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !fitKey || fitKey === fittedKeyRef.current) return;
+    fittedKeyRef.current = fitKey;
+    const data = getMapData();
+    const points = fitKey.split(',').flatMap((id): L.LatLngExpression[] => {
+      const place = getPlace(id);
+      const index = data.buildingOf.get(id);
+      return !place ? [] : index === undefined ? [[place.lat, place.lng]] : [data.buildings[index].center];
+    });
+    if (points.length) map.flyToBounds(L.latLngBounds(points), { padding: [56, 56], maxZoom: NAME_ZOOM, duration: 0.6 });
+  }, [fitKey]);
 
   // 선택된 장소가 화면 밖(검색으로 고른 경우 등)이면 그쪽으로 이동
   useEffect(() => {

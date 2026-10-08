@@ -8,10 +8,8 @@ import { CATEGORY_EMOJI, getPlace, placeSubtitle } from '../data/places';
 import { useAuth } from '../hooks/useAuth';
 import { useFriendships } from '../hooks/useFriendships';
 import { useLike } from '../hooks/useLike';
-import { usePlaceRanking } from '../hooks/usePlaceRanking';
 import { SOCIAL_ENABLED, listFeed } from '../lib/capsuleStore';
 import { formatRelative } from '../lib/format';
-import { DEFAULT_RANKING_DAYS, MEDALS, type RankedPlace } from '../lib/ranking';
 import { FEED_PAGE, type Capsule } from '../types/capsule';
 
 type Scope = 'friends' | 'town';
@@ -31,8 +29,6 @@ export default function Feed() {
   const me = useAuth().session?.user.id ?? '';
   const { list: friendships } = useFriendships();
   const friendIds = useMemo(() => friendships?.filter((f) => f.status === 'friend').map((f) => f.id) ?? null, [friendships]);
-  const ranking = usePlaceRanking(DEFAULT_RANKING_DAYS);
-  const rankOf = useMemo(() => new Map(ranking?.map((r) => [r.placeId, r])), [ranking]);
 
   // 탭을 바꾸면 이전 탭 목록이 잠깐 보이지 않도록 어느 탭의 목록인지 함께 기억한다
   const [loaded, setLoaded] = useState<{ scope: Scope; list: Capsule[]; failed: boolean } | null>(null);
@@ -125,7 +121,7 @@ export default function Feed() {
         <div className="flex flex-col -mt-2">
           <div className="flex flex-col divide-y divide-gray-100">
             {items.map((c) => (
-              <FeedItem key={c.id} capsule={c} me={me} stat={rankOf.get(c.placeId)} onOpen={() => navigate(`/video/${c.id}`)} onMap={() => openOnMap(c)} />
+              <FeedItem key={c.id} capsule={c} me={me} onOpen={() => navigate(`/video/${c.id}`)} onMap={() => openOnMap(c)} />
             ))}
           </div>
           {hasMore && (
@@ -147,12 +143,11 @@ export default function Feed() {
 interface FeedItemProps {
   capsule: Capsule;
   me: string;
-  stat: RankedPlace | undefined;
   onOpen: () => void;
   onMap: () => void;
 }
 
-function FeedItem({ capsule: c, me, stat, onOpen, onMap }: FeedItemProps) {
+function FeedItem({ capsule: c, me, onOpen, onMap }: FeedItemProps) {
   const place = getPlace(c.placeId);
   const like = useLike(c);
   const mine = !SOCIAL_ENABLED || c.userId === me;
@@ -203,9 +198,7 @@ function FeedItem({ capsule: c, me, stat, onOpen, onMap }: FeedItemProps) {
         </span>
         <span className="flex-1 min-w-0">
           <span className="block text-label-lg font-bold text-on-surface truncate">{c.placeName}</span>
-          <span className="block text-label-sm text-on-surface-variant truncate">
-            {[place && placeSubtitle(place), stat && `${MEDALS[stat.rank - 1] ?? ''}동네 ${stat.rank}위`].filter(Boolean).join(' · ')}
-          </span>
+          {place && <span className="block text-label-sm text-on-surface-variant truncate">{placeSubtitle(place)}</span>}
         </span>
         <span className="shrink-0 flex items-center text-label-md font-semibold text-gray-500">
           지도
